@@ -1,0 +1,3 @@
+aiogram
+aiogram-dialog
+nats-py
