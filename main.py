@@ -25,8 +25,14 @@ async def handler(_: Message, dialog_manager: DialogManager) -> None:
 async def handle_old_button(event: ErrorEvent) -> None:
     exc = cast(UnknownIntent, event.exception)
     logging.info("Old button used: %s", exc)
-    if event.update.callback_query:
-        await event.update.callback_query.answer()
+    if (callback_query := event.update.callback_query) is not None:
+        await callback_query.answer("Эта кнопка слишком старая. Я даже не помню, о чем мы говорили!")
+        await callback_query.message.delete()  # TODO: handle error for deletion after 48 hours
+    else:
+        logging.warning(
+            "Unknown Intent for non-callback type: %s",
+            event.model_dump_json(exclude_none=True, exclude_defaults=True, exclude_unset=True),
+        )
 
 
 async def main(token: str) -> None:
