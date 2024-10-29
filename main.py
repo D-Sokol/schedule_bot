@@ -11,7 +11,8 @@ from aiogram.types import Message, ErrorEvent
 from aiogram_dialog import DialogManager, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
 
-from dialog_menu import States as MainMenuStates, dialog as main_menu
+from dialogs.main_menu import States as MainMenuStates
+from dialogs import all_dialogs
 
 
 dialogs_handler = Router(name="start")
@@ -40,7 +41,7 @@ async def main(token: str) -> None:
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
     dp.include_router(dialogs_handler)
-    dp.include_router(main_menu)
+    dp.include_routers(*all_dialogs)
     dp.error.register(handle_old_button, ExceptionTypeFilter(UnknownIntent))
     setup_dialogs(dp)
     logging.info("Starting bot")
