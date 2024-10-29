@@ -1,8 +1,7 @@
 import logging
 from aiogram.filters.state import State, StatesGroup
-from aiogram.types import CallbackQuery
 
-from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.text import Const
 from aiogram_dialog.widgets.kbd import Button, Start
 
@@ -23,7 +22,6 @@ start_window = Window(
     Button(Const("Шаблон расписания"), id="manage_templates"),
     Button(Const("Накладываемые элементы"), id="manage_elements"),
     state=MainMenuStates.START,
-    getter=None,
 )
 
 dialog = Dialog(start_window, name=__file__)
