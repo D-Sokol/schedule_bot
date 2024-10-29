@@ -12,12 +12,8 @@ from .backgrounds import BackgroundsStates as BackgroundStates
 logger = logging.getLogger(__file__)
 
 
-class States(StatesGroup):
+class MainMenuStates(StatesGroup):
     START = State()
-
-
-async def btn1_on_click(_: CallbackQuery, button: Button, manager: DialogManager) -> None:
-    logger.info(await button.text.render_text({}, manager))
 
 
 start_window = Window(
@@ -26,7 +22,7 @@ start_window = Window(
     Button(Const("Создать расписание"), id="create_schedule"),
     Button(Const("Шаблон расписания"), id="manage_templates"),
     Button(Const("Накладываемые элементы"), id="manage_elements"),
-    state=States.START,
+    state=MainMenuStates.START,
     getter=None,
 )
 

@@ -11,7 +11,7 @@ from aiogram.types import Message, ErrorEvent
 from aiogram_dialog import DialogManager, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
 
-from dialogs.main_menu import States as MainMenuStates
+from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs import all_dialogs
 
 
