@@ -233,13 +233,13 @@ uploaded_expect_name_window = Window(
 upload_failed_window = Window(
     Const(
         "Размер этого файла слишком большой. Возможно, это и не картинка вовсе.",
-        when=FILE_SIZE_ERROR_REASON == F["fail_reason"],  # FIXME: always False
+        when=FILE_SIZE_ERROR_REASON == F["dialog_data"]["fail_reason"],
     ),
     Const(
         "Не удалось открыть присланный файл как изображение.",
-        when=UNREADABLE_ERROR_REASON == F["fail_reason"],  # FIXME: always False
+        when=UNREADABLE_ERROR_REASON == F["dialog_data"]["fail_reason"],
     ),
-    Format("Debug: {dialog_data[fail_reason]}"),
+    Const("Фон не может быть сохранен."),
     SwitchTo(Const("Смириться"), id="accept_failed_upload", state=BackgroundsStates.START),
     state=BackgroundsStates.UPLOAD_FAILED,
 )
