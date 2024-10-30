@@ -19,6 +19,10 @@ class ElementsRegistryAbstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def get_element(self, user_id: int | None, element_id: int) -> ElementRecord:
+        raise NotImplementedError
+
+    @abstractmethod
     async def get_element_content(self, user_id: int | None, element_id: int) -> Image.Image:
         raise NotImplementedError
 
@@ -32,6 +36,7 @@ class ElementsRegistryAbstract(ABC):
             element: Image.Image,
             user_id: int | None,
             element_name: str,
+            file_id: str | None = None,
             target_size: tuple[int, int] | None = None,
             resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
     ) -> None:
@@ -43,20 +48,17 @@ class ElementsRegistryAbstract(ABC):
 
 
 class MockElementRegistry(ElementsRegistryAbstract):
-    async def get_elements(self, user_id: int | None) -> list[ElementRecord]:
-        items = [
+    def __init__(self):
+        self.items = [
             {"name": "Фон 1", "id": 1, "file_id": None},
             {"name": "Фон 2", "id": 2, "file_id": None},
-            {
-                "name": "Фон с названием, созданным автоматически, без ручного ввода, от двадцать девятого октября две тысячи четвертого года нашей эры",
-                "id": 3,
-                "file_id": None
-            },
-            {"name": "Фон 4", "id": 4, "file_id": None},
-            {"name": "Фон 4", "id": 5, "file_id": None},
-            # {"name": "Фон 6", "id": 6, "file_id": None},
         ]
-        return items
+
+    async def get_elements(self, user_id: int | None) -> list[ElementRecord]:
+        return self.items
+
+    async def get_element(self, user_id: int | None, element_id: int) -> ElementRecord:
+        return self.items[element_id - 1]  # In the mock data ids are 1-based.
 
     async def get_element_content(self, user_id: int | None, element_id: int) -> Image.Image:
         return Image.new("RGBA", (200, 200), "black")
@@ -70,10 +72,14 @@ class MockElementRegistry(ElementsRegistryAbstract):
             element: Image.Image,
             user_id: int | None,
             element_name: str,
+            file_id: str | None = None,
             target_size: tuple[int, int] | None = None,
             resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
     ) -> None:
         logger.info("Saving %s (size %s) as '%s', mode=%s", element, element.size, element_name, resize_mode)
+        self.items.append(
+            {"name": element_name, "id": self.items[-1]["id"] + 1, "file_id": file_id}
+        )
 
     async def update_element_file_id(self, user_id: int | None, element_id: int, file_id: str | None):
         logger.debug("Save file_id %s for element %s.%d", file_id, user_id, element_id)
