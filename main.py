@@ -13,6 +13,7 @@ from aiogram_dialog.api.exceptions import UnknownIntent
 
 from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs import all_dialogs
+from elements_registry import MockElementRegistry
 
 
 dialogs_handler = Router(name="start")
@@ -37,9 +38,10 @@ async def handle_old_button(event: ErrorEvent) -> None:
 
 
 async def main(token: str) -> None:
+    elements_registry = MockElementRegistry()
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
     storage = MemoryStorage()
-    dp = Dispatcher(storage=storage)
+    dp = Dispatcher(storage=storage, elements_registry=elements_registry)
     dp.include_router(dialogs_handler)
     dp.include_routers(*all_dialogs)
     dp.error.register(handle_old_button, ExceptionTypeFilter(UnknownIntent))

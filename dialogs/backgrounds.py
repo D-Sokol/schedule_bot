@@ -1,3 +1,4 @@
+import html
 import logging
 from PIL import UnidentifiedImageError, Image
 from datetime import datetime
@@ -11,6 +12,9 @@ from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram_dialog.widgets.text import Const, Format, Case
 from aiogram_dialog.widgets.kbd import Button, Cancel, ListGroup, SwitchTo
 from magic_filter import F, MagicFilter
+
+from elements_registry import ElementsRegistryAbstract
+
 
 logger = logging.getLogger(__file__)
 
@@ -33,21 +37,14 @@ class BackgroundsStates(StatesGroup):
 
 
 async def on_dialog_start(_: Any, manager: DialogManager):
-    manager.dialog_data.update({
-        "expected_width": 1280,
-        "expected_height": 720,
-    })
+    elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
+    template = await elements_registry.get_template(None)  # TODO: user_id
+    manager.dialog_data["expected_width"] = template.get("width", 1280)
+    manager.dialog_data["expected_height"] = template.get("height", 720)
 
 
-async def saved_backs_getter(**_) -> dict[str, Any]:
-    items = [
-        {"name": "Фон 1", "id": 1},
-        {"name": "Фон 2", "id": 2},
-        {"name": "Фон с названием, созданным автоматически, без ручного ввода, от двадцать девятого октября две тысячи четвертого года нашей эры", "id": 3},
-        {"name": "Фон 4", "id": 4},
-        {"name": "Фон 4", "id": 5},
-        # {"name": "Фон 6", "id": 6},
-    ]
+async def saved_backs_getter(elements_registry: ElementsRegistryAbstract, **_) -> dict[str, Any]:
+    items = await elements_registry.get_elements(None)  # TODO: user_id
     backgrounds_limit = BACKGROUNDS_LIMIT
     logger.debug("Getter: %d images found with limit %d", len(items), backgrounds_limit)
     return {
@@ -128,26 +125,37 @@ async def check_dimensions(
 
 
 async def save_image(
-        _update: Any,
+        update: CallbackQuery | Message,
         _widget: Any,
         manager: DialogManager,
         data: str,
 ):
+    elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
     image: Image.Image = manager.dialog_data["document"]
-    image_name = data
-    logger.info("Saving %s (size %s) as '%s'", image, image.size, image_name)
-    # TODO: save image
-    # TODO: inform user
+    expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
+    resize_mode = manager.dialog_data["resize_mode"]
+    await elements_registry.save_element(
+        image, None,  # TODO: user_id
+        element_name=data,
+        target_size=expected,
+        resize_mode=resize_mode,
+    )
+
+    if isinstance(update, CallbackQuery):
+        message = update.message
+    else:
+        message = update
+    await message.answer(f"Фон сохранен!\n<b>{html.escape(data)}</b>")
     await manager.switch_to(BackgroundsStates.START)
 
 
 async def save_image_auto_name(
-        _update: Any,
+        update: CallbackQuery,
         _widget: Any,
         manager: DialogManager,
 ):
     auto_name = manager.dialog_data["automatic_name"]
-    return await save_image(_update, _widget, manager, data=auto_name)
+    return await save_image(update, _widget, manager, data=auto_name)
 
 
 has_backgrounds_condition = 0 < F["n_backgrounds"]

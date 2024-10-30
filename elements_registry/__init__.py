@@ -75,6 +75,5 @@ class MockElementRegistry(ElementsRegistryAbstract):
     ) -> None:
         logger.info("Saving %s (size %s) as '%s', mode=%s", element, element.size, element_name, resize_mode)
 
-
     async def update_element_file_id(self, user_id: int | None, element_id: int, file_id: str | None):
         logger.debug("Save file_id %s for element %s.%d", file_id, user_id, element_id)
