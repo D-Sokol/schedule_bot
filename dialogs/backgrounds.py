@@ -1,12 +1,12 @@
 import logging
 from PIL import UnidentifiedImageError, Image
 from datetime import datetime
-from typing import Any, cast
+from typing import Any, Awaitable, Callable, cast
 
 from aiogram.filters.state import State, StatesGroup
-from aiogram.types import ContentType, Message
+from aiogram.types import ContentType, Message, CallbackQuery
 
-from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog import Dialog, Window, DialogManager, Data
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram_dialog.widgets.text import Const, Format, Case
 from aiogram_dialog.widgets.kbd import Button, Cancel, ListGroup, SwitchTo
@@ -57,23 +57,10 @@ async def saved_backs_getter(**_) -> dict[str, Any]:
     }
 
 
-async def crop_image(
-        _update: Any, _widget: Any, manager: DialogManager,
-):
-    image: Image.Image = manager.dialog_data["document"]
-    expected= (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
-    box = cast(tuple[int, int, int, int], (0, 0, *expected))
-    image = image.crop(box)  # TODO: set fill color
-    manager.dialog_data["document"] = image
-
-
-async def resize_image(
-        _update: Any, _widget: Any, manager: DialogManager,
-):
-    image: Image.Image = manager.dialog_data["document"]
-    expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
-    image = image.resize(expected)
-    manager.dialog_data["document"] = image
+def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery, Button, DialogManager], Awaitable]:
+    async def callback(_update: CallbackQuery, _widget: Button, manager: DialogManager) -> None:
+        manager.dialog_data[key] = value
+    return callback
 
 
 async def handle_image_upload(
@@ -119,6 +106,7 @@ async def handle_image_upload(
     manager.dialog_data["real_width"] = width
     manager.dialog_data["real_height"] = height
     manager.dialog_data["document"] = image
+    manager.dialog_data["resize_mode"] = "ignore"
 
     if not is_document:
         await manager.switch_to(BackgroundsStates.UPLOADED_NOT_DOCUMENT)
@@ -213,8 +201,14 @@ uploaded_bad_dimensions_window = Window(
         "отличается от ожидаемого ({dialog_data[expected_width]}x{dialog_data[expected_height]})"
     ),
     Const("Вы можете загрузить другую картинку или все равно использовать эту."),
-    SwitchTo(Const("Растянуть до нужного размера"), id="bad_dimensions_resize", state=BackgroundsStates.UPLOADED_EXPECT_NAME, on_click=resize_image),
-    SwitchTo(Const("Обрезать картинку"), id="bad_dimensions_crop", state=BackgroundsStates.UPLOADED_EXPECT_NAME, on_click=crop_image),
+    SwitchTo(
+        Const("Растянуть до нужного размера"), id="bad_dimensions_resize", state=BackgroundsStates.UPLOADED_EXPECT_NAME,
+        on_click=save_to_dialog_data("resize_mode", "resize")
+    ),
+    SwitchTo(
+        Const("Обрезать картинку"), id="bad_dimensions_crop", state=BackgroundsStates.UPLOADED_EXPECT_NAME,
+        on_click=save_to_dialog_data("resize_mode", "crop")
+    ),
     SwitchTo(Const("И так сойдет"), id="bad_dimensions_ignore", state=BackgroundsStates.UPLOADED_EXPECT_NAME),
     SwitchTo(Const("❌ Отставеть!"), id="cancel_upload_dim", state=BackgroundsStates.START),
     MessageInput(handle_image_upload, content_types=[ContentType.PHOTO, ContentType.DOCUMENT]),
