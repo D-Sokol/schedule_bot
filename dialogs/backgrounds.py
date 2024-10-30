@@ -8,9 +8,11 @@ from aiogram.filters.state import State, StatesGroup
 from aiogram.types import ContentType, Message, CallbackQuery
 
 from aiogram_dialog import Dialog, Window, DialogManager, Data
+from aiogram_dialog.api.entities import MediaAttachment, MediaId, ShowMode
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram_dialog.widgets.text import Const, Format, Case
-from aiogram_dialog.widgets.kbd import Button, Cancel, ListGroup, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, ScrollingGroup
+from aiogram_dialog.widgets.media import DynamicMedia
 from magic_filter import F, MagicFilter
 
 from elements_registry import ElementsRegistryAbstract
@@ -36,6 +38,10 @@ class BackgroundsStates(StatesGroup):
     SELECTED_IMAGE = State()
 
 
+async def not_implemented_button_handler(callback: CallbackQuery, _button: Button, _manager: DialogManager):
+    await callback.answer("Функционал не реализован.")
+
+
 async def on_dialog_start(_: Any, manager: DialogManager):
     elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
     template = await elements_registry.get_template(None)  # TODO: user_id
@@ -52,6 +58,37 @@ async def saved_backs_getter(elements_registry: ElementsRegistryAbstract, **_) -
         "n_backgrounds": len(items),
         "limit": backgrounds_limit,
     }
+
+
+async def selected_image_getter(dialog_manager: DialogManager, **_) -> dict[str, Any]:
+    file_name: str = dialog_manager.dialog_data["file_name"]
+    file_id: str = dialog_manager.dialog_data["file_id"]
+    return {
+        "background": MediaAttachment(ContentType.PHOTO, file_id=MediaId(file_id)),
+        "escaped_name": html.escape(file_name),
+    }
+
+
+async def select_image_handler(
+        _callback: CallbackQuery,
+        _widget: Any,
+        manager: DialogManager,
+        item_id: str,
+):
+    elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
+    element = await elements_registry.get_element(None, int(item_id))
+    manager.dialog_data["file_id"] = element["file_id"]
+    manager.dialog_data["file_name"] = element["name"]
+    await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
+
+
+async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
+    file_id: str = manager.dialog_data["file_id"]
+    file_name: str = manager.dialog_data["file_name"]
+    # FIXME: this causes TelegramBadRequest if img was accepted as photo.
+    await callback.message.answer_document(document=file_id, caption=html.escape(file_name))
+    # Force redraw current window since file becomes the last message instead.
+    await manager.show(ShowMode.DELETE_AND_SEND)
 
 
 def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery, Button, DialogManager], Awaitable]:
@@ -134,9 +171,11 @@ async def save_image(
     image: Image.Image = manager.dialog_data["document"]
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
     resize_mode = manager.dialog_data["resize_mode"]
+    file_id = manager.dialog_data["file_id"]
     await elements_registry.save_element(
         image, None,  # TODO: user_id
         element_name=data,
+        file_id=file_id,
         target_size=expected,
         resize_mode=resize_mode,
     )
@@ -146,7 +185,8 @@ async def save_image(
     else:
         message = update
     await message.answer(f"Фон сохранен!\n<b>{html.escape(data)}</b>")
-    await manager.switch_to(BackgroundsStates.START)
+    # Since we send a custom message, dialogs should send new one to use the latest message in the chat
+    await manager.switch_to(BackgroundsStates.START, show_mode=ShowMode.SEND)
 
 
 async def save_image_auto_name(
@@ -174,13 +214,20 @@ start_window = Window(
         "Достигнут предел количества сохраненных изображений ({limit}).",
         when=cast(MagicFilter, ~can_upload_background_condition),
     ),
-    ListGroup(
-        Button(Format("🖼️ {item[name]}"), id="background"),
-        id="select_background",
-        item_id_getter=F["id"].resolve,
-        items="items",
-        when=has_backgrounds_condition,
-    ),  # TODO: scrollable! See FAQ: "Create Select widget and wrap it with ScrollingGroup."
+    ScrollingGroup(
+        Select(
+            Format("🖼️ {item[name]}"),
+            id="select_background",
+            item_id_getter=F["id"].resolve,
+            items="items",
+            when=has_backgrounds_condition,
+            on_click=select_image_handler,
+        ),
+        id="select_background_wrap",
+        width=1,
+        height=5,
+        hide_on_single_page=True,
+    ),
     SwitchTo(Const("Загрузить фон"), id="upload_background", state=BackgroundsStates.UPLOAD_IMAGE, when=can_upload_background_condition),
     Cancel(Const("❌ Отставеть!")),
     state=BackgroundsStates.START,
@@ -247,8 +294,17 @@ upload_failed_window = Window(
 )
 
 selected_image_window = Window(
-    Const("Здесь вы сможете увидеть изображение"),
+    # FIXME: this works only if image was loaded as photo, not document.
+    DynamicMedia("background"),
+    Format("<b>{escaped_name}</b>"),
+    Button(Const("Создать расписание"), id="schedule_from_selected", on_click=not_implemented_button_handler),
+    Button(Const("📄️ Прислать без сжатия"), id="send_full", on_click=send_full_handler),
+    Button(Const("🚮️ Удалить"), id="delete_selected", on_click=not_implemented_button_handler),
+    Button(Const("🌖️ В конец списка"), id="selected_as_old", on_click=not_implemented_button_handler),
+    Button(Const("🌒️ В начало списка"), id="selected_as_new", on_click=not_implemented_button_handler),
+    SwitchTo(Const("Назад"), id="selected_back", state=BackgroundsStates.START),
     state=BackgroundsStates.SELECTED_IMAGE,
+    getter=selected_image_getter,
 )
 
 dialog = Dialog(
