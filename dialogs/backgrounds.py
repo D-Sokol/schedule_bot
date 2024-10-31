@@ -14,6 +14,7 @@ from magic_filter import F, MagicFilter
 
 from elements_registry import ElementsRegistryAbstract
 from .upload_background import UploadBackgroundStates
+from .utils import not_implemented_button_handler
 
 
 logger = logging.getLogger(__file__)
@@ -29,10 +30,6 @@ UNREADABLE_ERROR_REASON = "unreadable"
 class BackgroundsStates(StatesGroup):
     START = State()
     SELECTED_IMAGE = State()
-
-
-async def not_implemented_button_handler(callback: CallbackQuery, _button: Button, _manager: DialogManager):
-    await callback.answer("Функционал не реализован.")
 
 
 async def saved_backs_getter(elements_registry: ElementsRegistryAbstract, **_) -> dict[str, Any]:
@@ -85,7 +82,9 @@ start_window = Window(
     Case(
         {
             0: Const("У вас нет сохраненных фоновых изображений."),
-            ...: Format("Вы сохранили {n_backgrounds} фоновых изображений. Вы можете выбрать фон, нажав на его название."),
+            ...: Format(
+                "Вы сохранили {n_backgrounds} фоновых изображений. Вы можете выбрать фон, нажав на его название."
+            ),
         },
         selector="n_backgrounds",
     ),
@@ -110,7 +109,7 @@ start_window = Window(
     Start(
         Const("Загрузить фон"),
         id="upload_background",
-        state=UploadBackgroundStates.UPLOAD_IMAGE,
+        state=UploadBackgroundStates.START,
         when=can_upload_background_condition,
     ),
     Cancel(Const("❌ Отставеть!")),

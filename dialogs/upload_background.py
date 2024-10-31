@@ -2,12 +2,12 @@ import html
 import logging
 from PIL import UnidentifiedImageError, Image
 from datetime import datetime
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from aiogram.filters.state import State, StatesGroup
 from aiogram.types import ContentType, Message, CallbackQuery
 
-from aiogram_dialog import Dialog, Window, DialogManager, Data
+from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram_dialog.widgets.text import Const, Format
@@ -15,6 +15,7 @@ from aiogram_dialog.widgets.kbd import Button, Cancel, SwitchTo
 from magic_filter import F
 
 from elements_registry import ElementsRegistryAbstract
+from .utils import save_to_dialog_data
 
 
 logger = logging.getLogger(__file__)
@@ -27,7 +28,7 @@ UNREADABLE_ERROR_REASON = "unreadable"
 
 
 class UploadBackgroundStates(StatesGroup):
-    UPLOAD_IMAGE = State()
+    START = State()
     UPLOADED_NOT_DOCUMENT = State()
     UPLOADED_BAD_DIMENSIONS = State()
     UPLOADED_EXPECT_NAME = State()
@@ -39,12 +40,6 @@ async def on_dialog_start(_: Any, manager: DialogManager):
     template = await elements_registry.get_template(None)  # TODO: user_id
     manager.dialog_data["expected_width"] = template.get("width", 1280)
     manager.dialog_data["expected_height"] = template.get("height", 720)
-
-
-def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery, Button, DialogManager], Awaitable]:
-    async def callback(_update: CallbackQuery, _widget: Button, manager: DialogManager) -> None:
-        manager.dialog_data[key] = value
-    return callback
 
 
 async def handle_image_upload(
@@ -153,7 +148,7 @@ upload_image_window = Window(
     Const("Советую отправить картинку как файл, чтобы избежать потери качества!"),
     Cancel(Const("❌ Отставеть!"), id="cancel_upload"),
     MessageInput(handle_image_upload, content_types=[ContentType.PHOTO, ContentType.DOCUMENT]),
-    state=UploadBackgroundStates.UPLOAD_IMAGE,
+    state=UploadBackgroundStates.START,
 )
 
 uploaded_not_document_window = Window(
