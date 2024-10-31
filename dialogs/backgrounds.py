@@ -1,9 +1,10 @@
 import html
 import logging
+from pathlib import Path
 from typing import Any, cast
 
 from aiogram.filters.state import State, StatesGroup
-from aiogram.types import ContentType, CallbackQuery
+from aiogram.types import ContentType, CallbackQuery, BufferedInputFile
 
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId, ShowMode
@@ -65,17 +66,30 @@ async def select_image_handler(
     manager.dialog_data["file_id_photo"] = element.file_id_photo
     manager.dialog_data["file_id_document"] = element.file_id_document
     manager.dialog_data["file_name"] = element.name
+    manager.dialog_data["element_id"] = element.id
     logger.debug("Getter: selected image %s, id %s", element.name, item_id)
     await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
     file_name: str = manager.dialog_data["file_name"]
-    file_id: str = manager.dialog_data["file_id_photo"]
-    if file_id is None:
-        raise NotImplementedError  # TODO: send content as document
-    logger.debug("Sending full version for image %s", file_name)
-    await callback.message.answer_document(document=file_id, caption=html.escape(file_name))
+    file_id: str = manager.dialog_data["file_id_document"]
+    if file_id is not None:
+        logger.debug("Sending full version for image %s", file_name)
+        await callback.message.answer_document(document=file_id, caption=html.escape(file_name))
+    else:
+        user_id = None  # TODO: user_id
+        element_id = manager.dialog_data["element_id"]
+        elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
+        logger.info("Sending image %s as document via bytes", file_name)
+        content = await elements_registry.get_element_content(user_id, element_id)
+        input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
+        document_message = await callback.message.answer_document(document=input_document, caption=html.escape(file_name))
+        document = document_message.document
+        assert document is not None, "document was not sent"
+        logger.debug("Get file_id for document %s", file_name)
+        await elements_registry.update_element_file_id(user_id, element_id, document.file_id, "document")
+
     # Force redraw current window since file becomes the last message instead.
     await manager.show(ShowMode.DELETE_AND_SEND)
 

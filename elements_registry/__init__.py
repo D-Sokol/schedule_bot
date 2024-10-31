@@ -1,3 +1,4 @@
+import io
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -27,7 +28,7 @@ class ElementsRegistryAbstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_element_content(self, user_id: int | None, element_id: int) -> Image.Image:
+    async def get_element_content(self, user_id: int | None, element_id: int) -> bytes:
         raise NotImplementedError
 
     @abstractmethod
@@ -44,7 +45,13 @@ class ElementsRegistryAbstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def update_element_file_id(self, user_id: int | None, element_id: int, file_id: str | None):
+    async def update_element_file_id(
+            self,
+            user_id: int | None,
+            element_id: int,
+            file_id: str | None,
+            file_type: Literal["photo", "document"] = "document",
+    ):
         raise NotImplementedError
 
     # Templates
@@ -67,8 +74,11 @@ class MockElementRegistry(ElementsRegistryAbstract):
     async def get_element(self, user_id: int | None, element_id: int) -> ElementRecord:
         return self.items[element_id - 1]  # In the mock data ids are 1-based.
 
-    async def get_element_content(self, user_id: int | None, element_id: int) -> Image.Image:
-        return Image.new("RGBA", (200, 200), "black")
+    async def get_element_content(self, user_id: int | None, element_id: int) -> bytes:
+        image = Image.new("RGBA", (200, 200), "black")
+        stream = io.BytesIO()
+        image.save(stream, format="png")
+        return stream.getvalue()
 
     async def save_element(
             self,
@@ -96,7 +106,7 @@ class MockElementRegistry(ElementsRegistryAbstract):
             user_id: int | None,
             element_id: int,
             file_id: str | None,
-            file_type: Literal["photo", "document"] = "document"
+            file_type: Literal["photo", "document"] = "document",
     ):
         logger.debug("Save file_id %s for element %s.%d/%s", file_id, user_id, element_id, file_type)
         item = await self.get_element(user_id, element_id)

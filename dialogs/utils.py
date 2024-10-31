@@ -18,5 +18,5 @@ def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery | Mess
 
 
 async def not_implemented_button_handler(callback: CallbackQuery, button: Button, _manager: DialogManager):
-    logging.warning("Called button [%d] which is not implemented!", button.widget_id)
+    logging.warning("Called button [%s] which is not implemented!", button.widget_id)
     await callback.answer("Функционал не реализован.")
