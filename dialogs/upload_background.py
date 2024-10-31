@@ -1,7 +1,6 @@
 import html
 import logging
 from PIL import UnidentifiedImageError, Image
-from datetime import datetime
 from typing import Any
 
 from aiogram.filters.state import State, StatesGroup
@@ -55,20 +54,22 @@ async def handle_image_upload(
         photo = photos[-1]
         file_id = photo.file_id
         file_size = photo.file_size
+        sent_name = message.caption
         is_document = False
     elif (document := message.document) is not None:
         logger.debug("Accepted document object")
         file_id = document.file_id
         file_size = document.file_size
+        sent_name = None
         is_document = True
     else:
         assert False, "Filters is not properly configured"
 
-    now = datetime.now()
+    elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
     manager.dialog_data["file_size"] = file_size
     manager.dialog_data["file_id"] = file_id
     manager.dialog_data["file_type"] = "document" if is_document else "photo"
-    manager.dialog_data["automatic_name"] = f"Фон {now.isoformat(sep=' ', timespec='seconds')}"
+    manager.dialog_data["automatic_name"] = sent_name or elements_registry.generate_trivial_name()
 
     if file_size > FILE_SIZE_LIMIT:
         logger.info("Image rejected: file size is %d", file_size)

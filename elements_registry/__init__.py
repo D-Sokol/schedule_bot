@@ -2,6 +2,7 @@ import io
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from typing import *
 
 from PIL import Image
@@ -58,6 +59,12 @@ class ElementsRegistryAbstract(ABC):
     @abstractmethod
     async def get_template(self, user_id: int | None) -> dict[str, Any]:
         raise NotImplementedError
+
+    # Other
+    @classmethod
+    def generate_trivial_name(cls) -> str:
+        now = datetime.now()
+        return f"Фон {now.isoformat(sep=' ', timespec='seconds')}"
 
 
 class MockElementRegistry(ElementsRegistryAbstract):
