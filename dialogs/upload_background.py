@@ -1,0 +1,226 @@
+import html
+import logging
+from PIL import UnidentifiedImageError, Image
+from datetime import datetime
+from typing import Any, Awaitable, Callable
+
+from aiogram.filters.state import State, StatesGroup
+from aiogram.types import ContentType, Message, CallbackQuery
+
+from aiogram_dialog import Dialog, Window, DialogManager, Data
+from aiogram_dialog.api.entities import ShowMode
+from aiogram_dialog.widgets.input import MessageInput, TextInput
+from aiogram_dialog.widgets.text import Const, Format
+from aiogram_dialog.widgets.kbd import Button, Cancel, SwitchTo
+from magic_filter import F
+
+from elements_registry import ElementsRegistryAbstract
+
+
+logger = logging.getLogger(__file__)
+
+
+FILE_SIZE_LIMIT = 10 * 1024 * 1024
+
+FILE_SIZE_ERROR_REASON = "file_size"
+UNREADABLE_ERROR_REASON = "unreadable"
+
+
+class UploadBackgroundStates(StatesGroup):
+    UPLOAD_IMAGE = State()
+    UPLOADED_NOT_DOCUMENT = State()
+    UPLOADED_BAD_DIMENSIONS = State()
+    UPLOADED_EXPECT_NAME = State()
+    UPLOAD_FAILED = State()
+
+
+async def on_dialog_start(_: Any, manager: DialogManager):
+    elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
+    template = await elements_registry.get_template(None)  # TODO: user_id
+    manager.dialog_data["expected_width"] = template.get("width", 1280)
+    manager.dialog_data["expected_height"] = template.get("height", 720)
+
+
+def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery, Button, DialogManager], Awaitable]:
+    async def callback(_update: CallbackQuery, _widget: Button, manager: DialogManager) -> None:
+        manager.dialog_data[key] = value
+    return callback
+
+
+async def handle_image_upload(
+        message: Message,
+        _: MessageInput,
+        manager: DialogManager,
+) -> None:
+    if (photos := message.photo) is not None:
+        photo = photos[-1]
+        file_id = photo.file_id
+        file_size = photo.file_size
+        is_document = False
+    elif (document := message.document) is not None:
+        file_id = document.file_id
+        file_size = document.file_size
+        is_document = True
+    else:
+        assert False, "Filters is not properly configured"
+
+    now = datetime.now()
+    manager.dialog_data["file_size"] = file_size
+    manager.dialog_data["file_id"] = file_id
+    manager.dialog_data["automatic_name"] = f"Фон {now.isoformat(sep=' ', timespec='seconds')}"
+
+    if file_size > FILE_SIZE_LIMIT:
+        manager.dialog_data["fail_reason"] = FILE_SIZE_ERROR_REASON
+        await manager.switch_to(UploadBackgroundStates.UPLOAD_FAILED)
+        return
+
+    bot = message.bot
+    assert bot is not None, "No bot context in message"
+    file = await bot.download(file_id)
+    assert file is not None, "image loaded to file system"
+
+    try:
+        image = Image.open(file)
+    except UnidentifiedImageError:
+        manager.dialog_data["fail_reason"] = UNREADABLE_ERROR_REASON
+        await manager.switch_to(UploadBackgroundStates.UPLOAD_FAILED)
+        return
+
+    width, height = image.size
+    manager.dialog_data["real_width"] = width
+    manager.dialog_data["real_height"] = height
+    manager.dialog_data["document"] = image
+    manager.dialog_data["resize_mode"] = "ignore"
+
+    if not is_document:
+        await manager.switch_to(UploadBackgroundStates.UPLOADED_NOT_DOCUMENT)
+    else:
+        await check_dimensions(message, _, manager)
+
+
+async def check_dimensions(
+        _update: Any,
+        _widget: Any,
+        manager: DialogManager
+) -> None:
+    real = (manager.dialog_data["real_width"], manager.dialog_data["real_height"])
+    expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
+    if real != expected:
+        await manager.switch_to(UploadBackgroundStates.UPLOADED_BAD_DIMENSIONS)
+    else:
+        await manager.switch_to(UploadBackgroundStates.UPLOADED_EXPECT_NAME)
+
+
+async def save_image(
+        update: CallbackQuery | Message,
+        _widget: Any,
+        manager: DialogManager,
+        data: str,
+):
+    elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
+    image: Image.Image = manager.dialog_data["document"]
+    expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
+    resize_mode = manager.dialog_data["resize_mode"]
+    file_id = manager.dialog_data["file_id"]
+    await elements_registry.save_element(
+        image, None,  # TODO: user_id
+        element_name=data,
+        file_id=file_id,
+        target_size=expected,
+        resize_mode=resize_mode,
+    )
+
+    if isinstance(update, CallbackQuery):
+        message = update.message
+    else:
+        message = update
+    await message.answer(f"Фон сохранен!\n<b>{html.escape(data)}</b>")
+    # Since we send a custom message, dialogs should send new one to use the latest message in the chat
+    await manager.done(result=True, show_mode=ShowMode.SEND)
+
+
+async def save_image_auto_name(
+        update: CallbackQuery,
+        _widget: Any,
+        manager: DialogManager,
+):
+    auto_name = manager.dialog_data["automatic_name"]
+    return await save_image(update, _widget, manager, data=auto_name)
+
+
+upload_image_window = Window(
+    Const("Загрузите изображение для использования в качестве фона."),
+    Const("Советую отправить картинку как файл, чтобы избежать потери качества!"),
+    Cancel(Const("❌ Отставеть!"), id="cancel_upload"),
+    MessageInput(handle_image_upload, content_types=[ContentType.PHOTO, ContentType.DOCUMENT]),
+    state=UploadBackgroundStates.UPLOAD_IMAGE,
+)
+
+uploaded_not_document_window = Window(
+    Const(
+        "Вы отправили картинку не как файл. Это может привести к потере качества. Можете загрузить картинку еще раз?"
+    ),
+    Button(Const("И так сойдет"), id="confirm_non_document_upload", on_click=check_dimensions),
+    Cancel(Const("❌ Отставеть!"), id="cancel_upload_nodoc"),
+    MessageInput(handle_image_upload, content_types=[ContentType.DOCUMENT]),
+    state=UploadBackgroundStates.UPLOADED_NOT_DOCUMENT,
+)
+
+uploaded_bad_dimensions_window = Window(
+    Format(
+        "Размер загруженного изображения ({dialog_data[real_width]}x{dialog_data[real_height]}) "
+        "отличается от ожидаемого ({dialog_data[expected_width]}x{dialog_data[expected_height]})"
+    ),
+    Const("Вы можете загрузить другую картинку или все равно использовать эту."),
+    SwitchTo(
+        Const("Растянуть до нужного размера"),
+        id="bad_dimensions_resize",
+        state=UploadBackgroundStates.UPLOADED_EXPECT_NAME,
+        on_click=save_to_dialog_data("resize_mode", "resize"),
+    ),
+    SwitchTo(
+        Const("Обрезать картинку"),
+        id="bad_dimensions_crop",
+        state=UploadBackgroundStates.UPLOADED_EXPECT_NAME,
+        on_click=save_to_dialog_data("resize_mode", "crop")
+    ),
+    SwitchTo(Const("И так сойдет"), id="bad_dimensions_ignore", state=UploadBackgroundStates.UPLOADED_EXPECT_NAME),
+    Cancel(Const("❌ Отставеть!"), id="cancel_upload_dim"),
+    MessageInput(handle_image_upload, content_types=[ContentType.PHOTO, ContentType.DOCUMENT]),
+    state=UploadBackgroundStates.UPLOADED_BAD_DIMENSIONS,
+)
+
+uploaded_expect_name_window = Window(
+    Const("Введите имя для этой картинки, чтобы потом узнать ее в списке!"),
+    Format("По умолчанию картинка будет называться {dialog_data[automatic_name]}."),
+    TextInput(id="background_name_input", on_success=save_image),
+    Button(Const("И так сойдет"), id="confirm_autogenerated_name", on_click=save_image_auto_name),
+    Cancel(Const("❌ Отставеть!"), id="cancel_upload_name"),
+    state=UploadBackgroundStates.UPLOADED_EXPECT_NAME,
+)
+
+upload_failed_window = Window(
+    Const(
+        "Размер этого файла слишком большой. Возможно, это и не картинка вовсе.",
+        when=FILE_SIZE_ERROR_REASON == F["dialog_data"]["fail_reason"],
+    ),
+    Const(
+        "Не удалось открыть присланный файл как изображение.",
+        when=UNREADABLE_ERROR_REASON == F["dialog_data"]["fail_reason"],
+    ),
+    Const("Фон не может быть сохранен."),
+    Cancel(Const("Смириться"), id="accept_failed_upload"),
+    MessageInput(handle_image_upload, content_types=[ContentType.PHOTO, ContentType.DOCUMENT]),
+    state=UploadBackgroundStates.UPLOAD_FAILED,
+)
+
+
+dialog = Dialog(
+    upload_image_window,
+    uploaded_not_document_window,
+    uploaded_bad_dimensions_window,
+    uploaded_expect_name_window,
+    upload_failed_window,
+    on_start=on_dialog_start,
+    name=__file__,
+)
