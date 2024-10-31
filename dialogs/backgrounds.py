@@ -91,7 +91,8 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
         await elements_registry.update_element_file_id(user_id, element_id, document.file_id, "document")
 
     # Force redraw current window since file becomes the last message instead.
-    await manager.show(ShowMode.DELETE_AND_SEND)
+    # Setting show_mode property of manager is the correct way to do so and works only for one action.
+    manager.show_mode = ShowMode.DELETE_AND_SEND
 
 
 has_backgrounds_condition = 0 < F["n_backgrounds"]
