@@ -146,6 +146,7 @@ selected_image_window = Window(
     DynamicMedia("background"),
     Format("<b>{escaped_name}</b>"),
     Button(Const("Создать расписание"), id="schedule_from_selected", on_click=not_implemented_button_handler),
+    Button(Const("Переименовать"), id="rename_selected", on_click=not_implemented_button_handler),
     Button(Const("📄️ Прислать без сжатия"), id="send_full", on_click=send_full_handler),
     Button(Const("🚮️ Удалить"), id="delete_selected", on_click=not_implemented_button_handler),
     Button(Const("🌖️ В конец списка"), id="selected_as_old", on_click=not_implemented_button_handler),
