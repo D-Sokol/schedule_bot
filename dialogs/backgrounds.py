@@ -62,6 +62,7 @@ async def select_image_handler(
     element = await elements_registry.get_element(None, int(item_id))
     manager.dialog_data["file_id"] = element["file_id"]
     manager.dialog_data["file_name"] = element["name"]
+    logger.debug("Getter: selected image %s, id %s", element["name"], item_id)
     await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
@@ -69,6 +70,7 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
     file_id: str = manager.dialog_data["file_id"]
     file_name: str = manager.dialog_data["file_name"]
     # FIXME: this causes TelegramBadRequest if img was accepted as photo.
+    logger.debug("Sending full version for image %s", file_name)
     await callback.message.answer_document(document=file_id, caption=html.escape(file_name))
     # Force redraw current window since file becomes the last message instead.
     await manager.show(ShowMode.DELETE_AND_SEND)

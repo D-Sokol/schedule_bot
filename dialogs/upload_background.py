@@ -38,8 +38,11 @@ class UploadBackgroundStates(StatesGroup):
 async def on_dialog_start(_: Any, manager: DialogManager):
     elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
     template = await elements_registry.get_template(None)  # TODO: user_id
-    manager.dialog_data["expected_width"] = template.get("width", 1280)
-    manager.dialog_data["expected_height"] = template.get("height", 720)
+    width = template.get("width", 1280)
+    manager.dialog_data["expected_width"] = width
+    height = template.get("height", 720)
+    manager.dialog_data["expected_height"] = height
+    logger.debug("Ready to accept image. Expected shape is %d x %d", width, height)
 
 
 async def handle_image_upload(
@@ -48,11 +51,13 @@ async def handle_image_upload(
         manager: DialogManager,
 ) -> None:
     if (photos := message.photo) is not None:
+        logger.debug("Accepted photo object")
         photo = photos[-1]
         file_id = photo.file_id
         file_size = photo.file_size
         is_document = False
     elif (document := message.document) is not None:
+        logger.debug("Accepted document object")
         file_id = document.file_id
         file_size = document.file_size
         is_document = True
@@ -65,6 +70,7 @@ async def handle_image_upload(
     manager.dialog_data["automatic_name"] = f"Фон {now.isoformat(sep=' ', timespec='seconds')}"
 
     if file_size > FILE_SIZE_LIMIT:
+        logger.info("Image rejected: file size is %d", file_size)
         manager.dialog_data["fail_reason"] = FILE_SIZE_ERROR_REASON
         await manager.switch_to(UploadBackgroundStates.UPLOAD_FAILED)
         return
@@ -77,6 +83,7 @@ async def handle_image_upload(
     try:
         image = Image.open(file)
     except UnidentifiedImageError:
+        logger.info("Image rejected: cannot open as image")
         manager.dialog_data["fail_reason"] = UNREADABLE_ERROR_REASON
         await manager.switch_to(UploadBackgroundStates.UPLOAD_FAILED)
         return
@@ -101,8 +108,10 @@ async def check_dimensions(
     real = (manager.dialog_data["real_width"], manager.dialog_data["real_height"])
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
     if real != expected:
+        logger.debug("Asking about bad image dimensions")
         await manager.switch_to(UploadBackgroundStates.UPLOADED_BAD_DIMENSIONS)
     else:
+        logger.debug("Image dimensions OK")
         await manager.switch_to(UploadBackgroundStates.UPLOADED_EXPECT_NAME)
 
 
@@ -117,6 +126,7 @@ async def save_image(
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
     resize_mode = manager.dialog_data["resize_mode"]
     file_id = manager.dialog_data["file_id"]
+    logger.info("Saving new image: %s", data)
     await elements_registry.save_element(
         image, None,  # TODO: user_id
         element_name=data,
@@ -140,6 +150,7 @@ async def save_image_auto_name(
         manager: DialogManager,
 ):
     auto_name = manager.dialog_data["automatic_name"]
+    logger.debug("Confirmed automatic name: %s", auto_name)
     return await save_image(update, _widget, manager, data=auto_name)
 
 
