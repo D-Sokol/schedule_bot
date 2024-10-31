@@ -34,7 +34,8 @@ class BackgroundsStates(StatesGroup):
 
 
 async def saved_backs_getter(elements_registry: ElementsRegistryAbstract, **_) -> dict[str, Any]:
-    items = await elements_registry.get_elements(None)  # TODO: user_id
+    user_id = None  # TODO: user_id
+    items = await elements_registry.get_elements(user_id)
     backgrounds_limit = BACKGROUNDS_LIMIT
     logger.debug("Getter: %d images found with limit %d", len(items), backgrounds_limit)
     return {
@@ -47,8 +48,10 @@ async def saved_backs_getter(elements_registry: ElementsRegistryAbstract, **_) -
 async def selected_image_getter(dialog_manager: DialogManager, **_) -> dict[str, Any]:
     file_name: str = dialog_manager.dialog_data["file_name"]
     file_id: str = dialog_manager.dialog_data["file_id_photo"]
+    user_id = None  # TODO: user_id
     if file_id is None:
-        raise NotImplementedError  # TODO: send content as photo
+        element_id = dialog_manager.dialog_data["element_id"]
+        file_id = f"bot://{user_id or 0}/{element_id}"
     return {
         "background": MediaAttachment(ContentType.PHOTO, file_id=MediaId(file_id)),
         "escaped_name": html.escape(file_name),

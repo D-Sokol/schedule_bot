@@ -11,8 +11,9 @@ from aiogram.types import Message, ErrorEvent
 from aiogram_dialog import DialogManager, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
 
-from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs import all_dialogs
+from dialogs.main_menu import MainMenuStates as MainMenuStates
+from dialogs.utils import BotAwareMessageManager
 from elements_registry import MockElementRegistry
 
 
@@ -39,13 +40,15 @@ async def handle_old_button(event: ErrorEvent) -> None:
 
 async def main(token: str) -> None:
     elements_registry = MockElementRegistry()
+    message_manager = BotAwareMessageManager(elements_registry)
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage, elements_registry=elements_registry)
+
     dp.include_router(dialogs_handler)
     dp.include_routers(*all_dialogs)
     dp.error.register(handle_old_button, ExceptionTypeFilter(UnknownIntent))
-    setup_dialogs(dp)
+    setup_dialogs(dp, message_manager=message_manager)
     logging.info("Starting bot")
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
