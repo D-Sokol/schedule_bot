@@ -45,7 +45,9 @@ async def saved_backs_getter(elements_registry: ElementsRegistryAbstract, **_) -
 
 async def selected_image_getter(dialog_manager: DialogManager, **_) -> dict[str, Any]:
     file_name: str = dialog_manager.dialog_data["file_name"]
-    file_id: str = dialog_manager.dialog_data["file_id"]
+    file_id: str = dialog_manager.dialog_data["file_id_photo"]
+    if file_id is None:
+        raise NotImplementedError  # TODO: send content as photo
     return {
         "background": MediaAttachment(ContentType.PHOTO, file_id=MediaId(file_id)),
         "escaped_name": html.escape(file_name),
@@ -60,16 +62,18 @@ async def select_image_handler(
 ):
     elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
     element = await elements_registry.get_element(None, int(item_id))
-    manager.dialog_data["file_id"] = element.file_id
+    manager.dialog_data["file_id_photo"] = element.file_id_photo
+    manager.dialog_data["file_id_document"] = element.file_id_document
     manager.dialog_data["file_name"] = element.name
     logger.debug("Getter: selected image %s, id %s", element.name, item_id)
     await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
-    file_id: str = manager.dialog_data["file_id"]
     file_name: str = manager.dialog_data["file_name"]
-    # FIXME: this causes TelegramBadRequest if img was accepted as photo.
+    file_id: str = manager.dialog_data["file_id_photo"]
+    if file_id is None:
+        raise NotImplementedError  # TODO: send content as document
     logger.debug("Sending full version for image %s", file_name)
     await callback.message.answer_document(document=file_id, caption=html.escape(file_name))
     # Force redraw current window since file becomes the last message instead.

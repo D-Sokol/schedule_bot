@@ -67,6 +67,7 @@ async def handle_image_upload(
     now = datetime.now()
     manager.dialog_data["file_size"] = file_size
     manager.dialog_data["file_id"] = file_id
+    manager.dialog_data["file_type"] = "document" if is_document else "photo"
     manager.dialog_data["automatic_name"] = f"Фон {now.isoformat(sep=' ', timespec='seconds')}"
 
     if file_size > FILE_SIZE_LIMIT:
@@ -126,11 +127,13 @@ async def save_image(
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
     resize_mode = manager.dialog_data["resize_mode"]
     file_id = manager.dialog_data["file_id"]
+    file_type = manager.dialog_data["file_type"]
     logger.info("Saving new image: %s", data)
     await elements_registry.save_element(
         image, None,  # TODO: user_id
         element_name=data,
-        file_id=file_id,
+        file_id_document=file_id if file_type == "document" else None,
+        file_id_photo=file_id if file_type == "photo" else None,
         target_size=expected,
         resize_mode=resize_mode,
     )
