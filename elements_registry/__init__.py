@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import *
 
 from PIL import Image
@@ -7,7 +8,8 @@ from PIL import Image
 logger = logging.getLogger("elements_registry")
 
 
-class ElementRecord(TypedDict):
+@dataclass
+class ElementRecord:
     name: str
     id: int
     file_id: str | None
@@ -50,8 +52,8 @@ class ElementsRegistryAbstract(ABC):
 class MockElementRegistry(ElementsRegistryAbstract):
     def __init__(self):
         self.items = [
-            {"name": "Фон 1", "id": 1, "file_id": None},
-            {"name": "Фон 2", "id": 2, "file_id": None},
+            ElementRecord(name="Фон 1", id=1, file_id=None),
+            ElementRecord(name="Фон 2", id=2, file_id=None),
         ]
 
     async def get_elements(self, user_id: int | None) -> list[ElementRecord]:
@@ -78,7 +80,7 @@ class MockElementRegistry(ElementsRegistryAbstract):
     ) -> None:
         logger.info("Saving %s (size %s) as '%s', mode=%s", element, element.size, element_name, resize_mode)
         self.items.append(
-            {"name": element_name, "id": self.items[-1]["id"] + 1, "file_id": file_id}
+            ElementRecord(name=element_name, id=self.items[-1].id + 1, file_id=file_id)
         )
 
     async def update_element_file_id(self, user_id: int | None, element_id: int, file_id: str | None):

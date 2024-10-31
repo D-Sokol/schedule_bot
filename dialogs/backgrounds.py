@@ -60,9 +60,9 @@ async def select_image_handler(
 ):
     elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
     element = await elements_registry.get_element(None, int(item_id))
-    manager.dialog_data["file_id"] = element["file_id"]
-    manager.dialog_data["file_name"] = element["name"]
-    logger.debug("Getter: selected image %s, id %s", element["name"], item_id)
+    manager.dialog_data["file_id"] = element.file_id
+    manager.dialog_data["file_name"] = element.name
+    logger.debug("Getter: selected image %s, id %s", element.name, item_id)
     await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
@@ -96,9 +96,9 @@ start_window = Window(
     ),
     ScrollingGroup(
         Select(
-            Format("🖼️ {item[name]}"),
+            Format("🖼️ {item.name}"),
             id="select_background",
-            item_id_getter=F["id"].resolve,
+            item_id_getter=F.id.resolve,
             items="items",
             when=has_backgrounds_condition,
             on_click=select_image_handler,
