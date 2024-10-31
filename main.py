@@ -53,8 +53,9 @@ async def main(token: str) -> None:
 
 if __name__ == '__main__':
     bot_token = os.getenv("TOKEN")
+    log_level = os.getenv("LOG_LEVEL")
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format='%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s'
     )
     asyncio.run(main(bot_token))
