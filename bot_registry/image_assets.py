@@ -8,7 +8,7 @@ from typing import *
 
 from PIL import Image
 
-logger = logging.getLogger("elements_registry")
+logger = logging.getLogger(__file__)
 
 
 @dataclass
@@ -20,7 +20,6 @@ class ElementRecord:
 
 
 class ElementsRegistryAbstract(ABC):
-    # Elements
     @abstractmethod
     async def get_elements(self, user_id: int | None) -> list[ElementRecord]:
         raise NotImplementedError
@@ -43,9 +42,9 @@ class ElementsRegistryAbstract(ABC):
             element: Image.Image,
             user_id: int | None,
             element_name: str,
+            target_size: tuple[int, int],
             file_id_photo: str | None = None,
             file_id_document: str | None = None,
-            target_size: tuple[int, int] | None = None,
             resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
     ) -> int:
         raise NotImplementedError
@@ -60,12 +59,6 @@ class ElementsRegistryAbstract(ABC):
     ):
         raise NotImplementedError
 
-    # Templates
-    @abstractmethod
-    async def get_template(self, user_id: int | None) -> dict[str, Any]:
-        raise NotImplementedError
-
-    # Other
     @classmethod
     def generate_trivial_name(cls) -> str:
         now = datetime.now()
@@ -80,7 +73,6 @@ class MockElementRegistry(ElementsRegistryAbstract):
         ]
         self.items: dict[int | None, list] = defaultdict(lambda: self.default_items.copy())
 
-    # Elements
     async def get_elements(self, user_id: int | None) -> list[ElementRecord]:
         return self.items[user_id]
 
@@ -98,9 +90,9 @@ class MockElementRegistry(ElementsRegistryAbstract):
             element: Image.Image,
             user_id: int | None,
             element_name: str,
+            target_size: tuple[int, int],
             file_id_photo: str | None = None,
             file_id_document: str | None = None,
-            target_size: tuple[int, int] | None = None,
             resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
     ) -> int:
         logger.info("Saving %s (size %s) as '%s', mode=%s", element, element.size, element_name, resize_mode)
@@ -130,8 +122,3 @@ class MockElementRegistry(ElementsRegistryAbstract):
             item.file_id_document = file_id
         else:
             logger.error("Trying to update file_id for unknown file_type: %s", file_type)
-
-    # Templates
-    async def get_template(self, user_id: int | None) -> dict[str, Any]:
-        template = {"width": 1280, "height": 720}
-        return template

@@ -14,7 +14,7 @@ from aiogram_dialog.widgets.text import Text
 from aiogram_dialog.widgets.kbd import Button, Start
 from aiogram_dialog.widgets.kbd.button import OnClick
 
-from elements_registry import ElementsRegistryAbstract
+from bot_registry import ElementsRegistryAbstract
 
 
 logger = logging.getLogger(__file__)

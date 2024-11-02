@@ -14,7 +14,7 @@ from aiogram_dialog.api.exceptions import UnknownIntent
 from dialogs import all_dialogs
 from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs.utils import BotAwareMessageManager
-from elements_registry import MockElementRegistry
+from bot_registry import MockRegistry
 
 
 dialogs_handler = Router(name="start")
@@ -39,7 +39,7 @@ async def handle_old_button(event: ErrorEvent) -> None:
 
 
 async def main(token: str) -> None:
-    elements_registry = MockElementRegistry()
+    elements_registry = MockRegistry()
     message_manager = BotAwareMessageManager(elements_registry)
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
     storage = MemoryStorage()

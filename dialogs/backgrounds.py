@@ -13,7 +13,7 @@ from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, Scrolli
 from aiogram_dialog.widgets.media import DynamicMedia
 from magic_filter import F, MagicFilter
 
-from elements_registry import ElementsRegistryAbstract
+from bot_registry import RegistryAbstract
 from .upload_background import UploadBackgroundStates
 from .utils import not_implemented_button_handler, active_user_id, StartWithData
 
@@ -34,10 +34,10 @@ class BackgroundsStates(StatesGroup):
 
 
 async def saved_backs_getter(
-        dialog_manager: DialogManager, elements_registry: ElementsRegistryAbstract, **_
+        dialog_manager: DialogManager, registry: RegistryAbstract, **_
 ) -> dict[str, Any]:
     user_id = active_user_id(dialog_manager)
-    items = await elements_registry.get_elements(user_id)
+    items = await registry.get_elements(user_id)
     backgrounds_limit = BACKGROUNDS_LIMIT
     logger.debug("Getter: %d images found with limit %d", len(items), backgrounds_limit)
     return {
@@ -66,9 +66,9 @@ async def select_image_handler(
         manager: DialogManager,
         item_id: str,
 ):
-    elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
+    registry: RegistryAbstract = manager.middleware_data["registry"]
     user_id = active_user_id(manager)
-    element = await elements_registry.get_element(user_id, int(item_id))
+    element = await registry.get_element(user_id, int(item_id))
     manager.dialog_data["file_id_photo"] = element.file_id_photo
     manager.dialog_data["file_id_document"] = element.file_id_document
     manager.dialog_data["file_name"] = element.name
@@ -90,15 +90,15 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
     else:
         user_id = active_user_id(manager)
         element_id = manager.dialog_data["element_id"]
-        elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
+        registry: RegistryAbstract = manager.middleware_data["registry"]
         logger.info("Sending image %s as document via bytes", file_name)
-        content = await elements_registry.get_element_content(user_id, element_id)
+        content = await registry.get_element_content(user_id, element_id)
         input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
         document_message = await callback.message.answer_document(document=input_document, caption=html.escape(file_name))
         document = document_message.document
         assert document is not None, "document was not sent"
         logger.debug("Get file_id for document %s", file_name)
-        await elements_registry.update_element_file_id(user_id, element_id, document.file_id, "document")
+        await registry.update_element_file_id(user_id, element_id, document.file_id, "document")
 
     # Force redraw current window since file becomes the last message instead.
     # Setting show_mode property of manager is the correct way to do so and works only for one action.

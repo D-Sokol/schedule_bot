@@ -13,7 +13,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.widgets.kbd import Button, Cancel, SwitchTo
 from magic_filter import F
 
-from elements_registry import ElementsRegistryAbstract
+from bot_registry import RegistryAbstract
 from .utils import save_to_dialog_data, active_user_id
 
 
@@ -35,9 +35,9 @@ class UploadBackgroundStates(StatesGroup):
 
 
 async def on_dialog_start(_: Any, manager: DialogManager):
-    elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
+    registry: RegistryAbstract = manager.middleware_data["registry"]
     user_id = active_user_id(manager)
-    template = await elements_registry.get_template(user_id)
+    template = await registry.get_template(user_id)
     width = template.get("width", 1280)
     manager.dialog_data["expected_width"] = width
     height = template.get("height", 720)
@@ -66,11 +66,11 @@ async def handle_image_upload(
     else:
         assert False, "Filters is not properly configured"
 
-    elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
+    registry: RegistryAbstract = manager.middleware_data["registry"]
     manager.dialog_data["file_size"] = file_size
     manager.dialog_data["file_id"] = file_id
     manager.dialog_data["file_type"] = "document" if is_document else "photo"
-    manager.dialog_data["automatic_name"] = sent_name or elements_registry.generate_trivial_name()
+    manager.dialog_data["automatic_name"] = sent_name or registry.generate_trivial_name()
 
     if file_size > FILE_SIZE_LIMIT:
         logger.info("Image rejected: file size is %d", file_size)
@@ -124,7 +124,7 @@ async def save_image(
         manager: DialogManager,
         data: str,
 ):
-    elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
+    registry: RegistryAbstract = manager.middleware_data["registry"]
     image: Image.Image = manager.dialog_data["document"]
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
     resize_mode = manager.dialog_data["resize_mode"]
@@ -132,7 +132,7 @@ async def save_image(
     file_type = manager.dialog_data["file_type"]
     user_id = active_user_id(manager)
     logger.info("Saving new image: %s", data)
-    new_element_id = await elements_registry.save_element(
+    new_element_id = await registry.save_element(
         image, user_id,
         element_name=data,
         file_id_document=file_id if file_type == "document" else None,
