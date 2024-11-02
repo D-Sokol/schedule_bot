@@ -6,6 +6,7 @@ from aiogram_dialog.widgets.text import Const
 from aiogram_dialog.widgets.kbd import Button, Start
 
 from .backgrounds import BackgroundsStates
+from .schedule_creation import ScheduleStates
 
 
 logger = logging.getLogger(__file__)
@@ -23,7 +24,7 @@ start_window = Window(
         state=BackgroundsStates.START,
         data={"global_scope": False, "select_only": False},
     ),
-    Button(Const("Создать расписание"), id="create_schedule"),
+    Start(Const("Создать расписание"), id="create_schedule", state=ScheduleStates.START),
     Button(Const("Шаблон расписания"), id="manage_templates"),
     Start(
         Const("Накладываемые элементы"),

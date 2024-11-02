@@ -9,12 +9,13 @@ from aiogram.types import ContentType, CallbackQuery, BufferedInputFile
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId, ShowMode
 from aiogram_dialog.widgets.text import Const, Format, Case
-from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, ScrollingGroup
+from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, ScrollingGroup, Start
 from aiogram_dialog.widgets.media import DynamicMedia
 from magic_filter import F, MagicFilter
 
-from bot_registry import RegistryAbstract
+from bot_registry import RegistryAbstract, ElementRecord
 from .upload_background import UploadBackgroundStates
+from .schedule_creation import ScheduleStates
 from .utils import not_implemented_button_handler, active_user_id, StartWithData
 
 
@@ -48,11 +49,11 @@ async def saved_backs_getter(
 
 
 async def selected_image_getter(dialog_manager: DialogManager, **_) -> dict[str, Any]:
-    file_name: str = dialog_manager.dialog_data["file_name"]
-    file_id: str = dialog_manager.dialog_data["file_id_photo"]
+    file_name: str = dialog_manager.dialog_data["element"].name
+    file_id: str = dialog_manager.dialog_data["element"].file_id_photo
     user_id = active_user_id(dialog_manager)
     if file_id is None:
-        element_id = dialog_manager.dialog_data["element_id"]
+        element_id = dialog_manager.dialog_data["element"].id
         file_id = f"bot://{user_id or 0}/{element_id}"
     return {
         "background": MediaAttachment(ContentType.PHOTO, file_id=MediaId(file_id)),
@@ -69,10 +70,7 @@ async def select_image_handler(
     registry: RegistryAbstract = manager.middleware_data["registry"]
     user_id = active_user_id(manager)
     element = await registry.get_element(user_id, int(item_id))
-    manager.dialog_data["file_id_photo"] = element.file_id_photo
-    manager.dialog_data["file_id_document"] = element.file_id_document
-    manager.dialog_data["file_name"] = element.name
-    manager.dialog_data["element_id"] = element.id
+    manager.dialog_data["element"] = element
     logger.debug("Getter: selected image %s/%s, id %s", user_id, element.name, item_id)
     if manager.start_data["select_only"]:
         logging.debug("Finishing dialog since select only mode requested")
@@ -82,23 +80,23 @@ async def select_image_handler(
 
 
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
-    file_name: str = manager.dialog_data["file_name"]
-    file_id: str = manager.dialog_data["file_id_document"]
+    element: ElementRecord = manager.dialog_data["element"]
+    file_name: str = element.name
+    file_id: str = element.file_id_document
     if file_id is not None:
         logger.debug("Sending full version for image %s", file_name)
         await callback.message.answer_document(document=file_id, caption=html.escape(file_name))
     else:
         user_id = active_user_id(manager)
-        element_id = manager.dialog_data["element_id"]
         registry: RegistryAbstract = manager.middleware_data["registry"]
         logger.info("Sending image %s as document via bytes", file_name)
-        content = await registry.get_element_content(user_id, element_id)
+        content = await registry.get_element_content(user_id, element.id)
         input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
         document_message = await callback.message.answer_document(document=input_document, caption=html.escape(file_name))
         document = document_message.document
         assert document is not None, "document was not sent"
         logger.debug("Get file_id for document %s", file_name)
-        await registry.update_element_file_id(user_id, element_id, document.file_id, "document")
+        await registry.update_element_file_id(user_id, element.id, document.file_id, "document")
 
     # Force redraw current window since file becomes the last message instead.
     # Setting show_mode property of manager is the correct way to do so and works only for one action.
@@ -142,6 +140,7 @@ start_window = Window(
         id="upload_background",
         state=UploadBackgroundStates.START,
         when=can_upload_background_condition & ~F["start_data"]["select_only"],
+        data_keys=["global_scope"],
     ),
     Cancel(Const("❌ Отставеть!")),
     state=BackgroundsStates.START,
@@ -152,7 +151,13 @@ start_window = Window(
 selected_image_window = Window(
     DynamicMedia("background"),
     Format("<b>{escaped_name}</b>"),
-    Button(Const("Создать расписание"), id="schedule_from_selected", on_click=not_implemented_button_handler),
+    StartWithData(
+        Const("Создать расписание"),
+        id="schedule_from_selected",
+        state=ScheduleStates.EXPECT_TEXT,
+        on_click=not_implemented_button_handler,
+        data_keys=["element"],
+    ),
     Button(Const("Переименовать"), id="rename_selected", on_click=not_implemented_button_handler),
     Button(Const("📄️ Прислать без сжатия"), id="send_full", on_click=send_full_handler),
     Button(Const("🚮️ Удалить"), id="delete_selected", on_click=not_implemented_button_handler),
