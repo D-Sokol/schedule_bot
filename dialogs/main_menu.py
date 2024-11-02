@@ -21,7 +21,7 @@ start_window = Window(
         Const("Фоновые изображения"),
         id="manage_backgrounds",
         state=BackgroundsStates.START,
-        data={"global_scope": False},
+        data={"global_scope": False, "select_only": False},
     ),
     Button(Const("Создать расписание"), id="create_schedule"),
     Button(Const("Шаблон расписания"), id="manage_templates"),
@@ -29,7 +29,7 @@ start_window = Window(
         Const("Накладываемые элементы"),
         id="manage_elements",
         state=BackgroundsStates.START,
-        data={"global_scope": True},
+        data={"global_scope": True, "select_only": False},
     ),
     state=MainMenuStates.START,
 )

@@ -67,13 +67,18 @@ async def select_image_handler(
         item_id: str,
 ):
     elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
-    element = await elements_registry.get_element(active_user_id(manager), int(item_id))
+    user_id = active_user_id(manager)
+    element = await elements_registry.get_element(user_id, int(item_id))
     manager.dialog_data["file_id_photo"] = element.file_id_photo
     manager.dialog_data["file_id_document"] = element.file_id_document
     manager.dialog_data["file_name"] = element.name
     manager.dialog_data["element_id"] = element.id
-    logger.debug("Getter: selected image %s, id %s", element.name, item_id)
-    await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
+    logger.debug("Getter: selected image %s/%s, id %s", user_id, element.name, item_id)
+    if manager.start_data["select_only"]:
+        logging.debug("Finishing dialog since select only mode requested")
+        await manager.done(result={"element": element})
+    else:
+        await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
@@ -136,7 +141,7 @@ start_window = Window(
         Const("Загрузить фон"),
         id="upload_background",
         state=UploadBackgroundStates.START,
-        when=can_upload_background_condition,
+        when=can_upload_background_condition & ~F["start_data"]["select_only"],
     ),
     Cancel(Const("❌ Отставеть!")),
     state=BackgroundsStates.START,
