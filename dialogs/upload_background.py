@@ -132,7 +132,7 @@ async def save_image(
     file_type = manager.dialog_data["file_type"]
     user_id = active_user_id(manager)
     logger.info("Saving new image: %s", data)
-    await elements_registry.save_element(
+    new_element_id = await elements_registry.save_element(
         image, user_id,
         element_name=data,
         file_id_document=file_id if file_type == "document" else None,
@@ -147,7 +147,7 @@ async def save_image(
         message = update
     await message.answer(f"Фон сохранен!\n<b>{html.escape(data)}</b>")
     # Since we send a custom message, dialogs should send new one to use the latest message in the chat
-    await manager.done(result=True, show_mode=ShowMode.SEND)
+    await manager.done(result=new_element_id, show_mode=ShowMode.SEND)
 
 
 async def save_image_auto_name(

@@ -47,7 +47,7 @@ class ElementsRegistryAbstract(ABC):
             file_id_document: str | None = None,
             target_size: tuple[int, int] | None = None,
             resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
-    ) -> None:
+    ) -> int:
         raise NotImplementedError
 
     @abstractmethod
@@ -102,7 +102,7 @@ class MockElementRegistry(ElementsRegistryAbstract):
             file_id_document: str | None = None,
             target_size: tuple[int, int] | None = None,
             resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
-    ) -> None:
+    ) -> int:
         logger.info("Saving %s (size %s) as '%s', mode=%s", element, element.size, element_name, resize_mode)
         next_id = self.items[user_id][-1].id + 1 if self.items[user_id] else 0
         self.items[user_id].append(
@@ -113,6 +113,7 @@ class MockElementRegistry(ElementsRegistryAbstract):
                 file_id_document=file_id_document,
             )
         )
+        return next_id
 
     async def update_element_file_id(
             self,
