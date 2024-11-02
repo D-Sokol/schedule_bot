@@ -2,3 +2,4 @@ aiogram==3.13.1
 aiogram_dialog==2.2.0
 magic-filter==1.0.12
 nats-py
+pillow==11.0.0
