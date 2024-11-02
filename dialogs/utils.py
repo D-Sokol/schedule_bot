@@ -95,27 +95,32 @@ class StartWithData(Start):
     """
     This widget is similar to :class:`from aiogram_dialog.widgets.kbd.state.Start`,
     but re-uses start data from the current dialog instead of static data.
+    If data keys are provided, only given keys are copied. If static data is provided,
+    it takes priority over values from current context.
     """
     def __init__(
             self,
             text: Text,
             id: str,  # noqa
             state: State,
+            data: dict | None = None,
             on_click: Optional[OnClick] = None,
             show_mode: Optional[ShowMode] = None,
             mode: StartMode = StartMode.NORMAL,
             when: WhenCondition = None,
+            data_keys: list[str] | None = None,
     ):
         super().__init__(
             text=text,
             id=id,
             state=state,
-            data=None,  # Field not used, data provided dynamically
+            data=data,
             on_click=on_click,
             show_mode=show_mode,
             mode=mode,
             when=when,
         )
+        self.data_keys = data_keys
 
     async def _on_click(
             self,
@@ -125,9 +130,16 @@ class StartWithData(Start):
     ):
         if self.user_on_click:
             await self.user_on_click(callback, self, manager)
+
+        if self.data_keys is None:
+            data = manager.start_data.copy()
+        else:
+            data = {key: manager.start_data.get(key) for key in self.data_keys}
+        data.update(self.start_data)
+
         await manager.start(
             state=self.state,
-            data=manager.start_data,
+            data=data,
             mode=self.mode,
             show_mode=self.show_mode,
         )
