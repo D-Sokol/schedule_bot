@@ -1,19 +1,33 @@
 import logging
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Union
+from typing import Any, Awaitable, Callable, Optional, Union
 
 from aiogram import Bot
+from aiogram.fsm.state import State
 from aiogram.types import BufferedInputFile, CallbackQuery, Message, InputFile
 
 from aiogram_dialog import DialogManager, Data
-from aiogram_dialog.api.entities import MediaAttachment, NewMessage
+from aiogram_dialog.api.entities import MediaAttachment, NewMessage, StartMode, ShowMode
 from aiogram_dialog.manager.message_manager import MessageManager
-from aiogram_dialog.widgets.kbd import Button
+from aiogram_dialog.widgets.common import WhenCondition
+from aiogram_dialog.widgets.text import Text
+from aiogram_dialog.widgets.kbd import Button, Start
+from aiogram_dialog.widgets.kbd.button import OnClick
 
 from elements_registry import ElementsRegistryAbstract
 
 
 logger = logging.getLogger(__file__)
+
+
+def current_user_id(dialog_manager: DialogManager) -> int:
+    return dialog_manager.event.from_user.id
+
+
+def active_user_id(dialog_manager: DialogManager) -> int | None:
+    if dialog_manager.start_data["global_scope"]:
+        return None
+    return current_user_id(dialog_manager)
 
 
 def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery | Message, Any, DialogManager], Awaitable]:
@@ -75,3 +89,45 @@ class BotAwareMessageManager(MessageManager):
         bot_uri = bot_uri.removeprefix(cls.BOT_URI_PREFIX)
         user_id, element_id = bot_uri.split("/")
         return int(user_id) or None, int(element_id)
+
+
+class StartWithData(Start):
+    """
+    This widget is similar to :class:`from aiogram_dialog.widgets.kbd.state.Start`,
+    but re-uses start data from the current dialog instead of static data.
+    """
+    def __init__(
+            self,
+            text: Text,
+            id: str,  # noqa
+            state: State,
+            on_click: Optional[OnClick] = None,
+            show_mode: Optional[ShowMode] = None,
+            mode: StartMode = StartMode.NORMAL,
+            when: WhenCondition = None,
+    ):
+        super().__init__(
+            text=text,
+            id=id,
+            state=state,
+            data=None,  # Field not used, data provided dynamically
+            on_click=on_click,
+            show_mode=show_mode,
+            mode=mode,
+            when=when,
+        )
+
+    async def _on_click(
+            self,
+            callback: CallbackQuery,
+            button: Button,
+            manager: DialogManager,
+    ):
+        if self.user_on_click:
+            await self.user_on_click(callback, self, manager)
+        await manager.start(
+            state=self.state,
+            data=manager.start_data,
+            mode=self.mode,
+            show_mode=self.show_mode,
+        )

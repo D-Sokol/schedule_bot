@@ -9,13 +9,13 @@ from aiogram.types import ContentType, CallbackQuery, BufferedInputFile
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId, ShowMode
 from aiogram_dialog.widgets.text import Const, Format, Case
-from aiogram_dialog.widgets.kbd import Button, Start, Cancel, Select, SwitchTo, ScrollingGroup
+from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, ScrollingGroup
 from aiogram_dialog.widgets.media import DynamicMedia
 from magic_filter import F, MagicFilter
 
 from elements_registry import ElementsRegistryAbstract
 from .upload_background import UploadBackgroundStates
-from .utils import not_implemented_button_handler
+from .utils import not_implemented_button_handler, active_user_id, StartWithData
 
 
 logger = logging.getLogger(__file__)
@@ -33,8 +33,10 @@ class BackgroundsStates(StatesGroup):
     SELECTED_IMAGE = State()
 
 
-async def saved_backs_getter(elements_registry: ElementsRegistryAbstract, **_) -> dict[str, Any]:
-    user_id = None  # TODO: user_id
+async def saved_backs_getter(
+        dialog_manager: DialogManager, elements_registry: ElementsRegistryAbstract, **_
+) -> dict[str, Any]:
+    user_id = active_user_id(dialog_manager)
     items = await elements_registry.get_elements(user_id)
     backgrounds_limit = BACKGROUNDS_LIMIT
     logger.debug("Getter: %d images found with limit %d", len(items), backgrounds_limit)
@@ -48,7 +50,7 @@ async def saved_backs_getter(elements_registry: ElementsRegistryAbstract, **_) -
 async def selected_image_getter(dialog_manager: DialogManager, **_) -> dict[str, Any]:
     file_name: str = dialog_manager.dialog_data["file_name"]
     file_id: str = dialog_manager.dialog_data["file_id_photo"]
-    user_id = None  # TODO: user_id
+    user_id = active_user_id(dialog_manager)
     if file_id is None:
         element_id = dialog_manager.dialog_data["element_id"]
         file_id = f"bot://{user_id or 0}/{element_id}"
@@ -65,7 +67,7 @@ async def select_image_handler(
         item_id: str,
 ):
     elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
-    element = await elements_registry.get_element(None, int(item_id))
+    element = await elements_registry.get_element(active_user_id(manager), int(item_id))
     manager.dialog_data["file_id_photo"] = element.file_id_photo
     manager.dialog_data["file_id_document"] = element.file_id_document
     manager.dialog_data["file_name"] = element.name
@@ -81,7 +83,7 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
         logger.debug("Sending full version for image %s", file_name)
         await callback.message.answer_document(document=file_id, caption=html.escape(file_name))
     else:
-        user_id = None  # TODO: user_id
+        user_id = active_user_id(manager)
         element_id = manager.dialog_data["element_id"]
         elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
         logger.info("Sending image %s as document via bytes", file_name)
@@ -130,7 +132,7 @@ start_window = Window(
         height=5,
         hide_on_single_page=True,
     ),
-    Start(
+    StartWithData(
         Const("Загрузить фон"),
         id="upload_background",
         state=UploadBackgroundStates.START,

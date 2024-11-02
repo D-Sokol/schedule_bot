@@ -17,10 +17,20 @@ class MainMenuStates(StatesGroup):
 
 start_window = Window(
     Const("Main Menu"),
-    Start(Const("Фоновые изображения"), id="manage_backgrounds", state=BackgroundsStates.START),
+    Start(
+        Const("Фоновые изображения"),
+        id="manage_backgrounds",
+        state=BackgroundsStates.START,
+        data={"global_scope": False},
+    ),
     Button(Const("Создать расписание"), id="create_schedule"),
     Button(Const("Шаблон расписания"), id="manage_templates"),
-    Button(Const("Накладываемые элементы"), id="manage_elements"),
+    Start(
+        Const("Накладываемые элементы"),
+        id="manage_elements",
+        state=BackgroundsStates.START,
+        data={"global_scope": True},
+    ),
     state=MainMenuStates.START,
 )
 

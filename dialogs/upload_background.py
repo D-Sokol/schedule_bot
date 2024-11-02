@@ -14,7 +14,7 @@ from aiogram_dialog.widgets.kbd import Button, Cancel, SwitchTo
 from magic_filter import F
 
 from elements_registry import ElementsRegistryAbstract
-from .utils import save_to_dialog_data
+from .utils import save_to_dialog_data, active_user_id
 
 
 logger = logging.getLogger(__file__)
@@ -36,7 +36,8 @@ class UploadBackgroundStates(StatesGroup):
 
 async def on_dialog_start(_: Any, manager: DialogManager):
     elements_registry: ElementsRegistryAbstract = manager.middleware_data["elements_registry"]
-    template = await elements_registry.get_template(None)  # TODO: user_id
+    user_id = active_user_id(manager)
+    template = await elements_registry.get_template(user_id)
     width = template.get("width", 1280)
     manager.dialog_data["expected_width"] = width
     height = template.get("height", 720)
@@ -129,9 +130,10 @@ async def save_image(
     resize_mode = manager.dialog_data["resize_mode"]
     file_id = manager.dialog_data["file_id"]
     file_type = manager.dialog_data["file_type"]
+    user_id = active_user_id(manager)
     logger.info("Saving new image: %s", data)
     await elements_registry.save_element(
-        image, None,  # TODO: user_id
+        image, user_id,
         element_name=data,
         file_id_document=file_id if file_type == "document" else None,
         file_id_photo=file_id if file_type == "photo" else None,
