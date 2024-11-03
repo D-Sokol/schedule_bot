@@ -22,7 +22,6 @@ from .utils import not_implemented_button_handler, active_user_id, StartWithData
 logger = logging.getLogger(__file__)
 
 
-BACKGROUNDS_LIMIT = 6
 FILE_SIZE_LIMIT = 10 * 1024 * 1024
 
 FILE_SIZE_ERROR_REASON = "file_size"
@@ -39,7 +38,7 @@ async def saved_backs_getter(
 ) -> dict[str, Any]:
     user_id = active_user_id(dialog_manager)
     items = await registry.get_elements(user_id)
-    backgrounds_limit = BACKGROUNDS_LIMIT
+    backgrounds_limit = await registry.get_elements_limit(user_id)
     logger.debug("Getter: %d images found with limit %d", len(items), backgrounds_limit)
     return {
         "items": items,

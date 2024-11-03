@@ -11,7 +11,7 @@ from magic_filter import F
 
 from bot_registry import RegistryAbstract, ElementRecord
 from .upload_background import UploadBackgroundStates
-from .backgrounds import BackgroundsStates
+from .backgrounds import BackgroundsStates, has_backgrounds_condition, can_upload_background_condition
 from .utils import active_user_id
 
 
@@ -26,7 +26,6 @@ class ScheduleStates(StatesGroup):
 
 has_preselected_background_condition = F["start_data"]["element"]
 has_selected_background_condition = F["dialog_data"]["element"]
-has_backgrounds_condition = 0 < F["n_backgrounds"]
 
 
 async def on_dialog_start(start_data: Data, manager: DialogManager):
@@ -63,7 +62,7 @@ async def process_upload_new_background(_start_data: Data, result: Data, manager
 start_window = Window(
     Const("Create schedule"),
     Const(
-        "Для создания расписания нужно выбрать фон из списка сохраненных изображений.",
+        "Для создания расписания нужно выбрать фон из списка сохраненных изображений или загрузить новый.",
     ),
     Start(
         Const("Выбрать фон"),
@@ -76,6 +75,7 @@ start_window = Window(
         Const("Загрузить новый фон"),
         id="upload_background_from_schedule",
         state=UploadBackgroundStates.START,
+        when=can_upload_background_condition,
     ),
     Cancel(Const("❌ Отставеть!")),
     state=ScheduleStates.START,

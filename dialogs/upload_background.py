@@ -37,6 +37,14 @@ class UploadBackgroundStates(StatesGroup):
 async def on_dialog_start(_: Any, manager: DialogManager):
     registry: RegistryAbstract = manager.middleware_data["registry"]
     user_id = active_user_id(manager)
+    limit = await registry.get_elements_limit(user_id)
+    current = await registry.get_elements_count(user_id)
+    if current >= limit:
+        # This log message is ERROR-level because in this case corresponding buttons should be hidden.
+        logger.error("Uploading images for %s is blocked since limit %d is reached!", user_id, limit)
+        await manager.done()
+        return
+
     template = await registry.get_template(user_id)
     width = template.get("width", 1280)
     manager.dialog_data["expected_width"] = width

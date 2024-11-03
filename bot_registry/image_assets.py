@@ -11,6 +11,10 @@ from PIL import Image
 logger = logging.getLogger(__file__)
 
 
+LOCAL_SCOPE_ELEMENTS_LIMIT = 6
+GLOBAL_SCOPE_ELEMENTS_LIMIT = 1_000
+
+
 @dataclass
 class ElementRecord:
     name: str
@@ -58,6 +62,10 @@ class ElementsRegistryAbstract(ABC):
             file_type: Literal["photo", "document"] = "document",
     ):
         raise NotImplementedError
+
+    @classmethod
+    async def get_elements_limit(cls, user_id: int | None) -> int:
+        return GLOBAL_SCOPE_ELEMENTS_LIMIT if user_id is None else LOCAL_SCOPE_ELEMENTS_LIMIT
 
     @classmethod
     def generate_trivial_name(cls) -> str:
