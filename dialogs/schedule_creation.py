@@ -32,6 +32,11 @@ has_backgrounds_condition = 0 < F["n_backgrounds"]
 async def on_dialog_start(start_data: Data, manager: DialogManager):
     manager.dialog_data["element"] = element = start_data.get("element")
     logger.info("Start planning a schedule, has preselected background: %s", element is not None)
+    initial_state = manager.current_context().state
+    if element is None:
+        assert initial_state == ScheduleStates.START, f"Misconfigured state setting: {initial_state}"
+    else:
+        assert initial_state == ScheduleStates.EXPECT_TEXT, f"Misconfigured state setting: {initial_state}"
 
 
 async def saved_backs_getter(
