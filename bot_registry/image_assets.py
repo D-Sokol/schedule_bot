@@ -46,7 +46,7 @@ class ElementsRegistryAbstract(ABC):
             file_id_photo: str | None = None,
             file_id_document: str | None = None,
             resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
-    ) -> int:
+    ) -> ElementRecord:
         raise NotImplementedError
 
     @abstractmethod
@@ -94,18 +94,17 @@ class MockElementRegistry(ElementsRegistryAbstract):
             file_id_photo: str | None = None,
             file_id_document: str | None = None,
             resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
-    ) -> int:
+    ) -> ElementRecord:
         logger.info("Saving %s (size %s) as '%s', mode=%s", element, element.size, element_name, resize_mode)
         next_id = self.items[user_id][-1].id + 1 if self.items[user_id] else 0
-        self.items[user_id].append(
-            ElementRecord(
-                name=element_name,
-                id=next_id,
-                file_id_photo=file_id_photo,
-                file_id_document=file_id_document,
-            )
+        new_record = ElementRecord(
+            name=element_name,
+            id=next_id,
+            file_id_photo=file_id_photo,
+            file_id_document=file_id_document,
         )
-        return next_id
+        self.items[user_id].append(new_record)
+        return new_record
 
     async def update_element_file_id(
             self,
