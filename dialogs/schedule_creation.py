@@ -1,15 +1,17 @@
 import html
 import logging
-from aiogram.filters.state import State, StatesGroup
 from typing import Any
 
+from aiogram.filters.state import State, StatesGroup
+from aiogram.types import Message
 from aiogram_dialog import Dialog, Window, Data, DialogManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Cancel, Start
-from aiogram_dialog.widgets.text import Const
+from aiogram_dialog.widgets.text import Const, Format
 from magic_filter import F
 
 from bot_registry import RegistryAbstract, ElementRecord
+from bot_registry.texts import ScheduleRegistryAbstract, Schedule
 from .upload_background import UploadBackgroundStates
 from .backgrounds import BackgroundsStates, has_backgrounds_condition, can_upload_background_condition
 from .utils import active_user_id
@@ -50,6 +52,39 @@ async def saved_backs_getter(
     }
 
 
+async def previous_schedule_getter(
+        dialog_manager: DialogManager, registry: ScheduleRegistryAbstract, **_
+) -> dict[str, Any]:
+    user_id = active_user_id(dialog_manager)
+    assert user_id is not None, "Who passed global scope into creation dialog?!"
+
+    user_last_schedule = await registry.get_last_schedule(user_id)
+    global_last_schedule = await registry.get_last_schedule(None)
+    if global_last_schedule is None:
+        # A good example should be provided in DB, but we want to provide an example in any case
+        global_last_schedule = "Пн 10:00 Бег\nПн 11:30 Отжимания\nПт 18:00 Сходить в бар"
+
+    return {
+        "user_last_schedule": html.escape(str(user_last_schedule)),
+        "user_has_schedule": user_last_schedule is not None,
+        "global_last_schedule": html.escape(str(global_last_schedule)),
+    }
+
+
+async def process_schedule_creation(
+        _message: Message,
+        _widget: Any,
+        manager: DialogManager,
+        data: tuple[Schedule, list[str]],
+):
+    schedule, unparsed = data
+    if schedule:
+        pass  # TODO: start a task
+    else:
+        pass  # TODO: emit warning
+    await manager.switch_to(ScheduleStates.FINISH)
+
+
 async def process_upload_new_background(_start_data: Data, result: Data, manager: DialogManager):
     if result is None:
         # User cancelled upload, nothing is changed
@@ -85,8 +120,20 @@ start_window = Window(
 
 expect_input_window = Window(
     Const("Введите текст расписания"),
-    # TODO: example || last one
-    TextInput(id="schedule_text", on_success=None),  # TODO
+    Format(
+        "Вот предыдущее использованное вами расписание:\n<i>{user_last_schedule}</i>",
+        when=F["user_has_schedule"],
+    ),
+    Format(
+        "Вот простой пример расписания:\n<i>{global_last_schedule}</i>",
+        when=~F["user_has_schedule"],
+    ),
+    TextInput(
+        id="schedule_text",
+        type_factory=ScheduleRegistryAbstract.parse_schedule_text,
+        on_success=process_schedule_creation,
+    ),
+    getter=previous_schedule_getter,
     state=ScheduleStates.EXPECT_TEXT,
 )
 
