@@ -119,7 +119,14 @@ class ScheduleRegistryAbstract(ABC):
 
 class MockScheduleRegistry(ScheduleRegistryAbstract):
     async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
-        return None
+        if user_id is not None:
+            return None
+        return Schedule(
+            {
+                WeekDay.TUESDAY: [Entry(Time(11, 0), "Спортзал"), Entry(Time(17, 30), "Отдых")],
+                WeekDay.FRIDAY: [Entry(Time(11, 0), "Неторопливая прогулка по парку")]
+            }
+        )
 
     async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
-        pass
+        logger.info("Saving schedule for user %s:\n%s", user_id, schedule)
