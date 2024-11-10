@@ -26,7 +26,10 @@ has_selected_background_condition = F["dialog_data"]["element"]
 
 
 async def on_dialog_start(start_data: Data, manager: DialogManager):
-    manager.dialog_data["element"] = element = start_data.get("element")
+    element = None
+    if start_data:
+        element = start_data.get("element")
+    manager.dialog_data["element"] = element
     logger.info("Start planning a schedule, has preselected background: %s", element is not None)
     initial_state = manager.current_context().state
     if element is None:
