@@ -11,6 +11,9 @@ from aiogram.types import Message, ErrorEvent
 from aiogram_dialog import DialogManager, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
 
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
+from db_middleware import DbSessionMiddleware
 from dialogs import all_dialogs
 from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs.utils import BotAwareMessageManager
@@ -38,13 +41,19 @@ async def handle_old_button(event: ErrorEvent) -> None:
         )
 
 
-async def main(token: str) -> None:
+async def main(token: str, db_url: str) -> None:
     registry = MockRegistry()
     message_manager = BotAwareMessageManager(registry)
+
+    engine = create_async_engine(db_url, echo=True)
+    session_pool = async_sessionmaker(engine, expire_on_commit=False)
+    db_middleware = DbSessionMiddleware(session_pool)
+
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage, registry=registry)
 
+    dp.update.middleware(db_middleware)
     dp.include_router(dialogs_handler)
     dp.include_routers(*all_dialogs)
     dp.error.register(handle_old_button, ExceptionTypeFilter(UnknownIntent))
@@ -56,9 +65,10 @@ async def main(token: str) -> None:
 
 if __name__ == '__main__':
     bot_token = os.getenv("TOKEN")
+    database_url = os.getenv("DB_URL", "sqlite://")
     log_level = os.getenv("LOG_LEVEL")
     logging.basicConfig(
         level=log_level,
         format='%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s'
     )
-    asyncio.run(main(bot_token))
+    asyncio.run(main(bot_token, database_url))

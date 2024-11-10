@@ -6,3 +6,7 @@ NOTES
 __pycache__/
 *.py[cod]
 *$py.class
+
+
+# Develop SQLite files
+*.sqlite.db
