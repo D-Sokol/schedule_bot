@@ -27,15 +27,20 @@ UNREADABLE_ERROR_REASON = "unreadable"
 
 
 async def saved_backs_getter(
-        dialog_manager: DialogManager, registry: RegistryAbstract, **_
+        dialog_manager: DialogManager, registry: RegistryAbstract, _only_count: bool = False, **_,
 ) -> dict[str, Any]:
     user_id = active_user_id(dialog_manager)
-    items = await registry.get_elements(user_id)
+    if _only_count:
+        items = []
+        n_items = await registry.get_elements_count(user_id)
+    else:
+        items = await registry.get_elements(user_id)
+        n_items = len(items)
     backgrounds_limit = await registry.get_elements_limit(user_id)
     logger.debug("Getter: %d images found with limit %d", len(items), backgrounds_limit)
     return {
         "items": items,
-        "n_backgrounds": len(items),
+        "n_backgrounds": n_items,
         "limit": backgrounds_limit,
     }
 

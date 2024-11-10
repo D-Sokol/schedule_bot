@@ -1,18 +1,19 @@
 import html
 import logging
+from datetime import date, timedelta
+from functools import partial
 from typing import Any
 
-from aiogram.filters.state import State, StatesGroup
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import Dialog, Window, Data, DialogManager
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Cancel, Start
+from aiogram_dialog.widgets.kbd import Cancel, Start, Button, SwitchTo, Calendar
 from aiogram_dialog.widgets.text import Const, Format
 from magic_filter import F
 
-from bot_registry import RegistryAbstract, ElementRecord
+from bot_registry import ElementRecord
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
-from .backgrounds import has_backgrounds_condition, can_upload_background_condition
+from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
 from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates
 from .utils import active_user_id
 
@@ -25,6 +26,7 @@ has_selected_background_condition = F["dialog_data"]["element"]
 
 
 async def on_dialog_start(start_data: Data, manager: DialogManager):
+    assert start_data.get("global_scope", "missing") is False, f"{start_data.get('global_scope')=}"
     manager.dialog_data["element"] = element = start_data.get("element")
     logger.info("Start planning a schedule, has preselected background: %s", element is not None)
     initial_state = manager.current_context().state
@@ -32,18 +34,6 @@ async def on_dialog_start(start_data: Data, manager: DialogManager):
         assert initial_state == ScheduleStates.START, f"Misconfigured state setting: {initial_state}"
     else:
         assert initial_state == ScheduleStates.EXPECT_TEXT, f"Misconfigured state setting: {initial_state}"
-
-
-async def saved_backs_getter(
-        dialog_manager: DialogManager, registry: RegistryAbstract, **_
-) -> dict[str, Any]:
-    user_id = active_user_id(dialog_manager)
-    assert user_id is not None, "Who passed global scope into creation dialog?!"
-    n_items = await registry.get_elements_count(user_id)
-    logger.debug("Getter: can select background from %d images", n_items)
-    return {
-        "n_backgrounds": n_items,
-    }
 
 
 async def process_date_selected(
@@ -54,6 +44,7 @@ async def process_date_selected(
 ):
     logger.info("Selected date: %s", selected_date.isoformat())
     manager.dialog_data["selected_date"] = selected_date
+    await manager.switch_to(ScheduleStates.FINISH)
 
 
 async def previous_schedule_getter(
@@ -86,7 +77,7 @@ async def process_schedule_creation(
         pass  # TODO: start a task
     else:
         pass  # TODO: emit warning
-    await manager.switch_to(ScheduleStates.FINISH)
+    await manager.switch_to(ScheduleStates.EXPECT_DATE)
 
 
 async def process_upload_new_background(_start_data: Data, result: Data, manager: DialogManager):
@@ -120,6 +111,7 @@ start_window = Window(
     Cancel(Const("❌ Отставеть!")),
     state=ScheduleStates.START,
     on_process_result=process_upload_new_background,
+    getter=partial(saved_backs_getter, _only_count=True),
 )
 
 expect_input_window = Window(
