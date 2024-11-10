@@ -39,11 +39,11 @@ async def handle_old_button(event: ErrorEvent) -> None:
 
 
 async def main(token: str) -> None:
-    elements_registry = MockRegistry()
-    message_manager = BotAwareMessageManager(elements_registry)
+    registry = MockRegistry()
+    message_manager = BotAwareMessageManager(registry)
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
     storage = MemoryStorage()
-    dp = Dispatcher(storage=storage, elements_registry=elements_registry)
+    dp = Dispatcher(storage=storage, registry=registry)
 
     dp.include_router(dialogs_handler)
     dp.include_routers(*all_dialogs)
