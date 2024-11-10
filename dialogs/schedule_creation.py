@@ -12,18 +12,12 @@ from magic_filter import F
 
 from bot_registry import RegistryAbstract, ElementRecord
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
-from .upload_background import UploadBackgroundStates
-from .backgrounds import BackgroundsStates, has_backgrounds_condition, can_upload_background_condition
+from .backgrounds import has_backgrounds_condition, can_upload_background_condition
+from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates
 from .utils import active_user_id
 
 
 logger = logging.getLogger(__file__)
-
-
-class ScheduleStates(StatesGroup):
-    START = State()
-    EXPECT_TEXT = State()
-    FINISH = State()
 
 
 has_preselected_background_condition = F["start_data"]["element"]
@@ -50,6 +44,16 @@ async def saved_backs_getter(
     return {
         "n_backgrounds": n_items,
     }
+
+
+async def process_date_selected(
+        _callback: CallbackQuery,
+        _widget: Any,
+        manager: DialogManager,
+        selected_date: date,
+):
+    logger.info("Selected date: %s", selected_date.isoformat())
+    manager.dialog_data["selected_date"] = selected_date
 
 
 async def previous_schedule_getter(
@@ -137,6 +141,33 @@ expect_input_window = Window(
     state=ScheduleStates.EXPECT_TEXT,
 )
 
+
+async def process_this_week(callback: CallbackQuery, widget: Button, manager: DialogManager):
+    today = date.today()
+    return await process_date_selected(callback, widget, manager, today)
+
+
+async def process_next_week(callback: CallbackQuery, widget: Button, manager: DialogManager):
+    next_week = date.today() + timedelta(days=7)
+    return await process_date_selected(callback, widget, manager, next_week)
+
+
+expect_date_window = Window(
+    Const("Выберите, на какие даты будет составлено расписание."),
+    Button(Const("Эта неделя"), id="this_week", on_click=process_this_week),
+    Button(Const("Следующая неделя"), id="next_week", on_click=process_next_week),
+    SwitchTo(Const("Другая дата"), id="other_date", state=ScheduleStates.EXPECT_DATE_CALENDAR),
+    Cancel(Const("❌ Отставеть!")),
+    state=ScheduleStates.EXPECT_DATE,
+)
+
+expect_date_calendar_window = Window(
+    Const("Выберите дату"),
+    SwitchTo(Const("❌ Назад"), id="back", state=ScheduleStates.EXPECT_DATE),
+    Calendar(id="calendar", on_click=process_date_selected),
+    state=ScheduleStates.EXPECT_DATE_CALENDAR,
+)
+
 finish_window = Window(
     Const("Thank you"),
     Cancel(Const("Хорошо.")),
@@ -144,4 +175,12 @@ finish_window = Window(
 )
 
 
-dialog = Dialog(start_window, expect_input_window, finish_window, on_start=on_dialog_start, name=__file__)
+dialog = Dialog(
+    start_window,
+    expect_input_window,
+    expect_date_window,
+    expect_date_calendar_window,
+    finish_window,
+    on_start=on_dialog_start,
+    name=__file__,
+)

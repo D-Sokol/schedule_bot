@@ -3,19 +3,17 @@ import logging
 from pathlib import Path
 from typing import Any, cast
 
-from aiogram.filters.state import State, StatesGroup
 from aiogram.types import ContentType, CallbackQuery, BufferedInputFile
 
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId, ShowMode
 from aiogram_dialog.widgets.text import Const, Format, Case
-from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, ScrollingGroup, Start
+from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, ScrollingGroup
 from aiogram_dialog.widgets.media import DynamicMedia
 from magic_filter import F, MagicFilter
 
 from bot_registry import RegistryAbstract, ElementRecord
-from .upload_background import UploadBackgroundStates
-from .schedule_creation import ScheduleStates
+from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
 from .utils import not_implemented_button_handler, active_user_id, StartWithData
 
 
@@ -26,11 +24,6 @@ FILE_SIZE_LIMIT = 10 * 1024 * 1024
 
 FILE_SIZE_ERROR_REASON = "file_size"
 UNREADABLE_ERROR_REASON = "unreadable"
-
-
-class BackgroundsStates(StatesGroup):
-    START = State()
-    SELECTED_IMAGE = State()
 
 
 async def saved_backs_getter(

@@ -3,7 +3,6 @@ import logging
 from PIL import UnidentifiedImageError, Image
 from typing import Any
 
-from aiogram.filters.state import State, StatesGroup
 from aiogram.types import ContentType, Message, CallbackQuery
 
 from aiogram_dialog import Dialog, Window, DialogManager
@@ -14,6 +13,7 @@ from aiogram_dialog.widgets.kbd import Button, Cancel, SwitchTo
 from magic_filter import F
 
 from bot_registry import RegistryAbstract
+from .states import UploadBackgroundStates
 from .utils import save_to_dialog_data, active_user_id
 
 
@@ -24,14 +24,6 @@ FILE_SIZE_LIMIT = 10 * 1024 * 1024
 
 FILE_SIZE_ERROR_REASON = "file_size"
 UNREADABLE_ERROR_REASON = "unreadable"
-
-
-class UploadBackgroundStates(StatesGroup):
-    START = State()
-    UPLOADED_NOT_DOCUMENT = State()
-    UPLOADED_BAD_DIMENSIONS = State()
-    UPLOADED_EXPECT_NAME = State()
-    UPLOAD_FAILED = State()
 
 
 async def on_dialog_start(_: Any, manager: DialogManager):

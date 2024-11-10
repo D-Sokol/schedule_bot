@@ -1,19 +1,12 @@
 import logging
-from aiogram.filters.state import State, StatesGroup
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.text import Const
 from aiogram_dialog.widgets.kbd import Button, Start
 
-from .backgrounds import BackgroundsStates
-from .schedule_creation import ScheduleStates
-
+from .states import MainMenuStates, BackgroundsStates, ScheduleStates
 
 logger = logging.getLogger(__file__)
-
-
-class MainMenuStates(StatesGroup):
-    START = State()
 
 
 start_window = Window(
