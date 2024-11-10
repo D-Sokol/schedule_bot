@@ -25,7 +25,7 @@ def current_user_id(dialog_manager: DialogManager) -> int:
 
 
 def active_user_id(dialog_manager: DialogManager) -> int | None:
-    if dialog_manager.start_data["global_scope"]:
+    if dialog_manager.start_data and dialog_manager.start_data.get("global_scope"):
         return None
     return current_user_id(dialog_manager)
 
@@ -135,7 +135,9 @@ class StartWithData(Start):
             data = manager.start_data.copy()
         else:
             data = {key: manager.start_data.get(key) for key in self.data_keys}
-        data.update(self.start_data)
+
+        if self.start_data:
+            data.update(self.start_data)
 
         await manager.start(
             state=self.state,

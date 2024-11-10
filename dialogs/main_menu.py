@@ -17,7 +17,7 @@ start_window = Window(
         state=BackgroundsStates.START,
         data={"global_scope": False, "select_only": False},
     ),
-    Start(Const("Создать расписание"), id="create_schedule", state=ScheduleStates.START, data={"global_scope": False}),
+    Start(Const("Создать расписание"), id="create_schedule", state=ScheduleStates.START),
     Button(Const("Шаблон расписания"), id="manage_templates"),
     Start(
         Const("Накладываемые элементы"),

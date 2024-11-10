@@ -15,7 +15,7 @@ from bot_registry import ElementRecord
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
 from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates
-from .utils import active_user_id
+from .utils import current_user_id
 
 
 logger = logging.getLogger(__file__)
@@ -26,7 +26,6 @@ has_selected_background_condition = F["dialog_data"]["element"]
 
 
 async def on_dialog_start(start_data: Data, manager: DialogManager):
-    assert start_data.get("global_scope", "missing") is False, f"{start_data.get('global_scope')=}"
     manager.dialog_data["element"] = element = start_data.get("element")
     logger.info("Start planning a schedule, has preselected background: %s", element is not None)
     initial_state = manager.current_context().state
@@ -50,8 +49,7 @@ async def process_date_selected(
 async def previous_schedule_getter(
         dialog_manager: DialogManager, registry: ScheduleRegistryAbstract, **_
 ) -> dict[str, Any]:
-    user_id = active_user_id(dialog_manager)
-    assert user_id is not None, "Who passed global scope into creation dialog?!"
+    user_id = current_user_id(dialog_manager)
 
     user_last_schedule = await registry.get_last_schedule(user_id)
     global_last_schedule = await registry.get_last_schedule(None)
