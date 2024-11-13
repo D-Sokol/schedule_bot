@@ -53,7 +53,9 @@ async def main(token: str, db_url: str) -> None:
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage, registry=registry)
 
-    dp.update.middleware(db_middleware)
+    dp.message.middleware(db_middleware)
+    dp.callback_query.middleware(db_middleware)
+
     dp.include_router(dialogs_handler)
     dp.include_routers(*all_dialogs)
     dp.error.register(handle_old_button, ExceptionTypeFilter(UnknownIntent))

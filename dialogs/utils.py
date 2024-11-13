@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Optional, Union
+from typing import Any, Awaitable, Callable, Optional, Union, cast
 
 from aiogram import Bot
 from aiogram.fsm.state import State
@@ -15,13 +15,15 @@ from aiogram_dialog.widgets.kbd import Button, Start
 from aiogram_dialog.widgets.kbd.button import OnClick
 
 from bot_registry import ElementsRegistryAbstract
+from database_models import User
 
 
 logger = logging.getLogger(__file__)
 
 
 def current_user_id(dialog_manager: DialogManager) -> int:
-    return dialog_manager.event.from_user.id
+    user = cast(User, dialog_manager.middleware_data["user"])
+    return user.tg_id
 
 
 def active_user_id(dialog_manager: DialogManager) -> int | None:
