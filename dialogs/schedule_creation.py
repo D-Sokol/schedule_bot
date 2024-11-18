@@ -11,8 +11,8 @@ from aiogram_dialog.widgets.kbd import Cancel, Start, Button, SwitchTo, Calendar
 from aiogram_dialog.widgets.text import Const, Format
 from magic_filter import F
 
-from bot_registry import ElementRecord
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
+from database_models import ImageAsset
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
 from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates
 from .utils import current_user_id
@@ -86,7 +86,7 @@ async def process_upload_new_background(_start_data: Data, result: Data, manager
         # User cancelled upload, nothing is changed
         return
     assert isinstance(result, dict), f"Wrong type {type(result)} returned from child dialog"
-    new_record: ElementRecord = result.get("element")
+    new_record: ImageAsset = result.get("element")
     manager.dialog_data["element"] = new_record
     await manager.switch_to(ScheduleStates.EXPECT_TEXT)
 

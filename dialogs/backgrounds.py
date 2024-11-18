@@ -12,7 +12,8 @@ from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, Scrolli
 from aiogram_dialog.widgets.media import DynamicMedia
 from magic_filter import F, MagicFilter
 
-from bot_registry import RegistryAbstract, ElementRecord
+from bot_registry import RegistryAbstract
+from database_models import ImageAsset
 from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
 from .utils import not_implemented_button_handler, active_user_id, StartWithData
 
@@ -77,7 +78,7 @@ async def select_image_handler(
 
 
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
-    element: ElementRecord = manager.dialog_data["element"]
+    element: ImageAsset = manager.dialog_data["element"]
     file_name: str = element.name
     file_id: str = element.file_id_document
     if file_id is not None:
@@ -87,13 +88,13 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
         user_id = active_user_id(manager)
         registry: RegistryAbstract = manager.middleware_data["registry"]
         logger.info("Sending image %s as document via bytes", file_name)
-        content = await registry.get_element_content(user_id, element.id)
+        content = await registry.get_element_content(user_id, str(element.element_id))
         input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
         document_message = await callback.message.answer_document(document=input_document, caption=html.escape(file_name))
         document = document_message.document
         assert document is not None, "document was not sent"
         logger.debug("Get file_id for document %s", file_name)
-        await registry.update_element_file_id(user_id, element.id, document.file_id, "document")
+        await registry.update_element_file_id(user_id, str(element.element_id), document.file_id, "document")
 
     # Force redraw current window since file becomes the last message instead.
     # Setting show_mode property of manager is the correct way to do so and works only for one action.

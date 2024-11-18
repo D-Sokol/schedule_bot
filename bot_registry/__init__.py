@@ -1,7 +1,7 @@
 import logging
 from abc import ABC
 
-from .image_assets import ElementRecord, ElementsRegistryAbstract, MockElementRegistry
+from .image_assets import ElementsRegistryAbstract, MockElementRegistry
 from .templates import TemplateRegistryAbstract, MockTemplateRegistry
 from .texts import Schedule, ScheduleRegistryAbstract, MockScheduleRegistry
 

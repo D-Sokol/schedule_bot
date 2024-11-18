@@ -86,11 +86,11 @@ class BotAwareMessageManager(MessageManager):
         await self.elements_registry.update_element_file_id(user_id, element_id, file_id, file_type="photo")
 
     @classmethod
-    def parse_bot_uri(cls, bot_uri: str) -> tuple[int | None, int]:
+    def parse_bot_uri(cls, bot_uri: str) -> tuple[int | None, str]:
         assert bot_uri.startswith(cls.BOT_URI_PREFIX)
         bot_uri = bot_uri.removeprefix(cls.BOT_URI_PREFIX)
         user_id, element_id = bot_uri.split("/")
-        return int(user_id) or None, int(element_id)
+        return int(user_id) or None, element_id
 
 
 class StartWithData(Start):
