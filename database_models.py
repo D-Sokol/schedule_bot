@@ -31,4 +31,4 @@ class ImageAsset(Base):
     file_id_photo: Mapped[str | None] = mapped_column(VARCHAR(83), nullable=True)
     file_id_document: Mapped[str | None] = mapped_column(VARCHAR(71), nullable=True)
 
-    owner: Mapped[User] = relationship(back_populates="elements")
+    owner: Mapped[User | None] = relationship(back_populates="elements")
