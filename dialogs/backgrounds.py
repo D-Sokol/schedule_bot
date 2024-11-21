@@ -52,7 +52,7 @@ async def selected_image_getter(dialog_manager: DialogManager, **_) -> dict[str,
     file_id: str = dialog_manager.dialog_data["element"].file_id_photo
     user_id = active_user_id(dialog_manager)
     if file_id is None:
-        element_id: UUID = dialog_manager.dialog_data["element"].id
+        element_id: UUID = dialog_manager.dialog_data["element"].element_id
         file_id = f"bot://{user_id or 0}/{element_id}"
     return {
         "background": MediaAttachment(ContentType.PHOTO, file_id=MediaId(file_id)),
