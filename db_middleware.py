@@ -4,7 +4,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Message, CallbackQuery
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from bot_registry.users import DbUserRegistry
+from bot_registry import DbElementRegistry, DbUserRegistry, MockScheduleRegistry, MockTemplateRegistry
 
 
 class DbSessionMiddleware(BaseMiddleware):
@@ -22,7 +22,15 @@ class DbSessionMiddleware(BaseMiddleware):
     ) -> Any:
         async with self.session_pool() as session:
             user_registry = DbUserRegistry(session)
-            user = await user_registry.get_user(event.from_user.id)
+            element_registry = DbElementRegistry(session)
+            schedule_registry = MockScheduleRegistry()
+            template_registry = MockTemplateRegistry()
             data["user_registry"] = user_registry
+            data["element_registry"] = element_registry
+            data["schedule_registry"] = schedule_registry
+            data["template_registry"] = template_registry
+
+            user = await user_registry.get_user(event.from_user.id)
             data["user"] = user
+
             return await handler(event, data)

@@ -12,7 +12,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.widgets.kbd import Button, Cancel, SwitchTo
 from magic_filter import F
 
-from bot_registry import RegistryAbstract
+from bot_registry import ElementsRegistryAbstract, TemplateRegistryAbstract
 from .states import UploadBackgroundStates
 from .utils import save_to_dialog_data, active_user_id
 
@@ -27,7 +27,8 @@ UNREADABLE_ERROR_REASON = "unreadable"
 
 
 async def on_dialog_start(_: Any, manager: DialogManager):
-    registry: RegistryAbstract = manager.middleware_data["registry"]
+    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
+    template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
     user_id = active_user_id(manager)
     limit = await registry.get_elements_limit(user_id)
     current = await registry.get_elements_count(user_id)
@@ -37,7 +38,7 @@ async def on_dialog_start(_: Any, manager: DialogManager):
         await manager.done()
         return
 
-    template = await registry.get_template(user_id)
+    template = await template_registry.get_template(user_id)
     width = template.get("width", 1280)
     manager.dialog_data["expected_width"] = width
     height = template.get("height", 720)
@@ -66,7 +67,7 @@ async def handle_image_upload(
     else:
         assert False, "Filters is not properly configured"
 
-    registry: RegistryAbstract = manager.middleware_data["registry"]
+    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     manager.dialog_data["file_size"] = file_size
     manager.dialog_data["file_id"] = file_id
     manager.dialog_data["file_type"] = "document" if is_document else "photo"
@@ -124,7 +125,7 @@ async def save_image(
         manager: DialogManager,
         data: str,
 ):
-    registry: RegistryAbstract = manager.middleware_data["registry"]
+    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     image: Image.Image = manager.dialog_data["document"]
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
     resize_mode = manager.dialog_data["resize_mode"]

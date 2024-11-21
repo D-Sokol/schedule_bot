@@ -12,7 +12,7 @@ from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, Scrolli
 from aiogram_dialog.widgets.media import DynamicMedia
 from magic_filter import F, MagicFilter
 
-from bot_registry import RegistryAbstract
+from bot_registry import ElementsRegistryAbstract
 from database_models import ImageAsset
 from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
 from .utils import not_implemented_button_handler, active_user_id, StartWithData
@@ -28,16 +28,16 @@ UNREADABLE_ERROR_REASON = "unreadable"
 
 
 async def saved_backs_getter(
-        dialog_manager: DialogManager, registry: RegistryAbstract, _only_count: bool = False, **_,
+        dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, _only_count: bool = False, **_,
 ) -> dict[str, Any]:
     user_id = active_user_id(dialog_manager)
     if _only_count:
         items = []
-        n_items = await registry.get_elements_count(user_id)
+        n_items = await element_registry.get_elements_count(user_id)
     else:
-        items = await registry.get_elements(user_id)
+        items = await element_registry.get_elements(user_id)
         n_items = len(items)
-    backgrounds_limit = await registry.get_elements_limit(user_id)
+    backgrounds_limit = await element_registry.get_elements_limit(user_id)
     logger.debug("Getter: %d images found with limit %d", len(items), backgrounds_limit)
     return {
         "items": items,
@@ -65,9 +65,9 @@ async def select_image_handler(
         manager: DialogManager,
         item_id: str,
 ):
-    registry: RegistryAbstract = manager.middleware_data["registry"]
+    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     user_id = active_user_id(manager)
-    element = await registry.get_element(user_id, int(item_id))
+    element = await registry.get_element(user_id, item_id)
     manager.dialog_data["element"] = element
     logger.debug("Getter: selected image %s/%s, id %s", user_id, element.name, item_id)
     if manager.start_data["select_only"]:
@@ -86,7 +86,7 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
         await callback.message.answer_document(document=file_id, caption=html.escape(file_name))
     else:
         user_id = active_user_id(manager)
-        registry: RegistryAbstract = manager.middleware_data["registry"]
+        registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
         logger.info("Sending image %s as document via bytes", file_name)
         content = await registry.get_element_content(user_id, str(element.element_id))
         input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))

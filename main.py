@@ -17,7 +17,6 @@ from db_middleware import DbSessionMiddleware
 from dialogs import all_dialogs
 from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs.utils import BotAwareMessageManager
-from bot_registry import MockRegistry
 
 
 dialogs_handler = Router(name="start")
@@ -42,16 +41,14 @@ async def handle_old_button(event: ErrorEvent) -> None:
 
 
 async def main(token: str, db_url: str) -> None:
-    registry = MockRegistry()
-    message_manager = BotAwareMessageManager(registry)
-
     engine = create_async_engine(db_url, echo=True)
     session_pool = async_sessionmaker(engine, expire_on_commit=False)
     db_middleware = DbSessionMiddleware(session_pool)
+    message_manager = BotAwareMessageManager(session_pool)
 
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
     storage = MemoryStorage()
-    dp = Dispatcher(storage=storage, registry=registry)
+    dp = Dispatcher(storage=storage)
 
     dp.message.middleware(db_middleware)
     dp.callback_query.middleware(db_middleware)
