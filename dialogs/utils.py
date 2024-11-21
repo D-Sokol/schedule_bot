@@ -57,7 +57,7 @@ class BotAwareMessageManager(MessageManager):
             return await super().get_media_source(media, bot)
 
         user_id, element_id = self.parse_bot_uri(file_id)
-        with self.session_pool() as session:
+        async with self.session_pool() as session:
             registry = DbElementRegistry(session)
             content = await registry.get_element_content(user_id or None, element_id)
             file_name = (await registry.get_element(user_id or None, element_id)).name
