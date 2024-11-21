@@ -5,7 +5,6 @@ from typing import Any, Awaitable, Callable, Optional, Union, cast
 from aiogram import Bot
 from aiogram.fsm.state import State
 from aiogram.types import BufferedInputFile, CallbackQuery, Message, InputFile
-
 from aiogram_dialog import DialogManager, Data
 from aiogram_dialog.api.entities import MediaAttachment, NewMessage, StartMode, ShowMode
 from aiogram_dialog.manager.message_manager import MessageManager
@@ -13,8 +12,9 @@ from aiogram_dialog.widgets.common import WhenCondition
 from aiogram_dialog.widgets.text import Text
 from aiogram_dialog.widgets.kbd import Button, Start
 from aiogram_dialog.widgets.kbd.button import OnClick
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from bot_registry import ElementsRegistryAbstract
+from bot_registry.image_assets import DbElementRegistry
 from database_models import User
 
 
@@ -47,10 +47,8 @@ async def not_implemented_button_handler(callback: CallbackQuery, button: Button
 class BotAwareMessageManager(MessageManager):
     BOT_URI_PREFIX = "bot://"
 
-    elements_registry: ElementsRegistryAbstract
-
-    def __init__(self, elements_registry: ElementsRegistryAbstract):
-        self.elements_registry = elements_registry
+    def __init__(self, session_pool: async_sessionmaker):
+        self.session_pool = session_pool
 
     async def get_media_source(
             self, media: MediaAttachment, bot: Bot,
@@ -59,10 +57,12 @@ class BotAwareMessageManager(MessageManager):
             return await super().get_media_source(media, bot)
 
         user_id, element_id = self.parse_bot_uri(file_id)
-        content = await self.elements_registry.get_element_content(user_id or None, element_id)
-        file_name = (await self.elements_registry.get_element(user_id or None, element_id)).name
-        input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
-        return input_document
+        with self.session_pool() as session:
+            registry = DbElementRegistry(session)
+            content = await registry.get_element_content(user_id or None, element_id)
+            file_name = (await registry.get_element(user_id or None, element_id)).name
+            input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
+            return input_document
 
     # Widget DynamicMedia caches file_id by our URI. Nevertheless, we explicitly save file_id in the registry,
     # just as for documents, because we can.
@@ -83,7 +83,9 @@ class BotAwareMessageManager(MessageManager):
 
     async def update_file_id(self, file_id: str, bot_uri: str) -> None:
         user_id, element_id = self.parse_bot_uri(bot_uri)
-        await self.elements_registry.update_element_file_id(user_id, element_id, file_id, file_type="photo")
+        with self.session_pool() as session:
+            registry = DbElementRegistry(session)
+            await registry.update_element_file_id(user_id, element_id, file_id, file_type="photo")
 
     @classmethod
     def parse_bot_uri(cls, bot_uri: str) -> tuple[int | None, str]:
