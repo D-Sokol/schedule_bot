@@ -123,7 +123,7 @@ start_window = Window(
         Select(
             Format("🖼️ {item.name}"),
             id="select_background",
-            item_id_getter=F.id.resolve,
+            item_id_getter=F.element_id.resolve,
             items="items",
             when=has_backgrounds_condition,
             on_click=select_image_handler,
