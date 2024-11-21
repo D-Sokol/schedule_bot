@@ -24,7 +24,7 @@ class ElementsRegistryAbstract(ABC):
     async def get_elements(self, user_id: int | None) -> list[ImageAsset]:
         raise NotImplementedError
 
-    async def get_elements_count(self, user_id: int | None):
+    async def get_elements_count(self, user_id: int | None) -> int:
         items = await self.get_elements(user_id)
         return len(items)
 
@@ -134,7 +134,15 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin):
         return [e for (e,) in elements]
 
     async def get_element(self, user_id: int | None, element_id: str) -> ImageAsset:
-        result = await self.session.execute(select(func.count(ImageAsset.element_id)).where(ImageAsset.user_id == user_id).count())
+        result = await self.session.execute(select(ImageAsset).where(
+            ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
+        )
+        return result.scalar()
+
+    async def get_elements_count(self, user_id: int | None) -> int:
+        result = await self.session.execute(
+            select(func.count(ImageAsset.element_id)).where(ImageAsset.user_id == user_id)
+        )
         return result.scalar()
 
     async def get_element_content(self, user_id: int | None, element_id: str) -> bytes:
