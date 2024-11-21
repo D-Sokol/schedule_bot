@@ -40,8 +40,8 @@ async def handle_old_button(event: ErrorEvent) -> None:
         )
 
 
-async def main(token: str, db_url: str) -> None:
-    engine = create_async_engine(db_url, echo=True)
+async def main(token: str, db_url: str, log_level: str = "WARNING") -> None:
+    engine = create_async_engine(db_url, echo=(log_level == "DEBUG"))
     session_pool = async_sessionmaker(engine, expire_on_commit=False)
     db_middleware = DbSessionMiddleware(session_pool)
     message_manager = BotAwareMessageManager(session_pool)
@@ -64,10 +64,13 @@ async def main(token: str, db_url: str) -> None:
 
 if __name__ == '__main__':
     bot_token = os.getenv("TOKEN")
-    database_url = os.getenv("DB_URL", "sqlite://")
-    log_level = os.getenv("LOG_LEVEL")
+    database_url = os.getenv("DB_URL")
+    if bot_token is None or database_url is None:
+        logging.fatal("Cannot run instance without bot token and/or database url!")
+        exit(2)
+    log_level_ = os.getenv("LOG_LEVEL", "WARNING")
     logging.basicConfig(
-        level=log_level,
+        level=log_level_,
         format='%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s'
     )
-    asyncio.run(main(bot_token, database_url))
+    asyncio.run(main(bot_token, database_url, log_level=log_level_))
