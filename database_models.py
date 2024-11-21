@@ -28,7 +28,7 @@ class ImageAsset(Base):
     element_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
     user_id: Mapped[int | None] = mapped_column(BIGINT(), ForeignKey("users.tg_id"), nullable=True)
     name: Mapped[str] = mapped_column(VARCHAR(50))
-    file_id_photo: Mapped[str | None] = mapped_column(VARCHAR(83), nullable=True)
-    file_id_document: Mapped[str | None] = mapped_column(VARCHAR(71), nullable=True)
+    file_id_photo: Mapped[str | None] = mapped_column(VARCHAR(90), nullable=True)
+    file_id_document: Mapped[str | None] = mapped_column(VARCHAR(90), nullable=True)
 
     owner: Mapped[User | None] = relationship(back_populates="elements")
