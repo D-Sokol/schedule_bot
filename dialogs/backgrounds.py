@@ -2,6 +2,7 @@ import html
 import logging
 from pathlib import Path
 from typing import Any, cast
+from uuid import UUID
 
 from aiogram.types import ContentType, CallbackQuery, BufferedInputFile
 
@@ -51,7 +52,7 @@ async def selected_image_getter(dialog_manager: DialogManager, **_) -> dict[str,
     file_id: str = dialog_manager.dialog_data["element"].file_id_photo
     user_id = active_user_id(dialog_manager)
     if file_id is None:
-        element_id = dialog_manager.dialog_data["element"].id
+        element_id: UUID = dialog_manager.dialog_data["element"].id
         file_id = f"bot://{user_id or 0}/{element_id}"
     return {
         "background": MediaAttachment(ContentType.PHOTO, file_id=MediaId(file_id)),
@@ -88,13 +89,13 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
         user_id = active_user_id(manager)
         registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
         logger.info("Sending image %s as document via bytes", file_name)
-        content = await registry.get_element_content(user_id, str(element.element_id))
+        content = await registry.get_element_content(user_id, element.element_id)
         input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
         document_message = await callback.message.answer_document(document=input_document, caption=html.escape(file_name))
         document = document_message.document
         assert document is not None, "document was not sent"
         logger.debug("Get file_id for document %s", file_name)
-        await registry.update_element_file_id(user_id, str(element.element_id), document.file_id, "document")
+        await registry.update_element_file_id(user_id, element.element_id, document.file_id, "document")
 
     # Force redraw current window since file becomes the last message instead.
     # Setting show_mode property of manager is the correct way to do so and works only for one action.
@@ -123,7 +124,7 @@ start_window = Window(
         Select(
             Format("🖼️ {item.name}"),
             id="select_background",
-            item_id_getter=F.element_id.resolve,
+            item_id_getter=F.element_id.cast(str).resolve,
             items="items",
             when=has_backgrounds_condition,
             on_click=select_image_handler,

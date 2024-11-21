@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime
 from typing import *
+from uuid import UUID
 
 from PIL import Image
 from sqlalchemy import func, select, update
@@ -29,11 +30,11 @@ class ElementsRegistryAbstract(ABC):
         return len(items)
 
     @abstractmethod
-    async def get_element(self, user_id: int | None, element_id: str) -> ImageAsset:
+    async def get_element(self, user_id: int | None, element_id: str | UUID) -> ImageAsset:
         raise NotImplementedError
 
     @abstractmethod
-    async def get_element_content(self, user_id: int | None, element_id: str) -> bytes:
+    async def get_element_content(self, user_id: int | None, element_id: str | UUID) -> bytes:
         raise NotImplementedError
 
     @abstractmethod
@@ -53,7 +54,7 @@ class ElementsRegistryAbstract(ABC):
     async def update_element_file_id(
             self,
             user_id: int | None,
-            element_id: str,
+            element_id: str | UUID,
             file_id: str | None,
             file_type: Literal["photo", "document"] = "document",
     ) -> None:
@@ -80,10 +81,10 @@ class MockElementRegistry(ElementsRegistryAbstract):
     async def get_elements(self, user_id: int | None) -> list[ImageAsset]:
         return self.items[user_id]
 
-    async def get_element(self, user_id: int | None, element_id: str) -> ImageAsset:
+    async def get_element(self, user_id: int | None, element_id: str | UUID) -> ImageAsset:
         return self.items[user_id][int(element_id) - 1]  # In the mock data ids are 1-based.
 
-    async def get_element_content(self, user_id: int | None, element_id: str) -> bytes:
+    async def get_element_content(self, user_id: int | None, element_id: str | UUID) -> bytes:
         image = Image.new("RGBA", (200, 200), "black")
         stream = io.BytesIO()
         image.save(stream, format="png")
@@ -113,7 +114,7 @@ class MockElementRegistry(ElementsRegistryAbstract):
     async def update_element_file_id(
             self,
             user_id: int | None,
-            element_id: str,
+            element_id: str | UUID,
             file_id: str | None,
             file_type: Literal["photo", "document"] = "document",
     ) -> None:
@@ -133,7 +134,7 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin):
         elements = result.fetchall()
         return [e for (e,) in elements]
 
-    async def get_element(self, user_id: int | None, element_id: str) -> ImageAsset:
+    async def get_element(self, user_id: int | None, element_id: str | UUID) -> ImageAsset:
         result = await self.session.execute(select(ImageAsset).where(
             ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
         )
@@ -145,7 +146,7 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin):
         )
         return result.scalar()
 
-    async def get_element_content(self, user_id: int | None, element_id: str) -> bytes:
+    async def get_element_content(self, user_id: int | None, element_id: str | UUID) -> bytes:
         raise NotImplementedError
 
     async def save_element(
@@ -172,7 +173,7 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin):
     async def update_element_file_id(
             self,
             user_id: int | None,
-            element_id: str,
+            element_id: str | UUID,
             file_id: str | None,
             file_type: Literal["photo", "document"] = "document",
     ) -> None:
