@@ -113,6 +113,7 @@ class StartWithData(Start):
             mode: StartMode = StartMode.NORMAL,
             when: WhenCondition = None,
             data_keys: list[str] | None = None,
+            dialog_data_keys: list[str] | None = None,
     ):
         super().__init__(
             text=text,
@@ -125,6 +126,7 @@ class StartWithData(Start):
             when=when,
         )
         self.data_keys = data_keys
+        self.dialog_data_keys = dialog_data_keys
 
     async def _on_click(
             self,
@@ -135,10 +137,20 @@ class StartWithData(Start):
         if self.user_on_click:
             await self.user_on_click(callback, self, manager)
 
-        if self.data_keys is None:
-            data = manager.start_data.copy()
-        else:
-            data = {key: manager.start_data.get(key) for key in self.data_keys}
+        data = {}
+
+        if isinstance(manager.start_data, dict):
+            if self.data_keys is None:
+                data.update(manager.start_data)
+            else:
+                data.update({key: manager.start_data.get(key) for key in self.data_keys})
+
+        if isinstance(manager.dialog_data, dict):
+            if self.dialog_data_keys is None:
+                # Dialog data is usually large unlike start data, so default behaviour for them is different.
+                pass
+            else:
+                data.update({key: manager.dialog_data.get(key) for key in self.dialog_data_keys})
 
         if self.start_data:
             data.update(self.start_data)
