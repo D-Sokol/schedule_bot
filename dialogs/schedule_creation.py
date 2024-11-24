@@ -8,6 +8,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import Dialog, Window, Data, DialogManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Cancel, Start, Button, SwitchTo, Calendar
+from fluentogram import TranslatorRunner
 from magic_filter import F
 
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
@@ -49,7 +50,10 @@ async def process_date_selected(
 
 
 async def previous_schedule_getter(
-        dialog_manager: DialogManager, registry: ScheduleRegistryAbstract, **_
+        dialog_manager: DialogManager,
+        registry: ScheduleRegistryAbstract,
+        i18n: TranslatorRunner,
+        **_
 ) -> dict[str, Any]:
     user_id = current_user_id(dialog_manager)
 
@@ -57,7 +61,7 @@ async def previous_schedule_getter(
     global_last_schedule = await registry.get_last_schedule(None)
     if global_last_schedule is None:
         # A good example should be provided in DB, but we want to provide an example in any case
-        global_last_schedule = "Пн 10:00 Бег\nПн 11:30 Отжимания\nПт 18:00 Сходить в бар"  # TODO: localize
+        global_last_schedule = i18n.get("dialog-schedule-text.example")
 
     return {
         "user_last_schedule": html.escape(str(user_last_schedule)),
