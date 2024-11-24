@@ -1,26 +1,26 @@
 import logging
 
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.text import Const
 from aiogram_dialog.widgets.kbd import Button, Start
 
 from .states import MainMenuStates, BackgroundsStates, ScheduleStates
+from .utils import FluentFormat
 
 logger = logging.getLogger(__file__)
 
 
 start_window = Window(
-    Const("Main Menu"),
+    FluentFormat("dialog-main"),
     Start(
-        Const("Фоновые изображения"),
+        FluentFormat("dialog-main.backgrounds-local"),
         id="manage_backgrounds",
         state=BackgroundsStates.START,
         data={"global_scope": False, "select_only": False},
     ),
-    Start(Const("Создать расписание"), id="create_schedule", state=ScheduleStates.START),
-    Button(Const("Шаблон расписания"), id="manage_templates"),
+    Start(FluentFormat("dialog-main.create"), id="create_schedule", state=ScheduleStates.START),
+    Button(FluentFormat("dialog-main.templates"), id="manage_templates"),
     Start(
-        Const("Накладываемые элементы"),
+        FluentFormat("dialog-main.backgrounds-local"),
         id="manage_elements",
         state=BackgroundsStates.START,
         data={"global_scope": True, "select_only": False},

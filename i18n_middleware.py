@@ -19,7 +19,9 @@ def create_translator_hub() -> TranslatorHub:
                 locale="ru",
                 translator=FluentBundle.from_files(
                     locale="ru-RU",
-                    filenames=["locales/ru/LC_MESSAGES/txt.ftl"],
+                    filenames=[
+                        "locales/ru/LC_MESSAGES/dialogs.ftl"
+                    ],
                 )
             ),
         ],
