@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Optional, Union, cast
+from typing import Any, Awaitable, Callable, Optional, Union, cast, ClassVar
 
 from aiogram import Bot
 from aiogram.fsm.state import State
@@ -12,6 +12,7 @@ from aiogram_dialog.widgets.common import WhenCondition
 from aiogram_dialog.widgets.text import Text
 from aiogram_dialog.widgets.kbd import Button, Start
 from aiogram_dialog.widgets.kbd.button import OnClick
+from fluentogram import TranslatorRunner
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from bot_registry.image_assets import DbElementRegistry
@@ -149,3 +150,18 @@ class StartWithData(Start):
             mode=self.mode,
             show_mode=self.show_mode,
         )
+
+
+class FluentFormat(Text):
+    MIDDLEWARE_KEY: ClassVar[str] = "i18n"
+    def __init__(self, key: str, when: WhenCondition = None, **kwargs):
+        super().__init__(when)
+        self.key = key
+        self.kwargs = kwargs
+
+    async def _render_text(self, data, manager: DialogManager) -> str:
+        i18n: TranslatorRunner = manager.middleware_data[self.MIDDLEWARE_KEY]
+        value: str | None = i18n.get(self.key, **self.kwargs)
+        if value is None:
+            raise ValueError(f"Missing key {self.key}")
+        return value
