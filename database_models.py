@@ -1,6 +1,7 @@
 import uuid
 
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import ForeignKey, UniqueConstraint, select, text, func, TextClause
+from sqlalchemy.engine.default import DefaultExecutionContext
 from sqlalchemy.dialects.postgresql import TEXT, BIGINT, UUID, VARCHAR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -20,6 +21,10 @@ class User(Base):
     )
 
 
+def _next_display_order(context: DefaultExecutionContext) -> int:
+    return 0
+
+
 class ImageAsset(Base):
     __tablename__ = "elements"
     __table_args__ = (
@@ -32,5 +37,6 @@ class ImageAsset(Base):
     name: Mapped[str] = mapped_column(VARCHAR(50))
     file_id_photo: Mapped[str | None] = mapped_column(VARCHAR(90), nullable=True)
     file_id_document: Mapped[str | None] = mapped_column(VARCHAR(90), nullable=True)
+    display_order: Mapped[int] = mapped_column(default=_next_display_order, nullable=False)
 
     owner: Mapped[User | None] = relationship(back_populates="elements")
