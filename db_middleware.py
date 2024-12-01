@@ -30,7 +30,7 @@ class DbSessionMiddleware(BaseMiddleware):
             data["schedule_registry"] = schedule_registry
             data["template_registry"] = template_registry
 
-            user = await user_registry.get_user(event.from_user.id)
+            user = await user_registry.get_or_create_user(event.from_user.id)
             data["user"] = user
 
             return await handler(event, data)
