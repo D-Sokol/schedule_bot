@@ -22,7 +22,12 @@ class User(Base):
 
 
 def _next_display_order(context: DefaultExecutionContext) -> int:
-    return 0
+    owner_id = context.get_current_parameters().get("user_id")
+    cursor = context.root_connection.execute(
+        select(func.max(ImageAsset.display_order) + text("1")).where(ImageAsset.user_id == owner_id)
+    )
+    display_order, = cursor.fetchone()
+    return display_order or 0
 
 
 class ImageAsset(Base):
