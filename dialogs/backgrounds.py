@@ -8,7 +8,6 @@ from aiogram.types import ContentType, CallbackQuery, BufferedInputFile
 
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId, ShowMode
-from aiogram_dialog.widgets.text import Const, Format, Case
 from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, ScrollingGroup
 from aiogram_dialog.widgets.media import DynamicMedia
 from magic_filter import F, MagicFilter
@@ -16,16 +15,10 @@ from magic_filter import F, MagicFilter
 from bot_registry import ElementsRegistryAbstract
 from database_models import ImageAsset
 from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
-from .utils import not_implemented_button_handler, active_user_id, StartWithData
+from .utils import not_implemented_button_handler, active_user_id, StartWithData, FluentFormat
 
 
 logger = logging.getLogger(__file__)
-
-
-FILE_SIZE_LIMIT = 10 * 1024 * 1024
-
-FILE_SIZE_ERROR_REASON = "file_size"
-UNREADABLE_ERROR_REASON = "unreadable"
 
 
 async def saved_backs_getter(
@@ -107,22 +100,15 @@ can_upload_background_condition = cast(MagicFilter, F["n_backgrounds"] < F["limi
 
 
 start_window = Window(
-    Case(
-        {
-            0: Const("У вас нет сохраненных фоновых изображений."),
-            ...: Format(
-                "Вы сохранили {n_backgrounds} фоновых изображений. Вы можете выбрать фон, нажав на его название."
-            ),
-        },
-        selector="n_backgrounds",
-    ),
-    Format(
-        "Достигнут предел количества сохраненных изображений ({limit}).",
+    FluentFormat("dialog-backgrounds-main.number", n_backgrounds=F["n_backgrounds"]),
+    FluentFormat(
+        "dialog-backgrounds-main.limit",
         when=cast(MagicFilter, ~can_upload_background_condition),
+        limit=F["limit"],
     ),
     ScrollingGroup(
         Select(
-            Format("🖼️ {item.name}"),
+            FluentFormat("dialog-backgrounds-main.item", item_name=F["item"].name),
             id="select_background",
             item_id_getter=F.element_id.cast(str).resolve,
             items="items",
@@ -135,13 +121,13 @@ start_window = Window(
         hide_on_single_page=True,
     ),
     StartWithData(
-        Const("Загрузить фон"),
+        FluentFormat("dialog-backgrounds-main.upload"),
         id="upload_background",
         state=UploadBackgroundStates.START,
         when=can_upload_background_condition & ~F["start_data"]["select_only"],
         data_keys=["global_scope"],
     ),
-    Cancel(Const("❌ Отставеть!")),
+    Cancel(FluentFormat("dialog-cancel")),
     state=BackgroundsStates.START,
     getter=saved_backs_getter,
 )
@@ -149,19 +135,19 @@ start_window = Window(
 
 selected_image_window = Window(
     DynamicMedia("background"),
-    Format("<b>{escaped_name}</b>"),
+    FluentFormat("dialog-backgrounds-selected"),
     StartWithData(
-        Const("Создать расписание"),
+        FluentFormat("dialog-backgrounds-selected.create"),
         id="schedule_from_selected",
         state=ScheduleStates.EXPECT_TEXT,
         dialog_data_keys=["element"],
     ),
-    Button(Const("Переименовать"), id="rename_selected", on_click=not_implemented_button_handler),
-    Button(Const("📄️ Прислать без сжатия"), id="send_full", on_click=send_full_handler),
-    Button(Const("🚮️ Удалить"), id="delete_selected", on_click=not_implemented_button_handler),
-    Button(Const("🌖️ В конец списка"), id="selected_as_old", on_click=not_implemented_button_handler),
-    Button(Const("🌒️ В начало списка"), id="selected_as_new", on_click=not_implemented_button_handler),
-    SwitchTo(Const("Назад"), id="selected_back", state=BackgroundsStates.START),
+    Button(FluentFormat("dialog-backgrounds-selected.rename"), id="rename_selected", on_click=not_implemented_button_handler),
+    Button(FluentFormat("dialog-backgrounds-selected.full"), id="send_full", on_click=send_full_handler),
+    Button(FluentFormat("dialog-backgrounds-selected.delete"), id="delete_selected", on_click=not_implemented_button_handler),
+    Button(FluentFormat("dialog-backgrounds-selected.old"), id="selected_as_old", on_click=not_implemented_button_handler),
+    Button(FluentFormat("dialog-backgrounds-selected.new"), id="selected_as_new", on_click=not_implemented_button_handler),
+    SwitchTo(FluentFormat("dialog-cancel"), id="selected_back", state=BackgroundsStates.START),
     state=BackgroundsStates.SELECTED_IMAGE,
     getter=selected_image_getter,
 )

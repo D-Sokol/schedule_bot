@@ -10,10 +10,10 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, ErrorEvent
 from aiogram_dialog import DialogManager, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
-
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from db_middleware import DbSessionMiddleware
+from i18n_middleware import TranslatorRunnerMiddleware, create_translator_hub
 from dialogs import all_dialogs
 from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs.utils import BotAwareMessageManager
@@ -49,8 +49,11 @@ async def main(token: str, db_url: str, log_level: str = "WARNING") -> None:
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
+    tr_middleware = TranslatorRunnerMiddleware(create_translator_hub())
 
+    dp.message.middleware(tr_middleware)
     dp.message.middleware(db_middleware)
+    dp.callback_query.middleware(tr_middleware)
     dp.callback_query.middleware(db_middleware)
 
     dp.include_router(dialogs_handler)

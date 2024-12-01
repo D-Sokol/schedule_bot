@@ -8,14 +8,14 @@ from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import Dialog, Window, Data, DialogManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Cancel, Start, Button, SwitchTo, Calendar
-from aiogram_dialog.widgets.text import Const, Format
+from fluentogram import TranslatorRunner
 from magic_filter import F
 
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
 from database_models import ImageAsset
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
 from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates
-from .utils import current_user_id
+from .utils import current_user_id, FluentFormat
 
 
 logger = logging.getLogger(__file__)
@@ -50,7 +50,10 @@ async def process_date_selected(
 
 
 async def previous_schedule_getter(
-        dialog_manager: DialogManager, schedule_registry: ScheduleRegistryAbstract, **_
+        dialog_manager: DialogManager,
+        schedule_registry: ScheduleRegistryAbstract,
+        i18n: TranslatorRunner,
+        **_
 ) -> dict[str, Any]:
     user_id = current_user_id(dialog_manager)
 
@@ -58,7 +61,7 @@ async def previous_schedule_getter(
     global_last_schedule = await schedule_registry.get_last_schedule(None)
     if global_last_schedule is None:
         # A good example should be provided in DB, but we want to provide an example in any case
-        global_last_schedule = "Пн 10:00 Бег\nПн 11:30 Отжимания\nПт 18:00 Сходить в бар"
+        global_last_schedule = i18n.get("dialog-schedule-text.example")
 
     return {
         "user_last_schedule": html.escape(str(user_last_schedule)),
@@ -92,39 +95,29 @@ async def process_upload_new_background(_start_data: Data, result: Data, manager
 
 
 start_window = Window(
-    Const("Create schedule"),
-    Const(
-        "Для создания расписания нужно выбрать фон из списка сохраненных изображений или загрузить новый.",
-    ),
+    FluentFormat("dialog-schedule-main"),
     Start(
-        Const("Выбрать фон"),
+        FluentFormat("dialog-schedule-main.select"),
         id="select_background_from_schedule",
         state=BackgroundsStates.START,
         when=has_backgrounds_condition,
         data={"select_only": True, "global_scope": False},
     ),
     Start(
-        Const("Загрузить новый фон"),
+        FluentFormat("dialog-schedule-main.upload"),
         id="upload_background_from_schedule",
         state=UploadBackgroundStates.START,
         when=can_upload_background_condition,
     ),
-    Cancel(Const("❌ Отставеть!")),
+    Cancel(FluentFormat("dialog-cancel")),
     state=ScheduleStates.START,
     on_process_result=process_upload_new_background,
     getter=partial(saved_backs_getter, _only_count=True),
 )
 
 expect_input_window = Window(
-    Const("Введите текст расписания"),
-    Format(
-        "Вот предыдущее использованное вами расписание:\n<i>{user_last_schedule}</i>",
-        when=F["user_has_schedule"],
-    ),
-    Format(
-        "Вот простой пример расписания:\n<i>{global_last_schedule}</i>",
-        when=~F["user_has_schedule"],
-    ),
+    FluentFormat("dialog-schedule-text.presented", when=F["user_has_schedule"]),
+    FluentFormat("dialog-schedule-text.missing", when=~F["user_has_schedule"]),
     TextInput(
         id="schedule_text",
         type_factory=ScheduleRegistryAbstract.parse_schedule_text,
@@ -146,24 +139,24 @@ async def process_next_week(callback: CallbackQuery, widget: Button, manager: Di
 
 
 expect_date_window = Window(
-    Const("Выберите, на какие даты будет составлено расписание."),
-    Button(Const("Эта неделя"), id="this_week", on_click=process_this_week),
-    Button(Const("Следующая неделя"), id="next_week", on_click=process_next_week),
-    SwitchTo(Const("Другая дата"), id="other_date", state=ScheduleStates.EXPECT_DATE_CALENDAR),
-    Cancel(Const("❌ Отставеть!")),
+    FluentFormat("dialog-schedule-date"),
+    Button(FluentFormat("dialog-schedule-date.this"), id="this_week", on_click=process_this_week),
+    Button(FluentFormat("dialog-schedule-date.next"), id="next_week", on_click=process_next_week),
+    SwitchTo(FluentFormat("dialog-schedule-date.custom"), id="other_date", state=ScheduleStates.EXPECT_DATE_CALENDAR),
+    Cancel(FluentFormat("dialog-cancel")),
     state=ScheduleStates.EXPECT_DATE,
 )
 
 expect_date_calendar_window = Window(
-    Const("Выберите дату"),
-    SwitchTo(Const("❌ Назад"), id="back", state=ScheduleStates.EXPECT_DATE),
+    FluentFormat("dialog-schedule-calendar"),
+    SwitchTo(FluentFormat("dialog-schedule-calendar.back"), id="back", state=ScheduleStates.EXPECT_DATE),
     Calendar(id="calendar", on_click=process_date_selected),
     state=ScheduleStates.EXPECT_DATE_CALENDAR,
 )
 
 finish_window = Window(
-    Const("Thank you"),
-    Cancel(Const("Хорошо.")),
+    FluentFormat("dialog-schedule-finish"),
+    Cancel(FluentFormat("dialog-schedule-finish.return")),
     state=ScheduleStates.FINISH,
 )
 
