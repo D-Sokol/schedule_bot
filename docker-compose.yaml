@@ -11,3 +11,17 @@ services:
       - ./data/postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: "no"
+    ports:
+      - "8080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "$PGADMIN_EMAIL"
+      PGADMIN_DEFAULT_PASSWORD: "$PGADMIN_PASSWORD"
+    volumes:
+      - "./data/pgadmin:/var/lib/pgadmin"
+    depends_on:
+      - db
