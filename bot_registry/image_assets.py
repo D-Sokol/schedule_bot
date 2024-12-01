@@ -130,7 +130,9 @@ class MockElementRegistry(ElementsRegistryAbstract):
 
 class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin):
     async def get_elements(self, user_id: int | None) -> list[ImageAsset]:
-        result = await self.session.execute(select(ImageAsset).where(ImageAsset.user_id == user_id))
+        result = await self.session.execute(
+            select(ImageAsset).where(ImageAsset.user_id == user_id).order_by(ImageAsset.display_order.asc())
+        )
         elements = result.fetchall()
         return [e for (e,) in elements]
 
