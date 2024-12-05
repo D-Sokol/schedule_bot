@@ -10,6 +10,7 @@ from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId, ShowMode
 from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, ScrollingGroup
 from aiogram_dialog.widgets.media import DynamicMedia
+from fluentogram import TranslatorRunner
 from magic_filter import F, MagicFilter
 
 from bot_registry import ElementsRegistryAbstract
@@ -95,6 +96,26 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
     manager.show_mode = ShowMode.DELETE_AND_SEND
 
 
+async def make_new_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
+    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
+    element: ImageAsset = manager.dialog_data["element"]
+    await registry.reorder_make_first(active_user_id(manager), element.element_id)
+    await manager.switch_to(BackgroundsStates.START)
+
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
+    await callback.answer(i18n.get("dialog-backgrounds-reorder.first", name=html.escape(element.name)))
+
+
+async def make_old_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
+    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
+    element: ImageAsset = manager.dialog_data["element"]
+    await registry.reorder_make_last(active_user_id(manager), element.element_id)
+    await manager.switch_to(BackgroundsStates.START)
+
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
+    await callback.answer(i18n.get("dialog-backgrounds-reorder.last", name=html.escape(element.name)))
+
+
 has_backgrounds_condition = 0 < F["n_backgrounds"]
 can_upload_background_condition = cast(MagicFilter, F["n_backgrounds"] < F["limit"])
 
@@ -145,8 +166,8 @@ selected_image_window = Window(
     Button(FluentFormat("dialog-backgrounds-selected.rename"), id="rename_selected", on_click=not_implemented_button_handler),
     Button(FluentFormat("dialog-backgrounds-selected.full"), id="send_full", on_click=send_full_handler),
     Button(FluentFormat("dialog-backgrounds-selected.delete"), id="delete_selected", on_click=not_implemented_button_handler),
-    Button(FluentFormat("dialog-backgrounds-selected.old"), id="selected_as_old", on_click=not_implemented_button_handler),
-    Button(FluentFormat("dialog-backgrounds-selected.new"), id="selected_as_new", on_click=not_implemented_button_handler),
+    Button(FluentFormat("dialog-backgrounds-selected.old"), id="selected_as_old", on_click=make_old_handler),
+    Button(FluentFormat("dialog-backgrounds-selected.new"), id="selected_as_new", on_click=make_new_handler),
     SwitchTo(FluentFormat("dialog-cancel"), id="selected_back", state=BackgroundsStates.START),
     state=BackgroundsStates.SELECTED_IMAGE,
     getter=selected_image_getter,

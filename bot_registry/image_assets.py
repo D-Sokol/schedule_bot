@@ -60,6 +60,14 @@ class ElementsRegistryAbstract(ABC):
     ) -> None:
         raise NotImplementedError
 
+    @abstractmethod
+    async def reorder_make_first(self, user_id: int | None, element_id: str | UUID) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def reorder_make_last(self, user_id: int | None, element_id: str | UUID) -> None:
+        raise NotImplementedError
+
     @classmethod
     async def get_elements_limit(cls, user_id: int | None) -> int:
         return GLOBAL_SCOPE_ELEMENTS_LIMIT if user_id is None else LOCAL_SCOPE_ELEMENTS_LIMIT
@@ -127,6 +135,12 @@ class MockElementRegistry(ElementsRegistryAbstract):
         else:
             logger.error("Trying to update file_id for unknown file_type: %s", file_type)
 
+    async def reorder_make_first(self, user_id: int | None, element_id: str | UUID) -> None:
+        pass
+
+    async def reorder_make_last(self, user_id: int | None, element_id: str | UUID) -> None:
+        pass
+
 
 class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin):
     async def get_elements(self, user_id: int | None) -> list[ImageAsset]:
@@ -185,4 +199,51 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin):
             .where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
             .values(**{update_field: file_id})
         )
+        await self.session.commit()
+
+    async def reorder_make_first(self, user_id: int | None, element_id: str | UUID) -> None:
+        element = await self.get_element(user_id, element_id)
+        if element is None:
+            logging.error("No image to update: user_id %s, element_id %s", user_id, element_id)
+            return
+
+        prev_order = element.display_order
+        if prev_order <= 0:
+            logger.info("Ignore reordering: %s/%s already first", user_id, element_id)
+            return
+
+        logger.info("Reorder %s/%s to first", user_id, element_id)
+        await self.session.execute(
+            update(ImageAsset)
+            .where(ImageAsset.user_id == user_id, ImageAsset.display_order < prev_order)
+            .values(display_order=ImageAsset.display_order + 1)
+        )
+
+        element.display_order = 0
+        self.session.add(element)
+
+        await self.session.commit()
+
+    async def reorder_make_last(self, user_id: int | None, element_id: str | UUID) -> None:
+        element = await self.get_element(user_id, element_id)
+        if element is None:
+            logging.error("No image to update: user_id %s, element_id %s", user_id, element_id)
+            return
+
+        max_display_order = await self.get_elements_count(user_id) - 1
+        prev_order = element.display_order
+        if prev_order >= max_display_order:
+            logger.info("Ignore reordering: %s/%s already last", user_id, element_id)
+            return
+
+        logger.info("Reorder %s/%s to first", user_id, element_id)
+        await self.session.execute(
+            update(ImageAsset)
+            .where(ImageAsset.user_id == user_id, ImageAsset.display_order > prev_order)
+            .values(display_order=ImageAsset.display_order - 1)
+        )
+
+        element.display_order = max_display_order
+        self.session.add(element)
+
         await self.session.commit()

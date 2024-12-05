@@ -32,6 +32,11 @@ dialog-backgrounds-selected = <b>{ $escaped_name }</b>
     .back = { dialog-back }
 
 
+dialog-backgrounds-reorder = Unused
+    .first = Теперь { $name } находится в начале списка!
+    .last = Теперь { $name } находится в конце списка!
+
+
 dialog-upload-main =
     Загрузите изображение для использования в качестве фона.
     Советую отправить картинку как файл, чтобы избежать потери качества!
