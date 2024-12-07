@@ -77,6 +77,13 @@ class ElementsRegistryAbstract(ABC):
         now = datetime.now()
         return f"Фон {now.isoformat(sep=' ', timespec='seconds')}"
 
+    @classmethod
+    @final
+    def validate_name(cls, name: str) -> str:
+        if len(name) > 50:
+            raise ValueError(f"Name is too long: {len(name)}")
+        return name
+
 
 class MockElementRegistry(ElementsRegistryAbstract):
     def __init__(self):

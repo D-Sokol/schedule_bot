@@ -37,6 +37,18 @@ dialog-backgrounds-reorder = Unused
     .last = Теперь { $name } находится в конце списка!
 
 
+dialog-backgrounds-rename =
+    Введите новое имя для изображения (до 50 символов)
+
+    .cancel = { dialog-cancel }
+
+
+
+dialog-backgrounds-delete = Точно удалить <b>{ $escaped_name }</b>?
+    .confirm = Туда его!
+    .cancel = { dialog-cancel }
+
+
 dialog-upload-main =
     Загрузите изображение для использования в качестве фона.
     Советую отправить картинку как файл, чтобы избежать потери качества!

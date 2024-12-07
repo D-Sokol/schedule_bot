@@ -4,10 +4,11 @@ from pathlib import Path
 from typing import Any, cast
 from uuid import UUID
 
-from aiogram.types import ContentType, CallbackQuery, BufferedInputFile
+from aiogram.types import BufferedInputFile, ContentType, CallbackQuery, Message
 
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId, ShowMode
+from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, ScrollingGroup
 from aiogram_dialog.widgets.media import DynamicMedia
 from fluentogram import TranslatorRunner
@@ -16,7 +17,7 @@ from magic_filter import F, MagicFilter
 from bot_registry import ElementsRegistryAbstract
 from database_models import ImageAsset
 from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
-from .utils import not_implemented_button_handler, active_user_id, StartWithData, FluentFormat
+from .utils import active_user_id, StartWithData, FluentFormat
 
 
 logger = logging.getLogger(__file__)
@@ -72,6 +73,10 @@ async def select_image_handler(
         await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
+async def delete_image_handler(_callback: CallbackQuery, _widget: Button, manager: DialogManager):
+    pass
+
+
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
     element: ImageAsset = manager.dialog_data["element"]
     file_name: str = element.name
@@ -114,6 +119,16 @@ async def make_old_handler(callback: CallbackQuery, _widget: Button, manager: Di
 
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
     await callback.answer(i18n.get("dialog-backgrounds-reorder.last", name=html.escape(element.name)))
+
+
+async def rename_image(
+        _update: Message,
+        _widget: Any,
+        manager: DialogManager,
+        data: str,
+):
+    pass
+    await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
 has_backgrounds_condition = 0 < F["n_backgrounds"]
@@ -163,9 +178,11 @@ selected_image_window = Window(
         state=ScheduleStates.EXPECT_TEXT,
         dialog_data_keys=["element"],
     ),
-    Button(FluentFormat("dialog-backgrounds-selected.rename"), id="rename_selected", on_click=not_implemented_button_handler),
+    SwitchTo(FluentFormat("dialog-backgrounds-selected.rename"), id="rename_selected", state=BackgroundsStates.RENAME),
     Button(FluentFormat("dialog-backgrounds-selected.full"), id="send_full", on_click=send_full_handler),
-    Button(FluentFormat("dialog-backgrounds-selected.delete"), id="delete_selected", on_click=not_implemented_button_handler),
+    SwitchTo(
+        FluentFormat("dialog-backgrounds-selected.delete"), id="delete_selected", state=BackgroundsStates.CONFIRM_DELETE
+    ),
     Button(FluentFormat("dialog-backgrounds-selected.old"), id="selected_as_old", on_click=make_old_handler),
     Button(FluentFormat("dialog-backgrounds-selected.new"), id="selected_as_new", on_click=make_new_handler),
     SwitchTo(FluentFormat("dialog-cancel"), id="selected_back", state=BackgroundsStates.START),
@@ -173,9 +190,37 @@ selected_image_window = Window(
     getter=selected_image_getter,
 )
 
+rename_image_window = Window(
+    FluentFormat("dialog-backgrounds-rename"),
+    SwitchTo(
+        FluentFormat("dialog-backgrounds-rename.cancel"),
+        id="cancel_rename", state=BackgroundsStates.SELECTED_IMAGE
+    ),
+    TextInput(id="rename", type_factory=ElementsRegistryAbstract.validate_name, on_success=rename_image),
+    state=BackgroundsStates.RENAME,
+)
+
+confirm_delete_window = Window(
+    FluentFormat(
+        "dialog-backgrounds-delete",
+        escaped_name=F["dialog_data"]["element"].name.func(html.escape),
+    ),
+    SwitchTo(
+        FluentFormat("dialog-backgrounds-delete.confirm"),
+        id="confirm_delete", state=BackgroundsStates.START, on_click=delete_image_handler
+    ),
+    SwitchTo(
+        FluentFormat("dialog-backgrounds-delete.cancel"),
+        id="cancel_delete", state=BackgroundsStates.SELECTED_IMAGE
+    ),
+    state=BackgroundsStates.CONFIRM_DELETE,
+)
+
 
 dialog = Dialog(
     start_window,
     selected_image_window,
+    confirm_delete_window,
+    rename_image_window,
     name=__file__,
 )

@@ -8,6 +8,8 @@ class MainMenuStates(StatesGroup):
 class BackgroundsStates(StatesGroup):
     START = State()
     SELECTED_IMAGE = State()
+    CONFIRM_DELETE = State()
+    RENAME = State()
 
 
 class ScheduleStates(StatesGroup):
