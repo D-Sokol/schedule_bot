@@ -1,10 +1,12 @@
 import asyncio
 import logging
 import os
+from contextlib import suppress
 from typing import cast
 
 from aiogram import Bot, Dispatcher, Router
 from aiogram.client.default import DefaultBotProperties
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart, ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, ErrorEvent
@@ -31,8 +33,9 @@ async def handle_old_button(event: ErrorEvent) -> None:
     exc = cast(UnknownIntent, event.exception)
     logging.info("Old button used: %s", exc)
     if (callback_query := event.update.callback_query) is not None:
-        await callback_query.answer("Эта кнопка слишком старая. Я даже не помню, о чем мы говорили!")
-        await callback_query.message.delete()  # TODO: handle error for deletion after 48 hours
+        with suppress(TelegramBadRequest):
+            await callback_query.answer("Эта кнопка слишком старая. Я даже не помню, о чем мы говорили!")
+            await callback_query.message.delete()
     else:
         logging.warning(
             "Unknown Intent for non-callback type: %s",
