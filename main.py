@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import sqlalchemy
 from contextlib import suppress
 from typing import cast
 
@@ -15,6 +16,7 @@ from aiogram_dialog.api.exceptions import UnknownIntent
 from fluentogram import TranslatorRunner
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
+from bot_registry.users import DbUserRegistry
 from db_middleware import DbSessionMiddleware
 from i18n_middleware import TranslatorRunnerMiddleware, create_translator_hub
 from dialogs import all_dialogs
@@ -45,9 +47,21 @@ async def handle_old_button(event: ErrorEvent, i18n: TranslatorRunner) -> None:
         )
 
 
-async def main(token: str, db_url: str, log_level: str = "WARNING") -> None:
+async def main(token: str, db_url: str, log_level: str = "WARNING", admin_id: int = -1) -> None:
     engine = create_async_engine(db_url, echo=(log_level == "DEBUG"))
     session_pool = async_sessionmaker(engine, expire_on_commit=False)
+    if admin_id > 0:
+        # Register user and grant him admin privileges AND check db connection
+        async with session_pool() as session:
+            user_registry = DbUserRegistry(session)
+            await user_registry.get_or_create_user(admin_id, create_admin=True)
+        logging.info("User %d promoted to admins", admin_id)
+    else:
+        # Just check db connection
+        async with session_pool() as session:
+            _ = await session.execute(sqlalchemy.select(1))
+    logging.info("Successfully connected to DB")
+
     db_middleware = DbSessionMiddleware(session_pool)
     message_manager = BotAwareMessageManager(session_pool)
 
@@ -74,6 +88,7 @@ async def main(token: str, db_url: str, log_level: str = "WARNING") -> None:
 if __name__ == '__main__':
     bot_token = os.getenv("TOKEN")
     database_url = os.getenv("DB_URL")
+    admin_tg_id = int(os.getenv("ADMIN_ID") or -1)
     if bot_token is None or database_url is None:
         logging.fatal("Cannot run instance without bot token and/or database url!")
         exit(2)
@@ -82,4 +97,4 @@ if __name__ == '__main__':
         level=log_level_,
         format='%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s'
     )
-    asyncio.run(main(bot_token, database_url, log_level=log_level_))
+    asyncio.run(main(bot_token, database_url, log_level=log_level_, admin_id=admin_tg_id))
