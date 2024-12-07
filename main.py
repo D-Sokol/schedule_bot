@@ -60,6 +60,7 @@ async def main(token: str, db_url: str, log_level: str = "WARNING") -> None:
     dp.message.middleware(db_middleware)
     dp.callback_query.middleware(tr_middleware)
     dp.callback_query.middleware(db_middleware)
+    dp.errors.middleware(tr_middleware)
 
     dp.include_router(dialogs_router)
     dp.include_routers(*all_dialogs)
