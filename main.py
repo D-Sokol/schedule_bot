@@ -12,6 +12,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, ErrorEvent
 from aiogram_dialog import DialogManager, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
+from fluentogram import TranslatorRunner
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from db_middleware import DbSessionMiddleware
@@ -29,12 +30,13 @@ async def handler(_: Message, dialog_manager: DialogManager) -> None:
     await dialog_manager.start(MainMenuStates.START)
 
 
-async def handle_old_button(event: ErrorEvent) -> None:
+# This handler must be registered via DP instead of dialogs_handler
+async def handle_old_button(event: ErrorEvent, i18n: TranslatorRunner) -> None:
     exc = cast(UnknownIntent, event.exception)
     logging.info("Old button used: %s", exc)
     if (callback_query := event.update.callback_query) is not None:
         with suppress(TelegramBadRequest):
-            await callback_query.answer("Эта кнопка слишком старая. Я даже не помню, о чем мы говорили!")
+            await callback_query.answer(i18n.get("notify-unknown_intent"))
             await callback_query.message.delete()
     else:
         logging.warning(
