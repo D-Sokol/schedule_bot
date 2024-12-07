@@ -22,15 +22,15 @@ from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs.utils import BotAwareMessageManager
 
 
-dialogs_handler = Router(name="start")
+dialogs_router = Router(name="start")
 
 
-@dialogs_handler.message(CommandStart())
+@dialogs_router.message(CommandStart())
 async def handler(_: Message, dialog_manager: DialogManager) -> None:
     await dialog_manager.start(MainMenuStates.START)
 
 
-# This handler must be registered via DP instead of dialogs_handler
+# This handler must be registered via DP instead of `dialogs_router`
 async def handle_old_button(event: ErrorEvent, i18n: TranslatorRunner) -> None:
     exc = cast(UnknownIntent, event.exception)
     logging.info("Old button used: %s", exc)
@@ -61,7 +61,7 @@ async def main(token: str, db_url: str, log_level: str = "WARNING") -> None:
     dp.callback_query.middleware(tr_middleware)
     dp.callback_query.middleware(db_middleware)
 
-    dp.include_router(dialogs_handler)
+    dp.include_router(dialogs_router)
     dp.include_routers(*all_dialogs)
     dp.error.register(handle_old_button, ExceptionTypeFilter(UnknownIntent))
     setup_dialogs(dp, message_manager=message_manager)
