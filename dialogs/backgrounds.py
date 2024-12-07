@@ -73,10 +73,12 @@ async def select_image_handler(
         await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
-async def delete_image_handler(_callback: CallbackQuery, _widget: Button, manager: DialogManager):
+async def delete_image_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
     element: ImageAsset = manager.dialog_data["element"]
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     await registry.delete_element(active_user_id(manager), element.element_id)
+    await callback.answer(i18n.get("notify-remove_image", escaped_name=element.name))
 
 
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
@@ -110,7 +112,7 @@ async def make_new_handler(callback: CallbackQuery, _widget: Button, manager: Di
     await manager.switch_to(BackgroundsStates.START)
 
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
-    await callback.answer(i18n.get("dialog-backgrounds-reorder.first", name=html.escape(element.name)))
+    await callback.answer(i18n.get("notify-reorder.first", name=html.escape(element.name)))
 
 
 async def make_old_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
@@ -120,7 +122,7 @@ async def make_old_handler(callback: CallbackQuery, _widget: Button, manager: Di
     await manager.switch_to(BackgroundsStates.START)
 
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
-    await callback.answer(i18n.get("dialog-backgrounds-reorder.last", name=html.escape(element.name)))
+    await callback.answer(i18n.get("notify-reorder.last", name=html.escape(element.name)))
 
 
 async def rename_image(

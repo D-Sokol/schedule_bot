@@ -9,6 +9,7 @@ from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram_dialog.widgets.kbd import Button, Cancel, SwitchTo
+from fluentogram import TranslatorRunner
 from magic_filter import F
 
 from bot_registry import ElementsRegistryAbstract, TemplateRegistryAbstract
@@ -124,6 +125,7 @@ async def save_image(
         manager: DialogManager,
         data: str,
 ):
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     image: Image.Image = manager.dialog_data["document"]
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
@@ -145,7 +147,7 @@ async def save_image(
         message = update.message
     else:
         message = update
-    await message.answer(f"Фон сохранен!\n<b>{html.escape(data)}</b>")  # TODO: use TranslatorRunner
+    await message.answer(i18n.get("notify-saved_image", escaped_name=html.escape(data)))
     # Since we send a custom message, dialogs should send new one to use the latest message in the chat
     await manager.done(result={"element": new_element}, show_mode=ShowMode.SEND)
 
