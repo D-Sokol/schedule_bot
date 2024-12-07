@@ -74,7 +74,9 @@ async def select_image_handler(
 
 
 async def delete_image_handler(_callback: CallbackQuery, _widget: Button, manager: DialogManager):
-    pass
+    element: ImageAsset = manager.dialog_data["element"]
+    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
+    await registry.delete_element(active_user_id(manager), element.element_id)
 
 
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
@@ -127,7 +129,9 @@ async def rename_image(
         manager: DialogManager,
         data: str,
 ):
-    pass
+    element: ImageAsset = manager.dialog_data["element"]
+    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
+    await registry.update_element_name(active_user_id(manager), element.element_id, name=data)
     await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 

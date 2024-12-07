@@ -7,7 +7,7 @@ from typing import *
 from uuid import UUID
 
 from PIL import Image
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, update, delete
 
 from database_models import ImageAsset
 
@@ -61,11 +61,19 @@ class ElementsRegistryAbstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def update_element_name(self, user_id: int | None, element_id: str | UUID, name: str) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
     async def reorder_make_first(self, user_id: int | None, element_id: str | UUID) -> None:
         raise NotImplementedError
 
     @abstractmethod
     async def reorder_make_last(self, user_id: int | None, element_id: str | UUID) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def delete_element(self, user_id: int | None, element_id: str | UUID) -> None:
         raise NotImplementedError
 
     @classmethod
@@ -142,10 +150,16 @@ class MockElementRegistry(ElementsRegistryAbstract):
         else:
             logger.error("Trying to update file_id for unknown file_type: %s", file_type)
 
+    async def update_element_name(self, user_id: int | None, element_id: str | UUID, name: str) -> None:
+        pass
+
     async def reorder_make_first(self, user_id: int | None, element_id: str | UUID) -> None:
         pass
 
     async def reorder_make_last(self, user_id: int | None, element_id: str | UUID) -> None:
+        pass
+
+    async def delete_element(self, user_id: int | None, element_id: str | UUID) -> None:
         pass
 
 
@@ -208,6 +222,15 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin):
         )
         await self.session.commit()
 
+    async def update_element_name(self, user_id: int | None, element_id: str | UUID, name: str) -> None:
+        logger.info("Renaming %s/%s to %s", user_id, element_id, name)
+        await self.session.execute(
+            update(ImageAsset)
+            .where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
+            .values(name=name)
+        )
+        await self.session.commit()
+
     async def reorder_make_first(self, user_id: int | None, element_id: str | UUID) -> None:
         element = await self.get_element(user_id, element_id)
         if element is None:
@@ -253,4 +276,12 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin):
         element.display_order = max_display_order
         self.session.add(element)
 
+        await self.session.commit()
+
+    async def delete_element(self, user_id: int | None, element_id: str | UUID) -> None:
+        logger.info("Removing %s/%s", user_id, element_id)
+        await self.session.execute(
+            delete(ImageAsset)
+            .where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
+        )
         await self.session.commit()
