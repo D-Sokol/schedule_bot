@@ -1,2 +1,4 @@
 postgres_data/
 pgadmin/
+nats/data/
+nui/
