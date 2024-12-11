@@ -12,6 +12,7 @@ from sqlalchemy import func, select, update, delete
 from database_models import ImageAsset
 
 from .database_mixin import DatabaseRegistryMixin
+from .nats_mixin import NATSRegistryMixin
 
 logger = logging.getLogger(__file__)
 
@@ -163,7 +164,13 @@ class MockElementRegistry(ElementsRegistryAbstract):
         pass
 
 
-class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin):
+class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSRegistryMixin):
+    BUCKET_NAME: ClassVar[str] = "assets"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bucket = self.js.object_store(self.BUCKET_NAME)
+
     async def get_elements(self, user_id: int | None) -> list[ImageAsset]:
         result = await self.session.execute(
             select(ImageAsset).where(ImageAsset.user_id == user_id).order_by(ImageAsset.display_order.asc())
