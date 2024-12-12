@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -7,9 +8,12 @@ from typing import *
 from uuid import UUID
 
 from PIL import Image
+from nats.js.errors import ObjectNotFoundError
+from nats.js.object_store import ObjectStore
 from sqlalchemy import func, select, update, delete
 
 from database_models import ImageAsset
+from exceptions import ScheduleException
 
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin
@@ -166,10 +170,7 @@ class MockElementRegistry(ElementsRegistryAbstract):
 
 class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSRegistryMixin):
     BUCKET_NAME: ClassVar[str] = "assets"
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.bucket = self.js.object_store(self.BUCKET_NAME)
+    CONVERT_SUBJECT_NAME: ClassVar[str] = "assets.convert"
 
     async def get_elements(self, user_id: int | None) -> list[ImageAsset]:
         result = await self.session.execute(
@@ -191,7 +192,15 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
         return result.scalar()
 
     async def get_element_content(self, user_id: int | None, element_id: str | UUID) -> bytes:
-        raise NotImplementedError
+        bucket = await self._bucket()
+        try:
+            result = await bucket.get(self._nats_object_name(user_id, element_id))
+        except ObjectNotFoundError as e:
+            raise ScheduleException("No such asset", (user_id, element_id)) from e
+
+        if not result.data:
+            raise ScheduleException("Empty content for asset", (user_id, element_id))
+        return result.data
 
     async def save_element(
             self,
@@ -203,7 +212,11 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
             file_id_document: str | None = None,
             resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
     ) -> ImageAsset:
-        _ = element
+        if resize_mode != "ignore":
+            # Image will be converted somehow, therefore these file_ids for the original file is not correct.
+            logging.debug("Ignore file ids because of resize mode is %s", resize_mode)
+            file_id_photo = file_id_document = None
+
         element_record = ImageAsset(
             user_id=user_id,
             name=element_name,
@@ -212,6 +225,18 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
         )
         self.session.add(element_record)
         await self.session.commit()
+
+        stream = io.BytesIO()
+        element.save(stream, format="png")
+        await self.js.publish(
+            subject=self.CONVERT_SUBJECT_NAME,
+            payload=stream.getvalue(),
+            headers={
+                "Sch-Save-Name": self._nats_object_name(user_id, element_record.element_id),
+                "Sch-Resize-Mode": resize_mode,
+                "Sch-Target-Size": json.dumps(target_size)
+            },
+        )
         return element_record
 
     async def update_element_file_id(
@@ -292,3 +317,10 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
             .where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
         )
         await self.session.commit()
+
+    async def _bucket(self) -> ObjectStore:
+        return await self.js.object_store(self.BUCKET_NAME)
+
+    @staticmethod
+    def _nats_object_name(user_id: int | None, element_id: str | UUID) -> str:
+        return f"{user_id or 0}.{element_id}"
