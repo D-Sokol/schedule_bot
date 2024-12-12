@@ -2,7 +2,7 @@ import asyncio
 import os
 
 import nats
-from nats.js.api import ObjectStoreConfig, StorageType
+from nats.js.api import ObjectStoreConfig, StorageType, StreamConfig, RetentionPolicy
 
 
 async def upgrade(servers: str):
@@ -11,7 +11,15 @@ async def upgrade(servers: str):
 
     await js.create_object_store("assets", config=ObjectStoreConfig(
         description="Images for scheduler bot, both backgrounds and patches",
-        storage=StorageType.MEMORY,
+        storage=StorageType.FILE,
+    ))
+    await js.add_stream(StreamConfig(
+        name="Assets-queue",
+        description="Working queue for cropping/resizing images",
+        subjects=["assets.>"],
+        retention=RetentionPolicy.WORK_QUEUE,
+        max_age=3600,
+        max_msg_size=10 * 1024 * 1024,
     ))
 
 
@@ -20,6 +28,7 @@ async def downgrade(servers: str):
     js = nc.jetstream()
 
     await js.delete_object_store("assets")
+    await js.delete_stream("Assets queue")
 
 
 if __name__ == '__main__':
