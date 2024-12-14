@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import nats
 import os
 import sqlalchemy
 from contextlib import suppress
@@ -47,7 +48,13 @@ async def handle_old_button(event: ErrorEvent, i18n: TranslatorRunner) -> None:
         )
 
 
-async def main(token: str, db_url: str, log_level: str = "WARNING", admin_id: int = -1) -> None:
+async def main(
+        token: str,
+        db_url: str,
+        nats_servers: str,
+        log_level: str = "WARNING",
+        admin_id: int = -1,
+) -> None:
     engine = create_async_engine(db_url, echo=(log_level == "DEBUG"))
     session_pool = async_sessionmaker(engine, expire_on_commit=False)
     if admin_id > 0:
@@ -62,7 +69,11 @@ async def main(token: str, db_url: str, log_level: str = "WARNING", admin_id: in
             _ = await session.execute(sqlalchemy.select(1))
     logging.info("Successfully connected to DB")
 
-    db_middleware = DbSessionMiddleware(session_pool)
+    nc = await nats.connect(servers=nats_servers)
+    js = nc.jetstream()
+    logging.info("Connected to NATS")
+
+    db_middleware = DbSessionMiddleware(session_pool, js)
     message_manager = BotAwareMessageManager(session_pool)
 
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
@@ -89,12 +100,13 @@ if __name__ == '__main__':
     bot_token = os.getenv("TOKEN")
     database_url = os.getenv("DB_URL")
     admin_tg_id = int(os.getenv("ADMIN_ID") or -1)
-    if bot_token is None or database_url is None:
-        logging.fatal("Cannot run instance without bot token and/or database url!")
+    nats_servers_ = os.getenv("NATS_SERVERS")
+    if None in (bot_token, database_url, nats_servers_):
+        logging.fatal("Cannot run instance without bot token, database url or nats url!")
         exit(2)
     log_level_ = os.getenv("LOG_LEVEL", "WARNING")
     logging.basicConfig(
         level=log_level_,
         format='%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s'
     )
-    asyncio.run(main(bot_token, database_url, log_level=log_level_, admin_id=admin_tg_id))
+    asyncio.run(main(bot_token, database_url, nats_servers_, log_level=log_level_, admin_id=admin_tg_id))
