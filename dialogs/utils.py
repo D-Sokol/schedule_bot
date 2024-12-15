@@ -77,9 +77,8 @@ class BotAwareMessageManager(MessageManager):
             file_id = photo_sizes[-1].file_id
             media_id = media_info.file_id
             if media_id is not None:
-                if file_id.startswith(self.BOT_URI_PREFIX):
-                    bot_uri = media_id.file_id
-                    await self.update_file_id(bot_uri, file_id)
+                if (bot_uri := media_id.file_id).startswith(self.BOT_URI_PREFIX):
+                    await self.update_file_id(file_id, bot_uri)
             else:
                 logger.warning("Media passed not via media_id: %s", media_info.__dict__)
 
@@ -87,7 +86,7 @@ class BotAwareMessageManager(MessageManager):
 
     async def update_file_id(self, file_id: str, bot_uri: str) -> None:
         user_id, element_id = self.parse_bot_uri(bot_uri)
-        with self.session_pool() as session:
+        async with self.session_pool() as session:
             registry = DbElementRegistry(session=session, js=self.js)
             await registry.update_element_file_id(user_id, element_id, file_id, file_type="photo")
 
