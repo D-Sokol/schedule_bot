@@ -7,13 +7,14 @@ from datetime import datetime
 from typing import *
 from uuid import UUID
 
+import sqlalchemy.exc
 from PIL import Image
 from nats.js.errors import ObjectNotFoundError
 from nats.js.object_store import ObjectStore
 from sqlalchemy import func, select, update, delete
 
 from database_models import ImageAsset
-from exceptions import ScheduleException
+from exceptions import ImageNotProcessedException, DuplicateNameException, ImageContentEmpty
 
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin
@@ -196,10 +197,10 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
         try:
             result = await bucket.get(self._nats_object_name(user_id, element_id))
         except ObjectNotFoundError as e:
-            raise ScheduleException("No such asset", (user_id, element_id)) from e
+            raise ImageNotProcessedException(user_id, element_id) from e
 
         if not result.data:
-            raise ScheduleException("Empty content for asset", (user_id, element_id))
+            raise ImageContentEmpty(user_id, element_id)
         return result.data
 
     async def save_element(
@@ -217,14 +218,17 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
             logging.debug("Ignore file ids because of resize mode is %s", resize_mode)
             file_id_photo = file_id_document = None
 
-        element_record = ImageAsset(
-            user_id=user_id,
-            name=element_name,
-            file_id_photo=file_id_photo,
-            file_id_document=file_id_document,
-        )
-        self.session.add(element_record)
-        await self.session.commit()
+        try:
+            element_record = ImageAsset(
+                user_id=user_id,
+                name=element_name,
+                file_id_photo=file_id_photo,
+                file_id_document=file_id_document,
+            )
+            self.session.add(element_record)
+            await self.session.commit()  # sqlalchemy.exc.IntegrityError
+        except sqlalchemy.exc.IntegrityError as e:
+            raise DuplicateNameException(element_name) from e
 
         stream = io.BytesIO()
         element.save(stream, format="png")

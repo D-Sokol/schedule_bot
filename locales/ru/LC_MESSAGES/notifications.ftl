@@ -6,6 +6,10 @@ notify-saved_image =
     <b>{ $escaped_name }</b>
 
 
+notify-name_used =
+    Использовать имя <b>{ $escaped_name }</b> невозможно: оно уже используется!
+
+
 notify-remove_image = Изображение <b>{ $escaped_name }</b> удалено
 
 

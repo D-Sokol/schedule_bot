@@ -13,6 +13,7 @@ from fluentogram import TranslatorRunner
 from magic_filter import F
 
 from bot_registry import ElementsRegistryAbstract, TemplateRegistryAbstract
+from exceptions import DuplicateNameException
 from .states import UploadBackgroundStates
 from .utils import save_to_dialog_data, active_user_id, FluentFormat
 
@@ -134,20 +135,27 @@ async def save_image(
     file_type = manager.dialog_data["file_type"]
     user_id = active_user_id(manager)
     logger.info("Saving new image: %s", data)
-    new_element = await registry.save_element(
-        image, user_id,
-        element_name=data,
-        file_id_document=file_id if file_type == "document" else None,
-        file_id_photo=file_id if file_type == "photo" else None,
-        target_size=expected,
-        resize_mode=resize_mode,
-    )
 
     if isinstance(update, CallbackQuery):
-        message = update.message
+        message_to_answer = update.message
     else:
-        message = update
-    await message.answer(i18n.get("notify-saved_image", escaped_name=html.escape(data)))
+        message_to_answer = update
+
+    try:
+        new_element = await registry.save_element(
+            image, user_id,
+            element_name=data,
+            file_id_document=file_id if file_type == "document" else None,
+            file_id_photo=file_id if file_type == "photo" else None,
+            target_size=expected,
+            resize_mode=resize_mode,
+        )
+    except DuplicateNameException:
+        await message_to_answer.answer(i18n.get("notify-name_used", escaped_name=html.escape(data)))
+        # Leave in the same state so that user could type another name
+        return
+
+    await message_to_answer.answer(i18n.get("notify-saved_image", escaped_name=html.escape(data)))
     # Since we send a custom message, dialogs should send new one to use the latest message in the chat
     await manager.done(result={"element": new_element}, show_mode=ShowMode.SEND)
 
