@@ -14,6 +14,7 @@ from aiogram_dialog.widgets.kbd import Button, Start
 from aiogram_dialog.widgets.kbd.button import OnClick
 from fluentogram import TranslatorRunner
 from magic_filter import MagicFilter
+from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from bot_registry.image_assets import DbElementRegistry
@@ -49,8 +50,9 @@ async def not_implemented_button_handler(callback: CallbackQuery, button: Button
 class BotAwareMessageManager(MessageManager):
     BOT_URI_PREFIX = "bot://"
 
-    def __init__(self, session_pool: async_sessionmaker):
+    def __init__(self, session_pool: async_sessionmaker, js: JetStreamContext):
         self.session_pool = session_pool
+        self.js = js
 
     async def get_media_source(
             self, media: MediaAttachment, bot: Bot,
@@ -60,7 +62,7 @@ class BotAwareMessageManager(MessageManager):
 
         user_id, element_id = self.parse_bot_uri(file_id)
         async with self.session_pool() as session:
-            registry = DbElementRegistry(session)
+            registry = DbElementRegistry(session=session, js=self.js)
             content = await registry.get_element_content(user_id or None, element_id)
             file_name = (await registry.get_element(user_id or None, element_id)).name
             input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
@@ -86,7 +88,7 @@ class BotAwareMessageManager(MessageManager):
     async def update_file_id(self, file_id: str, bot_uri: str) -> None:
         user_id, element_id = self.parse_bot_uri(bot_uri)
         with self.session_pool() as session:
-            registry = DbElementRegistry(session)
+            registry = DbElementRegistry(session=session, js=self.js)
             await registry.update_element_file_id(user_id, element_id, file_id, file_type="photo")
 
     @classmethod

@@ -76,7 +76,7 @@ async def main(
     logging.info("Connected to NATS")
 
     db_middleware = DbSessionMiddleware(session_pool, js)
-    message_manager = BotAwareMessageManager(session_pool)
+    message_manager = BotAwareMessageManager(session_pool, js)
 
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
     storage = MemoryStorage()
