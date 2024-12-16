@@ -50,6 +50,10 @@ async def handle_old_button(event: ErrorEvent, i18n: TranslatorRunner) -> None:
         )
 
 
+async def _shutdown(shutdown_event: asyncio.Event):
+    shutdown_event.set()
+
+
 async def main(
         token: str,
         db_url: str,
@@ -96,9 +100,13 @@ async def main(
     logging.info("Starting bot")
     await bot.delete_webhook(drop_pending_updates=True)
 
+    shutdown_event = asyncio.Event()
+    dp["shutdown_event"] = shutdown_event
+    dp.shutdown.register(_shutdown)
+
     await asyncio.gather(
         dp.start_polling(bot),
-        convert(js),  # TODO: launch as a separate process.
+        convert(js, shutdown_event),  # TODO: launch as a separate process.
     )
 
 
