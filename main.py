@@ -15,6 +15,7 @@ from aiogram.types import Message, ErrorEvent
 from aiogram_dialog import DialogManager, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
 from fluentogram import TranslatorRunner
+from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from bot_registry.users import DbUserRegistry
@@ -54,13 +55,7 @@ async def _shutdown(shutdown_event: asyncio.Event):
     shutdown_event.set()
 
 
-async def main(
-        token: str,
-        db_url: str,
-        nats_servers: str,
-        log_level: str = "WARNING",
-        admin_id: int = -1,
-) -> None:
+async def setup_db(db_url: str, admin_id: int = -1, log_level: str = "WARNING") -> async_sessionmaker:
     engine = create_async_engine(db_url, echo=(log_level == "DEBUG"))
     session_pool = async_sessionmaker(engine, expire_on_commit=False)
     if admin_id > 0:
@@ -73,18 +68,13 @@ async def main(
         # Just check db connection
         async with session_pool() as session:
             _ = await session.execute(sqlalchemy.select(1))
-    logging.info("Successfully connected to DB")
+    return session_pool
 
-    nc = await nats.connect(servers=nats_servers)
-    js = nc.jetstream()
-    logging.info("Connected to NATS")
 
+async def setup_middlewares(dp: Dispatcher, session_pool: async_sessionmaker, js: JetStreamContext) -> None:
     db_middleware = DbSessionMiddleware(session_pool, js)
     message_manager = BotAwareMessageManager(session_pool, js)
 
-    bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
-    storage = MemoryStorage()
-    dp = Dispatcher(storage=storage)
     tr_middleware = TranslatorRunnerMiddleware(create_translator_hub())
 
     dp.message.middleware(tr_middleware)
@@ -97,13 +87,35 @@ async def main(
     dp.include_routers(*all_dialogs)
     dp.error.register(handle_old_button, ExceptionTypeFilter(UnknownIntent))
     setup_dialogs(dp, message_manager=message_manager)
-    logging.info("Starting bot")
-    await bot.delete_webhook(drop_pending_updates=True)
+
+
+async def main(
+        token: str,
+        db_url: str,
+        nats_servers: str,
+        log_level: str = "WARNING",
+        admin_id: int = -1,
+) -> None:
+    session_pool = await setup_db(db_url, admin_id, log_level)
+    logging.info("Connected to DB")
+
+    nc = await nats.connect(servers=nats_servers)
+    js = nc.jetstream()
+    logging.info("Connected to NATS")
+
+    storage = MemoryStorage()
+    dp = Dispatcher(storage=storage)
+    await setup_middlewares(dp, session_pool, js)
+    logging.info("Created middlewares")
 
     shutdown_event = asyncio.Event()
     dp["shutdown_event"] = shutdown_event
     dp.shutdown.register(_shutdown)
+    logging.info("Registered event for converter stopping")
 
+    bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
+    logging.info("Starting bot...")
+    await bot.delete_webhook(drop_pending_updates=True)
     await asyncio.gather(
         dp.start_polling(bot),
         convert(js, shutdown_event),  # TODO: launch as a separate process.
