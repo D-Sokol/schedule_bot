@@ -42,16 +42,19 @@ async def saved_backs_getter(
     }
 
 
-async def selected_image_getter(dialog_manager: DialogManager, **_) -> dict[str, Any]:
+async def selected_image_getter(
+        dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, **_
+) -> dict[str, Any]:
     file_name: str = dialog_manager.dialog_data["element"].name
     file_id: str = dialog_manager.dialog_data["element"].file_id_photo
     user_id = active_user_id(dialog_manager)
+    element_id: UUID = dialog_manager.dialog_data["element"].element_id
     if file_id is None:
-        element_id: UUID = dialog_manager.dialog_data["element"].element_id
-        file_id = f"bot://{user_id or 0}/{element_id}"
+        file_id = element_registry.format_bot_uri(user_id, element_id)
     return {
         "background": MediaAttachment(ContentType.PHOTO, file_id=MediaId(file_id)),
         "escaped_name": html.escape(file_name),
+        "ready": await element_registry.is_element_content_ready(user_id, element_id)
     }
 
 
@@ -92,6 +95,7 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
         user_id = active_user_id(manager)
         registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
         logger.info("Sending image %s as document via bytes", file_name)
+        # We don't check existing via `.is_element_content_ready` since this is not called unless so.
         content = await registry.get_element_content(user_id, element.element_id)
         input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
         document_message = await callback.message.answer_document(document=input_document, caption=html.escape(file_name))
@@ -176,7 +180,8 @@ start_window = Window(
 
 
 selected_image_window = Window(
-    DynamicMedia("background"),
+    DynamicMedia("background", when="ready"),
+    FluentFormat("dialog-backgrounds-selected.not_ready", when=~F["ready"]),
     FluentFormat("dialog-backgrounds-selected"),
     StartWithData(
         FluentFormat("dialog-backgrounds-selected.create"),
@@ -185,7 +190,7 @@ selected_image_window = Window(
         dialog_data_keys=["element"],
     ),
     SwitchTo(FluentFormat("dialog-backgrounds-selected.rename"), id="rename_selected", state=BackgroundsStates.RENAME),
-    Button(FluentFormat("dialog-backgrounds-selected.full"), id="send_full", on_click=send_full_handler),
+    Button(FluentFormat("dialog-backgrounds-selected.full"), id="send_full", on_click=send_full_handler, when="ready"),
     SwitchTo(
         FluentFormat("dialog-backgrounds-selected.delete"), id="delete_selected", state=BackgroundsStates.CONFIRM_DELETE
     ),

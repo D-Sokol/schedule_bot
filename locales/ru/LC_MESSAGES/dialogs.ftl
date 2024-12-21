@@ -23,6 +23,7 @@ dialog-backgrounds-main = Unused
 
 
 dialog-backgrounds-selected = <b>{ $escaped_name }</b>
+    .not_ready = <i>Изображение не может быть показано, т.к. находится в процессе обработки</i>
     .create = { dialog-main.create }
     .rename = Переименовать
     .full = 📄️ Прислать без сжатия

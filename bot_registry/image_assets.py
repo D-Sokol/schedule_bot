@@ -13,6 +13,7 @@ from nats.js.errors import ObjectNotFoundError
 from nats.js.object_store import ObjectStore
 from sqlalchemy import func, select, update, delete
 
+from converter import IMAGE_FORMAT, SAVE_NAME_HEADER, RESIZE_MODE_HEADER, TARGET_SIZE_HEADER
 from database_models import ImageAsset
 from exceptions import ImageNotProcessedException, DuplicateNameException, ImageContentEmpty
 
@@ -38,6 +39,14 @@ class ElementsRegistryAbstract(ABC):
     @abstractmethod
     async def get_element(self, user_id: int | None, element_id: str | UUID) -> ImageAsset:
         raise NotImplementedError
+
+    async def is_element_content_ready(self, user_id: int | None, element_id: str | UUID) -> bool:
+        try:
+            _ = self.get_element_content(user_id, element_id)
+        except ImageNotProcessedException:
+            return False
+        else:
+            return True
 
     @abstractmethod
     async def get_element_content(self, user_id: int | None, element_id: str | UUID) -> bytes:
@@ -98,6 +107,21 @@ class ElementsRegistryAbstract(ABC):
             raise ValueError(f"Name is too long: {len(name)}")
         return name
 
+    BOT_URI_PREFIX = "bot://"
+
+    @classmethod
+    @final
+    def format_bot_uri(cls, user_id: int | None, element_id: str | UUID) -> str:
+        return f"{cls.BOT_URI_PREFIX}{user_id or 0}/{element_id}"
+
+    @classmethod
+    @final
+    def parse_bot_uri(cls, bot_uri: str) -> tuple[int | None, str]:
+        if not bot_uri.startswith(cls.BOT_URI_PREFIX):
+            raise ValueError(f"Not a bot URI: {bot_uri}")
+        bot_uri = bot_uri.removeprefix(cls.BOT_URI_PREFIX)
+        user_id, element_id = bot_uri.split("/")
+        return int(user_id) or None, element_id
 
 class MockElementRegistry(ElementsRegistryAbstract):
     def __init__(self):
@@ -203,6 +227,16 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
             raise ImageContentEmpty(user_id, element_id)
         return result.data
 
+    async def is_element_content_ready(self, user_id: int | None, element_id: str | UUID) -> bool:
+        bucket = await self._bucket()
+        try:
+            _ = await bucket.get_info(self._nats_object_name(user_id, element_id))
+        except ObjectNotFoundError:
+            return False
+        else:
+            return True
+
+
     async def save_element(
             self,
             element: Image.Image,
@@ -231,14 +265,14 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
             raise DuplicateNameException(element_name) from e
 
         stream = io.BytesIO()
-        element.save(stream, format="png")
+        element.save(stream, format=IMAGE_FORMAT)
         await self.js.publish(
             subject=self.CONVERT_SUBJECT_NAME,
             payload=stream.getvalue(),
             headers={
-                "Sch-Save-Name": self._nats_object_name(user_id, element_record.element_id),
-                "Sch-Resize-Mode": resize_mode,
-                "Sch-Target-Size": json.dumps(target_size)
+                SAVE_NAME_HEADER: self._nats_object_name(user_id, element_record.element_id),
+                RESIZE_MODE_HEADER: resize_mode,
+                TARGET_SIZE_HEADER: json.dumps(target_size)
             },
         )
         return element_record

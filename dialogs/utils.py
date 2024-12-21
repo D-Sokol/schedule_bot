@@ -17,6 +17,7 @@ from magic_filter import MagicFilter
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from bot_registry import ElementsRegistryAbstract
 from bot_registry.image_assets import DbElementRegistry
 from database_models import User
 
@@ -48,8 +49,6 @@ async def not_implemented_button_handler(callback: CallbackQuery, button: Button
 
 
 class BotAwareMessageManager(MessageManager):
-    BOT_URI_PREFIX = "bot://"
-
     def __init__(self, session_pool: async_sessionmaker, js: JetStreamContext):
         self.session_pool = session_pool
         self.js = js
@@ -57,12 +56,18 @@ class BotAwareMessageManager(MessageManager):
     async def get_media_source(
             self, media: MediaAttachment, bot: Bot,
     ) -> Union[InputFile, str]:
-        if not media.file_id or not (file_id := media.file_id.file_id).startswith(self.BOT_URI_PREFIX):
+        file_id: str = ""
+        if (
+                not media.file_id
+                or not (file_id := media.file_id.file_id).startswith(ElementsRegistryAbstract.BOT_URI_PREFIX)
+        ):
             return await super().get_media_source(media, bot)
 
-        user_id, element_id = self.parse_bot_uri(file_id)
+        assert file_id
+        user_id, element_id = ElementsRegistryAbstract.parse_bot_uri(file_id)
         async with self.session_pool() as session:
             registry = DbElementRegistry(session=session, js=self.js)
+            # We don't check existing via `.is_element_content_ready` since this is not called unless so.
             content = await registry.get_element_content(user_id or None, element_id)
             file_name = (await registry.get_element(user_id or None, element_id)).name
             input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
@@ -77,7 +82,7 @@ class BotAwareMessageManager(MessageManager):
             file_id = photo_sizes[-1].file_id
             media_id = media_info.file_id
             if media_id is not None:
-                if (bot_uri := media_id.file_id).startswith(self.BOT_URI_PREFIX):
+                if (bot_uri := media_id.file_id).startswith(ElementsRegistryAbstract.BOT_URI_PREFIX):
                     await self.update_file_id(file_id, bot_uri)
             else:
                 logger.warning("Media passed not via media_id: %s", media_info.__dict__)
@@ -85,17 +90,10 @@ class BotAwareMessageManager(MessageManager):
         return message
 
     async def update_file_id(self, file_id: str, bot_uri: str) -> None:
-        user_id, element_id = self.parse_bot_uri(bot_uri)
+        user_id, element_id = ElementsRegistryAbstract.parse_bot_uri(bot_uri)
         async with self.session_pool() as session:
             registry = DbElementRegistry(session=session, js=self.js)
             await registry.update_element_file_id(user_id, element_id, file_id, file_type="photo")
-
-    @classmethod
-    def parse_bot_uri(cls, bot_uri: str) -> tuple[int | None, str]:
-        assert bot_uri.startswith(cls.BOT_URI_PREFIX)
-        bot_uri = bot_uri.removeprefix(cls.BOT_URI_PREFIX)
-        user_id, element_id = bot_uri.split("/")
-        return int(user_id) or None, element_id
 
 
 class StartWithData(Start):
