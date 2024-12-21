@@ -5,9 +5,7 @@ import asyncio
 import json
 import logging
 import os
-import signal
 from asyncio import Event
-from contextlib import suppress
 
 import nats
 from nats.aio.msg import Msg
