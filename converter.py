@@ -2,17 +2,22 @@
 This script crops/resizes user images as a separate microservice to avoid lags in bot responses.
 """
 import asyncio
+import io
 import json
 import logging
 import os
 from asyncio import Event
+from typing import cast
 
 import nats
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
+from PIL import Image
+
 
 BUCKET_NAME = "assets"
 CONVERT_SUBJECT_NAME = "assets.convert"
+IMAGE_FORMAT = "png"
 
 SAVE_NAME_HEADER = "Sch-Save-Name"
 RESIZE_MODE_HEADER = "Sch-Resize-Mode"
@@ -25,14 +30,25 @@ async def convert(js: JetStreamContext, shutdown_event: asyncio.Event | None = N
     async def callback(msg: Msg):
         save_name = msg.headers.get(SAVE_NAME_HEADER)
         resize_mode = msg.headers.get(RESIZE_MODE_HEADER)
-        _target_size: list[int] = json.loads(msg.headers.get(TARGET_SIZE_HEADER))
-        if resize_mode not in {"resize", "crop", "ignore"}:
-            raise ValueError(f"Unknown resize mode: {resize_mode}")
+        target_w, target_h = cast(list[int], json.loads(msg.headers.get(TARGET_SIZE_HEADER)))
 
         logger.info("Converting %s with mode %s", save_name, resize_mode)
 
-        # TODO: actually convert image.
-        await store.put(save_name, msg.data)
+        image = Image.open(io.BytesIO(msg.data), formats=[IMAGE_FORMAT])
+        stream = io.BytesIO()
+        if resize_mode == "ignore":
+            stream.write(msg.data)
+        elif resize_mode == "crop":
+            image = image.crop((0, 0, target_w, target_h))  # (x1, y1, x2, y2), >image.size = black
+            image.save(stream, format=IMAGE_FORMAT)
+        elif resize_mode == "resize":
+            image = image.resize((target_w, target_h))
+            image.save(stream, format=IMAGE_FORMAT)
+        else:
+            raise ValueError(f"Unknown resize mode: {resize_mode}")
+
+        logging.debug("Converted %s", save_name)
+        await store.put(save_name, stream.getvalue())
         await msg.ack()
 
     store = await js.object_store(BUCKET_NAME)
