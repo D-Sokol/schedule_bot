@@ -77,7 +77,7 @@ async def process_schedule_creation(
         data: tuple[Schedule, list[str]],
 ):
     schedule, unparsed = data
-    if schedule:
+    if not schedule.is_empty():
         pass  # TODO: start a task
     else:
         pass  # TODO: emit warning

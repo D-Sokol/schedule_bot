@@ -1,8 +1,10 @@
 import logging
+import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
+from typing import cast
 
 
 logger = logging.getLogger(__file__)
@@ -60,11 +62,15 @@ class Time:
 class Entry:
     time: Time
     description: str
+    tags: set[str] = field(default_factory=set)
 
 
 @dataclass
 class Schedule:
     records: dict[WeekDay, list[Entry]]
+
+    def is_empty(self) -> bool:
+        return all(not v for v in self.records.values())
 
     def __str__(self) -> str:
         lines = []
@@ -79,6 +85,16 @@ class Schedule:
 
 
 class ScheduleRegistryAbstract(ABC):
+    _ENTRY_PATTERN = re.compile(
+        r"""
+            (\w+)\s+  # weekday: пн
+            (\d{1,2}:\d{1,2})\s+  # time: 17:00
+            (?:\((\w+)\)\s+)?  # tag in brackets: (platform1)
+            (.*)  # The following is entry description 
+        """,
+        re.VERBOSE,
+    )
+
     @abstractmethod
     async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
         raise NotImplementedError
@@ -95,22 +111,19 @@ class ScheduleRegistryAbstract(ABC):
             line = line.strip()
             if not line:
                 continue
-            words = line.split(maxsplit=2)
-            if len(words) != 3:
+            match = cls._ENTRY_PATTERN.fullmatch(line)
+            if match is None:
                 unparsed.append(line)
                 continue
-            wd_str, time_str, entry = words
-            wd = _WEEKDAY_BY_ALL_NAMES.get(wd_str.lower())
-            if wd is None:
+            weekday_str, time_str, tags_str, desc = cast(tuple[str | None, ...], match.groups())
+            weekday = _WEEKDAY_BY_ALL_NAMES.get(weekday_str.lower())
+            if weekday is None:
                 unparsed.append(line)
                 continue
-            try:
-                h, m = map(int, time_str.split(":"))
-            except ValueError:
-                unparsed.append(line)
-                continue
-            entry = Entry(Time(h, m), entry)
-            schedule[wd].append(entry)
+            # Note: int("09") == 9
+            h, m = map(int, time_str.split(":"))
+            entry = Entry(time=Time(h, m), description=desc, tags=set(tags_str.split(",") if tags_str else ()))
+            schedule[weekday].append(entry)
 
         for entries in schedule.values():
             entries.sort(key=lambda e: (e.time.hour, e.time.minute))
