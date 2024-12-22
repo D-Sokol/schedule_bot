@@ -110,8 +110,15 @@ async def check_dimensions(
         _widget: Any,
         manager: DialogManager
 ) -> None:
+    ignore_shape_mismatch: bool = manager.dialog_data["global_scope"]
+    if ignore_shape_mismatch:
+        logging.debug("Ignore checking dimensions")
+        await manager.switch_to(UploadBackgroundStates.UPLOADED_EXPECT_NAME)
+        return
+
     real = (manager.dialog_data["real_width"], manager.dialog_data["real_height"])
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
+
     if real != expected:
         logger.debug("Asking about bad image dimensions")
         await manager.switch_to(UploadBackgroundStates.UPLOADED_BAD_DIMENSIONS)
