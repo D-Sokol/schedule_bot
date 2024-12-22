@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime
-from typing import *
+from typing import ClassVar, Literal, final
 from uuid import UUID
 
 import sqlalchemy.exc

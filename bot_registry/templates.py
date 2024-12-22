@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import *
+from typing import Any
 
 
 logger = logging.getLogger(__file__)
