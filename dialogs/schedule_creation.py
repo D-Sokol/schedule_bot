@@ -130,6 +130,7 @@ start_window = Window(
 expect_input_window = Window(
     FluentFormat("dialog-schedule-text.presented", when=F["user_has_schedule"]),
     FluentFormat("dialog-schedule-text.missing", when=~F["user_has_schedule"]),
+    Cancel(FluentFormat("dialog-cancel")),
     TextInput(id="schedule_text", on_success=process_schedule_creation),
     getter=previous_schedule_getter,
     state=ScheduleStates.EXPECT_TEXT,
@@ -159,6 +160,7 @@ expect_date_calendar_window = Window(
     FluentFormat("dialog-schedule-calendar"),
     SwitchTo(FluentFormat("dialog-schedule-calendar.back"), id="back", state=ScheduleStates.EXPECT_DATE),
     Calendar(id="calendar", on_click=process_date_selected),
+    Cancel(FluentFormat("dialog-cancel")),
     state=ScheduleStates.EXPECT_DATE_CALENDAR,
 )
 
