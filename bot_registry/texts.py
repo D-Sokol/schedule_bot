@@ -9,6 +9,8 @@ from typing import cast
 
 from fluentogram import TranslatorRunner
 
+from database_models import User
+
 from .database_mixin import DatabaseRegistryMixin
 
 logger = logging.getLogger(__file__)
@@ -59,7 +61,8 @@ class Schedule:
             if not entries:
                 continue
             for entry in entries:
-                line = f"{weekday} {entry.time} {entry.description}"
+                tags = f"({','.join(entry.tags)}) " if entry.tags else ""
+                line = f"{weekday} {entry.time} {tags}{entry.description}"
                 lines.append(line)
         return "\n".join(lines)
 
@@ -101,9 +104,15 @@ class ScheduleRegistryAbstract(ABC):
                 continue
             weekday_str, time_str, tags_str, desc = cast(tuple[str | None, ...], match.groups())
             weekday = weekdays.get(weekday_str.lower())
+
             if weekday is None:
-                unparsed.append(line)
-                continue
+                # To ensure storing last schedule in DB for any locale,
+                # we also use "1", "2", ... keys (unconditionally) for weekdays.
+                try:
+                    weekday = WeekDay(int(weekday_str))
+                except ValueError:
+                    unparsed.append(line)
+                    continue
             # Note: int("09") == 9
             h, m = map(int, time_str.split(":"))
             entry = Entry(time=Time(h, m), description=desc, tags=set(tags_str.split(",") if tags_str else ()))
@@ -112,6 +121,19 @@ class ScheduleRegistryAbstract(ABC):
         for entries in schedule.values():
             entries.sort(key=lambda e: (e.time.hour, e.time.minute))
         return Schedule(records=dict(schedule)), unparsed
+
+    @classmethod
+    def dump_schedule_text(cls, schedule: Schedule) -> str:
+        lines = []
+        for weekday in WeekDay:
+            entries = schedule.records.get(weekday)
+            if not entries:
+                continue
+            for entry in entries:
+                tags = f"({','.join(entry.tags)}) " if entry.tags else ""
+                line = f"{weekday.value} {entry.time} {tags}{entry.description}"
+                lines.append(line)
+        return "\n".join(lines)
 
 
 class MockScheduleRegistry(ScheduleRegistryAbstract):
@@ -172,7 +194,25 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin):
         return result
 
     async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
-        raise NotImplementedError  # TODO
+        if user_id is None:
+            return None
+        user: User | None = await self.session.get(User, user_id)
+        if user is None or (schedule := user.last_schedule) is None:
+            return None
+        schedule, unparsed = self.parse_schedule_text(schedule)
+        assert not unparsed, "Mismatch between last schedule saving and parsing"
+        return schedule
 
     async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
-        raise NotImplementedError  # TODO
+        logger.info("Saving schedule for user %s", user_id)
+        if user_id is None:
+            logger.error("Cannot save schedule in global scope!")
+            return
+        user: User | None = await self.session.get(User, user_id)
+        if user is None:
+            logger.error("Cannot save schedule for unknown user id %d", user_id)
+            return
+
+        user.last_schedule = self.dump_schedule_text(schedule)
+        self.session.add(user)
+        await self.session.commit()

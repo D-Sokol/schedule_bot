@@ -15,7 +15,7 @@ class User(Base):
     __tablename__ = "users"
     tg_id: Mapped[int] = mapped_column(BIGINT(), primary_key=True)
     is_admin: Mapped[bool] = mapped_column(default=False)
-    last_schedule: Mapped[str] = mapped_column(TEXT(), nullable=True)
+    last_schedule: Mapped[str | None] = mapped_column(TEXT(), nullable=True)
     elements: Mapped[list["ImageAsset"]] = relationship(
         'ImageAsset', back_populates='owner', cascade="all, delete-orphan", lazy="raise"
     )
