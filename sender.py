@@ -15,15 +15,16 @@ INPUT_SUBJECT_NAME = "schedules.ready"
 IMAGE_FORMAT = "png"
 
 USER_ID_HEADER = "Sch-User-Id"
+CHAT_ID_HEADER = "Sch-Chat-Id"
 
 logger = logging.getLogger(__name__)
 
 
 async def sender_loop(js: JetStreamContext, bot: Bot, shutdown_event: asyncio.Event | None = None):
     async def callback(msg: Msg):
-        user_id = int(msg.headers[USER_ID_HEADER])
+        chat_id = int(msg.headers[CHAT_ID_HEADER])
         await bot.send_document(
-            chat_id=user_id,
+            chat_id=chat_id,
             document=BufferedInputFile(file=msg.data, filename="Schedule.png"),
         )
         await msg.ack()

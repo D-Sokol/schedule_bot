@@ -20,6 +20,7 @@ OUTPUT_SUBJECT_NAME = "schedules.ready"
 IMAGE_FORMAT = "png"
 
 USER_ID_HEADER = "Sch-User-Id"
+CHAT_ID_HEADER = "Sch-Chat-Id"
 ELEMENT_NAME_HEADER = "Sch-Element-Name"
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 async def render_loop(js: JetStreamContext, shutdown_event: asyncio.Event | None = None):
     async def callback(msg: Msg):
         user_id = msg.headers[USER_ID_HEADER]
+        chat_id = msg.headers[CHAT_ID_HEADER]
         element_name = msg.headers[ELEMENT_NAME_HEADER]
 
         payload = json.loads(msg.data.decode())
@@ -46,6 +48,7 @@ async def render_loop(js: JetStreamContext, shutdown_event: asyncio.Event | None
             payload=stream.getvalue(),
             headers={
                 USER_ID_HEADER: user_id,
+                CHAT_ID_HEADER: chat_id,
             },
         )
         await msg.ack()

@@ -16,8 +16,7 @@ from bot_registry.texts import ScheduleRegistryAbstract, Schedule
 from database_models import ImageAsset
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
 from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates
-from .utils import current_user_id, FluentFormat
-
+from .utils import current_user_id, current_chat_id, FluentFormat
 
 logger = logging.getLogger(__file__)
 
@@ -46,13 +45,14 @@ async def process_date_selected(
         selected_date: date,
 ):
     user_id = current_user_id(manager)
+    chat_id = current_chat_id(manager)
     schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
     logger.info("Selected date: %s", selected_date.isoformat())
     schedule: Schedule = manager.dialog_data["schedule"]
     element: ImageAsset = manager.dialog_data["element"]
     template = {}  # TODO: get template
     await asyncio.gather(
-        schedule_registry.render_schedule(user_id, schedule, element, template, selected_date),
+        schedule_registry.render_schedule(user_id, chat_id, schedule, element, template, selected_date),
         schedule_registry.update_last_schedule(user_id, schedule)
     )
     await manager.switch_to(ScheduleStates.FINISH)

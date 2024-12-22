@@ -4,7 +4,7 @@ from typing import Any, Awaitable, Callable, Optional, Union, cast, ClassVar
 
 from aiogram import Bot
 from aiogram.fsm.state import State
-from aiogram.types import BufferedInputFile, CallbackQuery, Message, InputFile
+from aiogram.types import BufferedInputFile, CallbackQuery, Chat, Message, InputFile
 from aiogram_dialog import DialogManager, Data
 from aiogram_dialog.api.entities import MediaAttachment, NewMessage, StartMode, ShowMode
 from aiogram_dialog.manager.message_manager import MessageManager
@@ -28,6 +28,11 @@ logger = logging.getLogger(__file__)
 def current_user_id(dialog_manager: DialogManager) -> int:
     user = cast(User, dialog_manager.middleware_data["user"])
     return user.tg_id
+
+
+def current_chat_id(dialog_manager: DialogManager) -> int:
+    chat = cast(Chat, dialog_manager.middleware_data["event_chat"])
+    return chat.id
 
 
 def active_user_id(dialog_manager: DialogManager) -> int | None:

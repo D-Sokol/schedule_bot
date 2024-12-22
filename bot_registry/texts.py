@@ -95,7 +95,13 @@ class ScheduleRegistryAbstract(ABC):
 
     @abstractmethod
     async def render_schedule(
-            self, user_id: int, schedule: Schedule, background: ImageAsset, template: dict[str, Any], start: date
+            self,
+            user_id: int,
+            chat_id: int,
+            schedule: Schedule,
+            background: ImageAsset,
+            template: dict[str, Any],
+            start: date,
     ) -> None:
         raise NotImplementedError
 
@@ -185,7 +191,13 @@ class MockScheduleRegistry(ScheduleRegistryAbstract):
         logger.info("Saving schedule for user %s:\n%s", user_id, schedule)
 
     async def render_schedule(
-            self, user_id: int, schedule: Schedule, background: ImageAsset, template: dict[str, Any], start: date
+            self,
+            user_id: int,
+            chat_id: int,
+            schedule: Schedule,
+            background: ImageAsset,
+            template: dict[str, Any],
+            start: date,
     ) -> None:
         pass
 
@@ -232,7 +244,13 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
         await self.session.commit()
 
     async def render_schedule(
-            self, user_id: int, schedule: Schedule, background: ImageAsset, template: dict[str, Any], start: date
+            self,
+            user_id: int,
+            chat_id: int,
+            schedule: Schedule,
+            background: ImageAsset,
+            template: dict[str, Any],
+            start: date,
     ) -> None:
         await self.js.publish(
             subject=INPUT_SUBJECT_NAME,
