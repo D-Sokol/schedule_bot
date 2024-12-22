@@ -1,3 +1,4 @@
+import asyncio
 import html
 import logging
 from datetime import date, timedelta
@@ -49,8 +50,11 @@ async def process_date_selected(
     logger.info("Selected date: %s", selected_date.isoformat())
     schedule: Schedule = manager.dialog_data["schedule"]
     element: ImageAsset = manager.dialog_data["element"]
-    _ = selected_date, schedule, element  # TODO: push task
-    await schedule_registry.update_last_schedule(user_id, schedule)
+    template = {}  # TODO: get template
+    await asyncio.gather(
+        schedule_registry.render_schedule(user_id, schedule, element, template, selected_date),
+        schedule_registry.update_last_schedule(user_id, schedule)
+    )
     await manager.switch_to(ScheduleStates.FINISH)
 
 

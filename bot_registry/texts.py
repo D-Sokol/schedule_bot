@@ -3,15 +3,18 @@ import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import date
 from enum import Enum
 from itertools import count
-from typing import cast
+from typing import cast, Any
 
 from fluentogram import TranslatorRunner
 
-from database_models import User
+from database_models import User, ImageAsset
+from renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER
 
 from .database_mixin import DatabaseRegistryMixin
+from .nats_mixin import NATSRegistryMixin
 
 logger = logging.getLogger(__file__)
 
@@ -88,6 +91,12 @@ class ScheduleRegistryAbstract(ABC):
 
     @abstractmethod
     async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def render_schedule(
+            self, user_id: int, schedule: Schedule, background: ImageAsset, template: dict[str, Any], start: date
+    ) -> None:
         raise NotImplementedError
 
     def parse_schedule_text(self, text: str) -> tuple[Schedule, list[str]]:
@@ -175,8 +184,13 @@ class MockScheduleRegistry(ScheduleRegistryAbstract):
     async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
         logger.info("Saving schedule for user %s:\n%s", user_id, schedule)
 
+    async def render_schedule(
+            self, user_id: int, schedule: Schedule, background: ImageAsset, template: dict[str, Any], start: date
+    ) -> None:
+        pass
 
-class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin):
+
+class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRegistryMixin):
     def __init__(self, i18n: TranslatorRunner, **kwargs):
         super().__init__(**kwargs)
         self.i18n = i18n
@@ -216,3 +230,15 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin):
         user.last_schedule = self.dump_schedule_text(schedule)
         self.session.add(user)
         await self.session.commit()
+
+    async def render_schedule(
+            self, user_id: int, schedule: Schedule, background: ImageAsset, template: dict[str, Any], start: date
+    ) -> None:
+        await self.js.publish(
+            subject=INPUT_SUBJECT_NAME,
+            payload=b'{}',  # TODO: send all required content
+            headers={
+                USER_ID_HEADER: str(user_id),
+                ELEMENT_NAME_HEADER: f"{user_id}.{background.element_id}",
+            },
+        )
