@@ -44,8 +44,13 @@ async def process_date_selected(
         manager: DialogManager,
         selected_date: date,
 ):
+    user_id = current_user_id(manager)
+    schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
     logger.info("Selected date: %s", selected_date.isoformat())
-    manager.dialog_data["selected_date"] = selected_date
+    schedule: Schedule = manager.dialog_data["schedule"]
+    element: ImageAsset = manager.dialog_data["element"]
+    _ = selected_date, schedule, element  # TODO: push task
+    await schedule_registry.update_last_schedule(user_id, schedule)
     await manager.switch_to(ScheduleStates.FINISH)
 
 
@@ -71,16 +76,23 @@ async def previous_schedule_getter(
 
 
 async def process_schedule_creation(
-        _message: Message,
+        message: Message,
         _widget: Any,
         manager: DialogManager,
-        data: tuple[Schedule, list[str]],
+        data: str,
 ):
-    schedule, unparsed = data
-    if not schedule.is_empty():
-        pass  # TODO: start a task
-    else:
-        pass  # TODO: emit warning
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
+    schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
+    schedule, unparsed = schedule_registry.parse_schedule_text(data)
+    if schedule.is_empty():
+        await message.answer(i18n.get("dialog-schedule-text.warn_empty"))
+        return
+    elif unparsed:
+        answer = "\n".join(
+            [i18n.get("dialog-schedule-text.warn_unparsed"), *unparsed]
+        )
+        await message.answer(answer)
+    manager.dialog_data["schedule"] = schedule
     await manager.switch_to(ScheduleStates.EXPECT_DATE)
 
 
@@ -118,11 +130,7 @@ start_window = Window(
 expect_input_window = Window(
     FluentFormat("dialog-schedule-text.presented", when=F["user_has_schedule"]),
     FluentFormat("dialog-schedule-text.missing", when=~F["user_has_schedule"]),
-    TextInput(
-        id="schedule_text",
-        type_factory=ScheduleRegistryAbstract.parse_schedule_text,
-        on_success=process_schedule_creation,
-    ),
+    TextInput(id="schedule_text", on_success=process_schedule_creation),
     getter=previous_schedule_getter,
     state=ScheduleStates.EXPECT_TEXT,
 )

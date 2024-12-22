@@ -95,7 +95,7 @@ class ScheduleRegistryAbstract(ABC):
         weekdays = self.load_weekdays()
         unparsed = []
         for line in text.splitlines():
-            line = line.strip()
+            line = line.strip().replace('\u2068', '')  # fluent things
             if not line:
                 continue
             match = self._ENTRY_PATTERN.fullmatch(line)
@@ -187,10 +187,10 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin):
             key = self.i18n.get(f"weekdays-d{wd.value}").lower()
             result[key] = wd
             for i in count(start=1):
-                key = self.i18n.get(f"weekdays-d{wd.value}.alias{i}").lower()
+                key = self.i18n.get(f"weekdays-d{wd.value}.alias{i}")
                 if key is None:
                     break
-                result[key] = wd
+                result[key.lower()] = wd
         return result
 
     async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
