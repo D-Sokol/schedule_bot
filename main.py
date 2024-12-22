@@ -25,7 +25,9 @@ from dialogs import all_dialogs
 from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs.utils import BotAwareMessageManager
 
-from converter import convert
+from converter import convert_loop
+from renderer import render_loop
+from sender import sender_loop
 
 
 dialogs_router = Router(name="start")
@@ -118,7 +120,9 @@ async def main(
     await bot.delete_webhook(drop_pending_updates=True)
     await asyncio.gather(
         dp.start_polling(bot),
-        convert(js, shutdown_event),  # TODO: launch as a separate process.
+        sender_loop(js, bot, shutdown_event),
+        convert_loop(js, shutdown_event),  # TODO: launch as a separate process.
+        render_loop(js, shutdown_event),  # TODO: launch as a separate process.
     )
 
 

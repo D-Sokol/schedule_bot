@@ -21,6 +21,14 @@ async def upgrade(servers: str):
         max_age=3600,
         max_msg_size=10 * 1024 * 1024,
     ))
+    await js.add_stream(StreamConfig(
+        name="Schedules-queue",
+        description="Working queue for rendering schedules",
+        subjects=["schedules.>"],
+        retention=RetentionPolicy.WORK_QUEUE,
+        max_age=3600,
+        max_msg_size=10 * 1024 * 1024,
+    ))
 
 
 async def downgrade(servers: str):
@@ -28,7 +36,8 @@ async def downgrade(servers: str):
     js = nc.jetstream()
 
     await js.delete_object_store("assets")
-    await js.delete_stream("Assets queue")
+    await js.delete_stream("Assets-queue")
+    await js.delete_stream("Schedules-queue")
 
 
 if __name__ == '__main__':

@@ -26,7 +26,7 @@ TARGET_SIZE_HEADER = "Sch-Target-Size"
 logger = logging.getLogger(__name__)
 
 
-async def convert(js: JetStreamContext, shutdown_event: asyncio.Event | None = None):
+async def convert_loop(js: JetStreamContext, shutdown_event: asyncio.Event | None = None):
     async def callback(msg: Msg):
         save_name = msg.headers.get(SAVE_NAME_HEADER)
         resize_mode = msg.headers.get(RESIZE_MODE_HEADER)
@@ -69,10 +69,10 @@ async def convert(js: JetStreamContext, shutdown_event: asyncio.Event | None = N
 async def main(servers: str = "nats://localhost:4222"):
     nc = await nats.connect(servers=servers)
     js = nc.jetstream()
-    await convert(js)
+    await convert_loop(js)
     await nc.close()
 
 
 if __name__ == '__main__':
     nats_servers_ = os.getenv("NATS_SERVERS")
-    asyncio.run(main())
+    asyncio.run(main(nats_servers_))
