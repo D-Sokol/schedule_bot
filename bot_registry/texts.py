@@ -4,13 +4,19 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
+from itertools import count
 from typing import cast
 
+from fluentogram import TranslatorRunner
+
+from .database_mixin import DatabaseRegistryMixin
 
 logger = logging.getLogger(__file__)
 
 
+_DEFAULT_NAMES = ["нл", "пн", "вт", "ср", "чт", "пт", "сб", "вс"]
 class WeekDay(Enum):
+
     MONDAY = 1
     TUESDAY = 2
     WEDNESDAY = 3
@@ -20,33 +26,7 @@ class WeekDay(Enum):
     SUNDAY = 7
 
     def __str__(self) -> str:
-        return _WEEKDAY_NAMES[self].capitalize()
-
-
-_WEEKDAY_BY_NAMES: dict[str, WeekDay] = {
-    "пн": WeekDay.MONDAY,
-    "вт": WeekDay.TUESDAY,
-    "ср": WeekDay.WEDNESDAY,
-    "чт": WeekDay.THURSDAY,
-    "пт": WeekDay.FRIDAY,
-    "сб": WeekDay.SATURDAY,
-    "вс": WeekDay.SUNDAY,
-}
-_WEEKDAY_BY_ALIAS: dict[str, WeekDay] = {
-    "понедельник": WeekDay.MONDAY,
-    "вторник": WeekDay.TUESDAY,
-    "среда": WeekDay.WEDNESDAY,
-    "четверг": WeekDay.THURSDAY,
-    "пятница": WeekDay.FRIDAY,
-    "суббота": WeekDay.SATURDAY,
-    "субкота": WeekDay.SATURDAY,  # noqa
-    "воскресенье": WeekDay.SUNDAY,
-}
-
-_WEEKDAY_BY_ALL_NAMES: dict[str, WeekDay] = {**_WEEKDAY_BY_NAMES, **_WEEKDAY_BY_ALIAS}
-assert all(s.islower() for s in _WEEKDAY_BY_ALL_NAMES)
-_WEEKDAY_NAMES: dict[WeekDay, str] = {wd: name for name, wd in _WEEKDAY_BY_NAMES.items()}
-assert 7 == len(_WEEKDAY_NAMES) == len(WeekDay)
+        return _DEFAULT_NAMES[self.value].capitalize()
 
 
 @dataclass
@@ -96,6 +76,10 @@ class ScheduleRegistryAbstract(ABC):
     )
 
     @abstractmethod
+    def load_weekdays(self) -> dict[str, WeekDay]:
+        raise NotImplementedError
+
+    @abstractmethod
     async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
         raise NotImplementedError
 
@@ -103,20 +87,20 @@ class ScheduleRegistryAbstract(ABC):
     async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
         raise NotImplementedError
 
-    @classmethod
-    def parse_schedule_text(cls, text: str) -> tuple[Schedule, list[str]]:
+    def parse_schedule_text(self, text: str) -> tuple[Schedule, list[str]]:
         schedule: dict[WeekDay, list[Entry]] = defaultdict(list)
+        weekdays = self.load_weekdays()
         unparsed = []
         for line in text.splitlines():
             line = line.strip()
             if not line:
                 continue
-            match = cls._ENTRY_PATTERN.fullmatch(line)
+            match = self._ENTRY_PATTERN.fullmatch(line)
             if match is None:
                 unparsed.append(line)
                 continue
             weekday_str, time_str, tags_str, desc = cast(tuple[str | None, ...], match.groups())
-            weekday = _WEEKDAY_BY_ALL_NAMES.get(weekday_str.lower())
+            weekday = weekdays.get(weekday_str.lower())
             if weekday is None:
                 unparsed.append(line)
                 continue
@@ -131,6 +115,31 @@ class ScheduleRegistryAbstract(ABC):
 
 
 class MockScheduleRegistry(ScheduleRegistryAbstract):
+    def load_weekdays(self) -> dict[str, WeekDay]:
+        _WEEKDAY_BY_NAMES: dict[str, WeekDay] = {
+            "пн": WeekDay.MONDAY,
+            "вт": WeekDay.TUESDAY,
+            "ср": WeekDay.WEDNESDAY,
+            "чт": WeekDay.THURSDAY,
+            "пт": WeekDay.FRIDAY,
+            "сб": WeekDay.SATURDAY,
+            "вс": WeekDay.SUNDAY,
+        }
+        _WEEKDAY_BY_ALIAS: dict[str, WeekDay] = {
+            "понедельник": WeekDay.MONDAY,
+            "вторник": WeekDay.TUESDAY,
+            "среда": WeekDay.WEDNESDAY,
+            "четверг": WeekDay.THURSDAY,
+            "пятница": WeekDay.FRIDAY,
+            "суббота": WeekDay.SATURDAY,
+            "субкота": WeekDay.SATURDAY,  # noqa
+            "воскресенье": WeekDay.SUNDAY,
+        }
+
+        _WEEKDAY_BY_ALL_NAMES: dict[str, WeekDay] = {**_WEEKDAY_BY_NAMES, **_WEEKDAY_BY_ALIAS}
+        assert all(s.islower() for s in _WEEKDAY_BY_ALL_NAMES)
+        return _WEEKDAY_BY_ALL_NAMES
+
     async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
         if user_id is not None:
             return None
@@ -143,3 +152,27 @@ class MockScheduleRegistry(ScheduleRegistryAbstract):
 
     async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
         logger.info("Saving schedule for user %s:\n%s", user_id, schedule)
+
+
+class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin):
+    def __init__(self, i18n: TranslatorRunner, **kwargs):
+        super().__init__(**kwargs)
+        self.i18n = i18n
+
+    def load_weekdays(self) -> dict[str, WeekDay]:
+        result: dict[str, WeekDay] = {}
+        for wd in WeekDay:
+            key = self.i18n.get(f"weekdays-d{wd.value}").lower()
+            result[key] = wd
+            for i in count(start=1):
+                key = self.i18n.get(f"weekdays-d{wd.value}.alias{i}").lower()
+                if key is None:
+                    break
+                result[key] = wd
+        return result
+
+    async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
+        raise NotImplementedError  # TODO
+
+    async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
+        raise NotImplementedError  # TODO

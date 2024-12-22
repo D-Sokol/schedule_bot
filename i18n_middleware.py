@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict
 
 from aiogram import BaseMiddleware
@@ -19,10 +20,7 @@ def create_translator_hub() -> TranslatorHub:
                 locale="ru",
                 translator=FluentBundle.from_files(
                     locale="ru-RU",
-                    filenames=[
-                        "locales/ru/LC_MESSAGES/dialogs.ftl",
-                        "locales/ru/LC_MESSAGES/notifications.ftl",
-                    ],
+                    filenames=list(Path("locales/ru/LC_MESSAGES/").glob("*.ftl")),
                 )
             ),
         ],
