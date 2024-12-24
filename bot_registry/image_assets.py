@@ -13,7 +13,7 @@ from nats.js.errors import ObjectNotFoundError
 from nats.js.object_store import ObjectStore
 from sqlalchemy import func, select, update, delete
 
-from converter import IMAGE_FORMAT, SAVE_NAME_HEADER, RESIZE_MODE_HEADER, TARGET_SIZE_HEADER
+from services.converter import IMAGE_FORMAT, SAVE_NAME_HEADER, RESIZE_MODE_HEADER, TARGET_SIZE_HEADER
 from database_models import ImageAsset
 from exceptions import ImageNotProcessedException, DuplicateNameException, ImageContentEmpty
 

@@ -25,9 +25,9 @@ from dialogs import all_dialogs
 from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs.utils import BotAwareMessageManager
 
-from converter import convert_loop
-from renderer import render_loop
-from sender import sender_loop
+from services.converter import convert_loop
+from services.renderer import render_loop
+from services.sender import sender_loop
 
 
 dialogs_router = Router(name="start")

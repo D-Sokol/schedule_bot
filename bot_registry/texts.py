@@ -11,7 +11,7 @@ from typing import cast, Any
 from fluentogram import TranslatorRunner
 
 from database_models import User, ImageAsset
-from renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER
+from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER
 
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin
