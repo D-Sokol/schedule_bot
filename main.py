@@ -137,6 +137,7 @@ if __name__ == '__main__':
     log_level_ = os.getenv("LOG_LEVEL", "WARNING")
     logging.basicConfig(
         level=log_level_,
-        format='%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s'
+        format="{filename}:{lineno} #{levelname:8} [{asctime}] - {name} - {message}",
+        style="{",
     )
     asyncio.run(main(bot_token, database_url, nats_servers_, log_level=log_level_, admin_id=admin_tg_id))
