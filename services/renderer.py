@@ -7,6 +7,7 @@ import json
 import logging
 import os
 from asyncio import Event
+from dataclasses import dataclass
 from functools import partial
 
 import nats
@@ -26,6 +27,11 @@ CHAT_ID_HEADER = "Sch-Chat-Id"
 ELEMENT_NAME_HEADER = "Sch-Element-Name"
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Template:
+    pass
 
 
 async def render(msg: Msg, js: JetStreamContext, store: ObjectStore):
