@@ -1,6 +1,7 @@
 import uuid
+from typing import Sequence, cast
 
-from sqlalchemy import ForeignKey, UniqueConstraint, select, text, func, TextClause
+from sqlalchemy import ForeignKey, UniqueConstraint, select, text, func
 from sqlalchemy.engine.default import DefaultExecutionContext
 from sqlalchemy.dialects.postgresql import TEXT, BIGINT, UUID, VARCHAR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -26,7 +27,7 @@ def _next_display_order(context: DefaultExecutionContext) -> int:
     cursor = context.root_connection.execute(
         select(func.max(ImageAsset.display_order) + text("1")).where(ImageAsset.user_id == owner_id)
     )
-    display_order, = cursor.fetchone()
+    display_order, = cast(Sequence[int], cursor.fetchone())
     return display_order or 0
 
 

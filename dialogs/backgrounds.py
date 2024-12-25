@@ -69,7 +69,7 @@ async def select_image_handler(
     element = await registry.get_element(user_id, item_id)
     manager.dialog_data["element"] = element
     logger.debug("Getter: selected image %s/%s, id %s", user_id, element.name, item_id)
-    if manager.start_data["select_only"]:
+    if cast(dict[str, Any], manager.start_data)["select_only"]:
         logging.debug("Finishing dialog since select only mode requested")
         await manager.done(result={"element": element})
     else:
@@ -87,7 +87,7 @@ async def delete_image_handler(callback: CallbackQuery, _widget: Button, manager
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
     element: ImageAsset = manager.dialog_data["element"]
     file_name: str = element.name
-    file_id: str = element.file_id_document
+    file_id: str | None = element.file_id_document
     if file_id is not None:
         logger.debug("Sending full version for image %s", file_name)
         await callback.message.answer_document(document=file_id, caption=html.escape(file_name))

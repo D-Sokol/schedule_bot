@@ -3,7 +3,7 @@ import html
 import logging
 from datetime import date, timedelta
 from functools import partial
-from typing import Any
+from typing import Any, cast
 
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import Dialog, Window, Data, DialogManager
@@ -26,6 +26,7 @@ has_selected_background_condition = F["dialog_data"]["element"]
 
 
 async def on_dialog_start(start_data: Data, manager: DialogManager):
+    assert start_data is None or isinstance(start_data, dict)
     element = None
     if start_data:
         element = start_data.get("element")
@@ -105,7 +106,7 @@ async def process_upload_new_background(_start_data: Data, result: Data, manager
         # User cancelled upload, nothing is changed
         return
     assert isinstance(result, dict), f"Wrong type {type(result)} returned from child dialog"
-    new_record: ImageAsset = result.get("element")
+    new_record = cast(ImageAsset, result.get("element"))
     manager.dialog_data["element"] = new_record
     await manager.switch_to(ScheduleStates.EXPECT_TEXT)
 

@@ -36,7 +36,7 @@ def current_chat_id(dialog_manager: DialogManager) -> int:
 
 
 def active_user_id(dialog_manager: DialogManager) -> int | None:
-    if dialog_manager.start_data and dialog_manager.start_data.get("global_scope"):
+    if isinstance(dialog_manager.start_data, dict) and dialog_manager.start_data.get("global_scope"):
         return None
     return current_user_id(dialog_manager)
 
@@ -174,7 +174,7 @@ class FluentFormat(Text):
     def __init__(
             self, key: str,
             when: WhenCondition = None,
-            **kwargs: dict[str, MagicFilter | Any]
+            **kwargs: MagicFilter,
     ):
         super().__init__(when)
         self.key = key
@@ -188,7 +188,7 @@ class FluentFormat(Text):
             else:
                 data[key] = value
 
-        value: str | None = i18n.get(self.key, **data)
-        if value is None:
+        text_value: str | None = i18n.get(self.key, **data)
+        if text_value is None:
             raise ValueError(f"Missing key {self.key}")
-        return value
+        return text_value

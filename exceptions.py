@@ -16,3 +16,7 @@ class ImageContentEmpty(ImageNotProcessedException):
 
 class DuplicateNameException(ImageManagementException):
     pass
+
+
+class ImageNotExist(ImageManagementException):
+    pass

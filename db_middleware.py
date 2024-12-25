@@ -32,7 +32,8 @@ class DbSessionMiddleware(BaseMiddleware):
             data["schedule_registry"] = schedule_registry
             data["template_registry"] = template_registry
 
-            user = await user_registry.get_or_create_user(event.from_user.id)
-            data["user"] = user
+            if (tg_user := event.from_user) is not None:
+                user = await user_registry.get_or_create_user(tg_user.id)
+                data["user"] = user
 
             return await handler(event, data)

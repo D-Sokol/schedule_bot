@@ -1,7 +1,7 @@
 import asyncio
+import logging
 import os
 from logging.config import fileConfig
-from os import getenv
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -25,8 +25,11 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-URL_VARIABLE = "DB_URL"
-config.set_main_option('sqlalchemy.url', getenv(URL_VARIABLE))
+sqlalchemy_url = os.getenv("DB_URL")
+if sqlalchemy_url is None:
+    logging.critical("Cannot work with migrations without db url")
+    exit(1)
+config.set_main_option('sqlalchemy.url', sqlalchemy_url)
 
 
 def run_migrations_offline() -> None:

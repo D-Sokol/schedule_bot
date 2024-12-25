@@ -118,6 +118,7 @@ class ScheduleRegistryAbstract(ABC):
                 unparsed.append(line)
                 continue
             weekday_str, time_str, tags_str, desc = cast(tuple[str | None, ...], match.groups())
+            assert weekday_str is not None and time_str is not None and desc is not None, "Bad regexp"
             weekday = weekdays.get(weekday_str.lower())
 
             if weekday is None:
@@ -223,9 +224,9 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
         if user_id is None:
             return None
         user: User | None = await self.session.get(User, user_id)
-        if user is None or (schedule := user.last_schedule) is None:
+        if user is None or (last_schedule := user.last_schedule) is None:
             return None
-        schedule, unparsed = self.parse_schedule_text(schedule)
+        schedule, unparsed = self.parse_schedule_text(last_schedule)
         assert not unparsed, "Mismatch between last schedule saving and parsing"
         return schedule
 

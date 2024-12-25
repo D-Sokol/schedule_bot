@@ -43,9 +43,9 @@ async def handle_old_button(event: ErrorEvent, i18n: TranslatorRunner) -> None:
     exc = cast(UnknownIntent, event.exception)
     logging.info("Old button used: %s", exc)
     if (callback_query := event.update.callback_query) is not None:
-        with suppress(TelegramBadRequest):
+        with suppress(TelegramBadRequest, AttributeError):
             await callback_query.answer(i18n.get("notify-unknown_intent"))
-            await callback_query.message.delete()
+            await callback_query.message.delete()  # type: ignore[union-attr]
     else:
         logging.warning(
             "Unknown Intent for non-callback type: %s",
@@ -131,8 +131,14 @@ if __name__ == '__main__':
     database_url = os.getenv("DB_URL")
     admin_tg_id = int(os.getenv("ADMIN_ID") or -1)
     nats_servers_ = os.getenv("NATS_SERVERS")
-    if None in (bot_token, database_url, nats_servers_):
-        logging.fatal("Cannot run instance without bot token, database url or nats url!")
+    if bot_token is None:
+        logging.critical("Cannot run without bot token")
+        exit(2)
+    if database_url is None:
+        logging.critical("Cannot run without database url")
+        exit(2)
+    if nats_servers_ is None:
+        logging.critical("Cannot run instance without nats url")
         exit(2)
     log_level_ = os.getenv("LOG_LEVEL", "WARNING")
     logging.basicConfig(

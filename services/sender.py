@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 async def send(msg: Msg, bot: Bot, filename="Schedule.png") -> None:
+    if msg.headers is None:
+        logger.error("Got message without headers")
+        raise ValueError("Headers are required for message processing")
+
     chat_id = int(msg.headers[CHAT_ID_HEADER])
     await bot.send_document(
         chat_id=chat_id,
@@ -56,4 +60,10 @@ async def main(token: str, servers: str = "nats://localhost:4222"):
 if __name__ == '__main__':
     bot_token = os.getenv("TOKEN")
     nats_servers_ = os.getenv("NATS_SERVERS")
+    if bot_token is None:
+        logger.critical("Cannot run without bot token")
+        exit(1)
+    if nats_servers_ is None:
+        logger.critical("Cannot run without nats url")
+        exit(1)
     asyncio.run(main(bot_token, nats_servers_))

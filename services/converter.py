@@ -28,13 +28,17 @@ logger = logging.getLogger(__name__)
 
 
 async def convert(msg: Msg, store: ObjectStore):
-    save_name = msg.headers.get(SAVE_NAME_HEADER)
-    resize_mode = msg.headers.get(RESIZE_MODE_HEADER)
-    target_w, target_h = cast(list[int], json.loads(msg.headers.get(TARGET_SIZE_HEADER)))
+    if msg.headers is None:
+        logger.error("Got message without headers")
+        raise ValueError("Headers are required for message processing")
+
+    save_name = msg.headers[SAVE_NAME_HEADER]
+    resize_mode = msg.headers[RESIZE_MODE_HEADER]
+    target_w, target_h = cast(list[int], json.loads(msg.headers[TARGET_SIZE_HEADER]))
 
     logger.info("Converting %s with mode %s", save_name, resize_mode)
 
-    image = Image.open(io.BytesIO(msg.data), formats=[IMAGE_FORMAT])
+    image: Image.Image = Image.open(io.BytesIO(msg.data), formats=[IMAGE_FORMAT])
     stream = io.BytesIO()
     if resize_mode == "ignore":
         stream.write(msg.data)
@@ -77,4 +81,7 @@ async def main(servers: str = "nats://localhost:4222"):
 
 if __name__ == '__main__':
     nats_servers_ = os.getenv("NATS_SERVERS")
+    if nats_servers_ is None:
+        logger.critical("Cannot run without nats url")
+        exit(1)
     asyncio.run(main(nats_servers_))

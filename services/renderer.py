@@ -29,6 +29,10 @@ logger = logging.getLogger(__name__)
 
 
 async def render(msg: Msg, js: JetStreamContext, store: ObjectStore):
+    if msg.headers is None:
+        logger.error("Got message without headers")
+        raise ValueError("Headers are required for message processing")
+
     user_id = msg.headers[USER_ID_HEADER]
     chat_id = msg.headers[CHAT_ID_HEADER]
     element_name = msg.headers[ELEMENT_NAME_HEADER]
@@ -37,6 +41,9 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore):
 
     logger.info("Converting %s for %s with payload %s", element_name, user_id, payload)
     background_data = await store.get(element_name)
+    if background_data.data is None:
+        logger.error("No content in image %s.%s", user_id, element_name)
+        raise ValueError("No content in image")
     background = Image.open(io.BytesIO(background_data.data), formats=[IMAGE_FORMAT])
 
     # TODO: edit wrt template
@@ -80,4 +87,7 @@ async def main(servers: str = "nats://localhost:4222"):
 
 if __name__ == '__main__':
     nats_servers_ = os.getenv("NATS_SERVERS")
+    if nats_servers_ is None:
+        logger.critical("Cannot run without nats url")
+        exit(1)
     asyncio.run(main(nats_servers_))

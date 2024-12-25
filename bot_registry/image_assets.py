@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime
-from typing import ClassVar, Literal, final
+from typing import ClassVar, Literal, cast, final
 from uuid import UUID
 
 import sqlalchemy.exc
@@ -15,7 +15,7 @@ from sqlalchemy import func, select, update, delete
 
 from services.converter import IMAGE_FORMAT, SAVE_NAME_HEADER, RESIZE_MODE_HEADER, TARGET_SIZE_HEADER
 from database_models import ImageAsset
-from exceptions import ImageNotProcessedException, DuplicateNameException, ImageContentEmpty
+from exceptions import ImageNotProcessedException, DuplicateNameException, ImageContentEmpty, ImageNotExist
 
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin
@@ -124,7 +124,7 @@ class ElementsRegistryAbstract(ABC):
         return int(user_id) or None, element_id
 
 class MockElementRegistry(ElementsRegistryAbstract):
-    def __init__(self):
+    def __init__(self) -> None:
         self.default_items = [
             ImageAsset(name="Фон 1", element_id="1"),
             ImageAsset(name="Фон 2", element_id="2"),
@@ -208,13 +208,16 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
         result = await self.session.execute(select(ImageAsset).where(
             ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
         )
-        return result.scalar()
+        asset = result.scalar()
+        if asset is None:
+            raise ImageNotExist(user_id, element_id)
+        return asset
 
     async def get_elements_count(self, user_id: int | None) -> int:
         result = await self.session.execute(
             select(func.count(ImageAsset.element_id)).where(ImageAsset.user_id == user_id)
         )
-        return result.scalar()
+        return cast(int, result.scalar())
 
     async def get_element_content(self, user_id: int | None, element_id: str | UUID) -> bytes:
         bucket = await self._bucket()

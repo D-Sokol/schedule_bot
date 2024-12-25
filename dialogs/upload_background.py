@@ -1,7 +1,7 @@
 import html
 import logging
 from PIL import UnidentifiedImageError, Image
-from typing import Any
+from typing import Any, cast
 
 from aiogram.types import ContentType, Message, CallbackQuery
 
@@ -56,13 +56,13 @@ async def handle_image_upload(
         logger.debug("Accepted photo object")
         photo = photos[-1]
         file_id = photo.file_id
-        file_size = photo.file_size
+        file_size = cast(int, photo.file_size)
         sent_name = message.caption
         is_document = False
     elif (document := message.document) is not None:
         logger.debug("Accepted document object")
         file_id = document.file_id
-        file_size = document.file_size
+        file_size = cast(int, document.file_size)
         sent_name = None
         is_document = True
     else:
@@ -144,9 +144,11 @@ async def save_image(
     logger.info("Saving new image: %s", data)
 
     if isinstance(update, CallbackQuery):
-        message_to_answer = update.message
-    else:
+        message_to_answer = update.message if isinstance(update.message, Message) else None
+    elif isinstance(update, Message):
         message_to_answer = update
+    else:
+        message_to_answer = None
 
     try:
         new_element = await registry.save_element(
@@ -158,11 +160,13 @@ async def save_image(
             resize_mode=resize_mode,
         )
     except DuplicateNameException:
-        await message_to_answer.answer(i18n.get("notify-name_used", escaped_name=html.escape(data)))
+        if message_to_answer:
+            await message_to_answer.answer(i18n.get("notify-name_used", escaped_name=html.escape(data)))
         # Leave in the same state so that user could type another name
         return
 
-    await message_to_answer.answer(i18n.get("notify-saved_image", escaped_name=html.escape(data)))
+    if message_to_answer:
+        await message_to_answer.answer(i18n.get("notify-saved_image", escaped_name=html.escape(data)))
     # Since we send a custom message, dialogs should send new one to use the latest message in the chat
     await manager.done(result={"element": new_element}, show_mode=ShowMode.SEND)
 
