@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from asyncio import Event
+from functools import partial
 
 import nats
 from aiogram import Bot
@@ -20,16 +21,17 @@ CHAT_ID_HEADER = "Sch-Chat-Id"
 logger = logging.getLogger(__name__)
 
 
-async def sender_loop(js: JetStreamContext, bot: Bot, shutdown_event: asyncio.Event | None = None):
-    async def callback(msg: Msg):
-        chat_id = int(msg.headers[CHAT_ID_HEADER])
-        await bot.send_document(
-            chat_id=chat_id,
-            document=BufferedInputFile(file=msg.data, filename="Schedule.png"),
-        )
-        await msg.ack()
+async def send(msg: Msg, bot: Bot, filename="Schedule.png") -> None:
+    chat_id = int(msg.headers[CHAT_ID_HEADER])
+    await bot.send_document(
+        chat_id=chat_id,
+        document=BufferedInputFile(file=msg.data, filename=filename),
+    )
+    await msg.ack()
 
-    await js.subscribe(INPUT_SUBJECT_NAME, cb=callback, durable="sender", manual_ack=True)
+
+async def sender_loop(js: JetStreamContext, bot: Bot, shutdown_event: asyncio.Event | None = None):
+    await js.subscribe(INPUT_SUBJECT_NAME, cb=partial(send, bot=bot), durable="sender", manual_ack=True)
     logger.info("Connected to NATS")
 
     if shutdown_event is None:

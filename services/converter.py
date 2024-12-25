@@ -7,13 +7,14 @@ import json
 import logging
 import os
 from asyncio import Event
+from functools import partial
 from typing import cast
 
 import nats
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
 from PIL import Image
-
+from nats.js.object_store import ObjectStore
 
 BUCKET_NAME = "assets"
 CONVERT_SUBJECT_NAME = "assets.convert"
@@ -26,33 +27,34 @@ TARGET_SIZE_HEADER = "Sch-Target-Size"
 logger = logging.getLogger(__name__)
 
 
+async def convert(msg: Msg, store: ObjectStore):
+    save_name = msg.headers.get(SAVE_NAME_HEADER)
+    resize_mode = msg.headers.get(RESIZE_MODE_HEADER)
+    target_w, target_h = cast(list[int], json.loads(msg.headers.get(TARGET_SIZE_HEADER)))
+
+    logger.info("Converting %s with mode %s", save_name, resize_mode)
+
+    image = Image.open(io.BytesIO(msg.data), formats=[IMAGE_FORMAT])
+    stream = io.BytesIO()
+    if resize_mode == "ignore":
+        stream.write(msg.data)
+    elif resize_mode == "crop":
+        image = image.crop((0, 0, target_w, target_h))  # (x1, y1, x2, y2), >image.size = black
+        image.save(stream, format=IMAGE_FORMAT)
+    elif resize_mode == "resize":
+        image = image.resize((target_w, target_h))
+        image.save(stream, format=IMAGE_FORMAT)
+    else:
+        raise ValueError(f"Unknown resize mode: {resize_mode}")
+
+    logging.debug("Converted %s", save_name)
+    await store.put(save_name, stream.getvalue())
+    await msg.ack()
+
+
 async def convert_loop(js: JetStreamContext, shutdown_event: asyncio.Event | None = None):
-    async def callback(msg: Msg):
-        save_name = msg.headers.get(SAVE_NAME_HEADER)
-        resize_mode = msg.headers.get(RESIZE_MODE_HEADER)
-        target_w, target_h = cast(list[int], json.loads(msg.headers.get(TARGET_SIZE_HEADER)))
-
-        logger.info("Converting %s with mode %s", save_name, resize_mode)
-
-        image = Image.open(io.BytesIO(msg.data), formats=[IMAGE_FORMAT])
-        stream = io.BytesIO()
-        if resize_mode == "ignore":
-            stream.write(msg.data)
-        elif resize_mode == "crop":
-            image = image.crop((0, 0, target_w, target_h))  # (x1, y1, x2, y2), >image.size = black
-            image.save(stream, format=IMAGE_FORMAT)
-        elif resize_mode == "resize":
-            image = image.resize((target_w, target_h))
-            image.save(stream, format=IMAGE_FORMAT)
-        else:
-            raise ValueError(f"Unknown resize mode: {resize_mode}")
-
-        logging.debug("Converted %s", save_name)
-        await store.put(save_name, stream.getvalue())
-        await msg.ack()
-
     store = await js.object_store(BUCKET_NAME)
-    await js.subscribe(CONVERT_SUBJECT_NAME, cb=callback, durable="converter", manual_ack=True)
+    await js.subscribe(CONVERT_SUBJECT_NAME, cb=partial(convert, store=store), durable="converter", manual_ack=True)
     logger.info("Connected to NATS")
 
     if shutdown_event is None:
