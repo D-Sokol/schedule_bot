@@ -16,7 +16,7 @@ import nats
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
 from nats.js.object_store import ObjectStore
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageColor, ImageDraw, ImageFont
 from pydantic import BaseModel, Field
 
 BUCKET_NAME = "assets"
@@ -67,17 +67,24 @@ class TextPatch(BasePositionedPatch):
     stroke_width: int = 0
     stroke_fill: str | None = Field(default=None, alias="stroke_color")
 
+    _font: ImageFont.FreeTypeFont
+
     def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
-        font = load_font(self.font_name, self.font_size)
         draw.multiline_text(
             xy=self.xy,
             text=self.template.format(**format_args),
             fill=self.fill,
-            font=font,
+            font=self._font,
             anchor=self.anchor,
             stroke_width=self.stroke_width,
             stroke_fill=self.stroke_fill,
         )
+
+    def model_post_init(self, __context: Any) -> None:
+        _ = ImageColor.getrgb(self.fill)
+        if self.stroke_fill is not None:
+            _ = ImageColor.getrgb(self.stroke_fill)
+        self._font = load_font(self.font_name, self.font_size)
 
 
 class ImagePatch(BasePositionedPatch):
