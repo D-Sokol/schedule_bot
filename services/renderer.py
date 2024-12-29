@@ -64,6 +64,8 @@ class TextPatch(BasePositionedPatch):
     anchor: str = Field(default="la", pattern=r"[lmr][amsbd]")
     font_size: int = 28
     font_name: str = "Arial.ttf"
+    stroke_width: int = 0
+    stroke_fill: str | None = Field(default=None, alias="stroke_color")
 
     def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
         font = load_font(self.font_name, self.font_size)
@@ -72,7 +74,9 @@ class TextPatch(BasePositionedPatch):
             text=self.template.format(**format_args),
             fill=self.fill,
             font=font,
-            anchor=self.anchor,  # TODO: stroke_width, stroke_fill = (0, None)
+            anchor=self.anchor,
+            stroke_width=self.stroke_width,
+            stroke_fill=self.stroke_fill,
         )
 
 
