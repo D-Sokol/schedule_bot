@@ -173,14 +173,15 @@ expect_date_window = Window(
     Button(FluentFormat("dialog-schedule-date.this"), id="this_week", on_click=process_this_week),
     Button(FluentFormat("dialog-schedule-date.next"), id="next_week", on_click=process_next_week),
     SwitchTo(FluentFormat("dialog-schedule-date.custom"), id="other_date", state=ScheduleStates.EXPECT_DATE_CALENDAR),
+    SwitchTo(FluentFormat("dialog-schedule-date.back"), id="back", state=ScheduleStates.EXPECT_TEXT),
     Cancel(FluentFormat("dialog-cancel")),
     state=ScheduleStates.EXPECT_DATE,
 )
 
 expect_date_calendar_window = Window(
     FluentFormat("dialog-schedule-calendar"),
-    SwitchTo(FluentFormat("dialog-schedule-calendar.back"), id="back", state=ScheduleStates.EXPECT_DATE),
     Calendar(id="calendar", on_click=process_date_selected),
+    SwitchTo(FluentFormat("dialog-schedule-calendar.back"), id="back", state=ScheduleStates.EXPECT_DATE),
     Cancel(FluentFormat("dialog-cancel")),
     state=ScheduleStates.EXPECT_DATE_CALENDAR,
 )
