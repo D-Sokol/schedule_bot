@@ -2,9 +2,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from dataclasses import dataclass, field
 from datetime import date
-from enum import Enum
 from itertools import count
 from typing import cast, Any
 
@@ -12,62 +10,12 @@ from fluentogram import TranslatorRunner
 
 from database_models import User, ImageAsset
 from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER
+from services.renderer.weekdays import WeekDay, Time, Entry, Schedule
 
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin
 
 logger = logging.getLogger(__file__)
-
-
-_DEFAULT_NAMES = ["нл", "пн", "вт", "ср", "чт", "пт", "сб", "вс"]
-class WeekDay(Enum):
-
-    MONDAY = 1
-    TUESDAY = 2
-    WEDNESDAY = 3
-    THURSDAY = 4
-    FRIDAY = 5
-    SATURDAY = 6
-    SUNDAY = 7
-
-    def __str__(self) -> str:
-        return _DEFAULT_NAMES[self.value].capitalize()
-
-
-@dataclass
-class Time:
-    hour: int
-    minute: int = 0
-
-    def __str__(self) -> str:
-        return f"{self.hour}:{self.minute:02d}"
-
-
-@dataclass
-class Entry:
-    time: Time
-    description: str
-    tags: set[str] = field(default_factory=set)
-
-
-@dataclass
-class Schedule:
-    records: dict[WeekDay, list[Entry]]
-
-    def is_empty(self) -> bool:
-        return all(not v for v in self.records.values())
-
-    def __str__(self) -> str:
-        lines = []
-        for weekday in WeekDay:
-            entries = self.records.get(weekday)
-            if not entries:
-                continue
-            for entry in entries:
-                tags = f"({','.join(entry.tags)}) " if entry.tags else ""
-                line = f"{weekday} {entry.time} {tags}{entry.description}"
-                lines.append(line)
-        return "\n".join(lines)
 
 
 class ScheduleRegistryAbstract(ABC):
