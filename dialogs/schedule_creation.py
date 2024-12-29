@@ -132,9 +132,25 @@ start_window = Window(
     getter=partial(saved_backs_getter, _only_count=True),
 )
 
+async def process_accept_previous(_callback: CallbackQuery, _widget: Button, manager: DialogManager):
+    user_id = current_user_id(manager)
+    schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
+
+    schedule = await schedule_registry.get_last_schedule(user_id)
+    assert schedule is not None and not schedule.is_empty(), "Displaying button error"
+    manager.dialog_data["schedule"] = schedule
+
+
 expect_input_window = Window(
     FluentFormat("dialog-schedule-text.presented", when=F["user_has_schedule"]),
     FluentFormat("dialog-schedule-text.missing", when=~F["user_has_schedule"]),
+    SwitchTo(
+        FluentFormat("dialog-schedule-text.accept_previous"),
+        id="accept-prev",
+        state=ScheduleStates.EXPECT_DATE,
+        on_click=process_accept_previous,
+        when=F["user_has_schedule"],
+    ),
     Cancel(FluentFormat("dialog-cancel")),
     TextInput(id="schedule_text", on_success=process_schedule_creation),
     getter=previous_schedule_getter,
