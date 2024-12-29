@@ -5,4 +5,5 @@ fluentogram==1.1.9
 magic-filter==1.0.12
 nats-py
 pillow==11.0.0
+pydantic==2.9.2
 sqlalchemy[postgresql_asyncpg]==2.0.36

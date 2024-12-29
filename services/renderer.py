@@ -7,7 +7,6 @@ import json
 import logging
 import os
 from asyncio import Event
-from dataclasses import dataclass
 from functools import partial
 
 import nats
@@ -15,6 +14,7 @@ from nats.aio.msg import Msg
 from nats.js import JetStreamContext
 from nats.js.object_store import ObjectStore
 from PIL import Image
+from pydantic import BaseModel
 
 
 BUCKET_NAME = "assets"
@@ -29,8 +29,7 @@ ELEMENT_NAME_HEADER = "Sch-Element-Name"
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class Template:
+class Template(BaseModel):
     pass
 
 
