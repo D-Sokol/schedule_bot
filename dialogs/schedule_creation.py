@@ -146,7 +146,7 @@ expect_input_window = Window(
     FluentFormat("dialog-schedule-text.missing", when=~F["user_has_schedule"]),
     SwitchTo(
         FluentFormat("dialog-schedule-text.accept_previous"),
-        id="accept-prev",
+        id="accept_prev",
         state=ScheduleStates.EXPECT_DATE,
         on_click=process_accept_previous,
         when=F["user_has_schedule"],
