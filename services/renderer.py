@@ -6,16 +6,18 @@ import io
 import json
 import logging
 import os
+from abc import ABC, abstractmethod
 from asyncio import Event
-from functools import partial
+from datetime import date, timedelta
+from functools import partial, lru_cache
+from typing import Annotated, Any, Literal
 
 import nats
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
 from nats.js.object_store import ObjectStore
-from PIL import Image
-from pydantic import BaseModel
-
+from PIL import Image, ImageDraw, ImageFont
+from pydantic import BaseModel, Field
 
 BUCKET_NAME = "assets"
 INPUT_SUBJECT_NAME = "schedules.request"
@@ -29,8 +31,110 @@ ELEMENT_NAME_HEADER = "Sch-Element-Name"
 logger = logging.getLogger(__name__)
 
 
-class Template(BaseModel):
+WEEK_LENGTH = 7
+
+
+@lru_cache(maxsize=64)
+def load_font(font_name: str, font_size: int = 72) -> ImageFont.FreeTypeFont:
+    return ImageFont.truetype(font_name, size=font_size)
+
+
+class TemplateModel(BaseModel):
     pass
+
+
+class BasePatch(TemplateModel, ABC):
+    type: str
+
+    @abstractmethod
+    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
+        raise NotImplementedError
+
+
+class BasePositionedPatch(BasePatch, ABC):
+    xy: tuple[int, int]
+
+
+class TextPatch(BasePositionedPatch):
+    type: Literal["text"] = "text"
+
+    template: str = Field(alias="text", description="f-string template for this patch")
+    fill: str = Field(alias="color")
+    # See https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html#text-anchors for anchors
+    anchor: str = Field(default="la", pattern=r"[lmr][amsbd]")
+    font_size: int = 28
+    font_name: str = "Arial.ttf"
+
+    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
+        font = load_font(self.font_name, self.font_size)
+        draw.multiline_text(
+            xy=self.xy,
+            text=self.template.format(**format_args),
+            fill=self.fill,
+            font=font,
+            anchor=self.anchor,  # TODO: stroke_width, stroke_fill = (0, None)
+        )
+
+
+class ImagePatch(BasePositionedPatch):
+    type: Literal["image"] = "image"
+
+    name: str
+
+    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
+        raise NotImplementedError
+
+
+class PatchSet(BasePatch):
+    type: Literal["set"] = "set"
+    patches: list[Annotated[TextPatch | ImagePatch, Field(discriminator="type")]] = Field(default_factory=list)
+
+    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
+        for patch in self.patches:
+            patch.apply(draw, format_args)
+
+
+class DayPatch(TemplateModel):
+    type: Literal["day"] = "day"
+
+    always: PatchSet = Field(default_factory=PatchSet)
+    if_none: PatchSet = Field(default_factory=PatchSet)
+    record_patches: list[PatchSet] = Field(default_factory=list)
+
+    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], entries: list[str]) -> None:
+        self.always.apply(draw, format_args)
+        for entry, record_patch in zip(entries, self.record_patches):
+            format_args["entry"] = entry
+            record_patch.apply(draw, format_args)
+        if not entries:
+            self.if_none.apply(draw, format_args)
+
+
+class Template(TemplateModel):
+    always: PatchSet = Field(default_factory=PatchSet)
+    day1: DayPatch = Field(default_factory=DayPatch)
+    day2: DayPatch = Field(default_factory=DayPatch)
+    day3: DayPatch = Field(default_factory=DayPatch)
+    day4: DayPatch = Field(default_factory=DayPatch)
+    day5: DayPatch = Field(default_factory=DayPatch)
+    day6: DayPatch = Field(default_factory=DayPatch)
+    day7: DayPatch = Field(default_factory=DayPatch)
+
+    def get_days_list(self) -> list[DayPatch]:
+        return [self.day1, self.day2, self.day3, self.day4, self.day5, self.day6, self.day7]
+
+    def apply(self, draw: ImageDraw.ImageDraw, start_date: date, schedule: list[list[str]]):  # TODO: schedule type
+        format_args: dict[str, Any] = {
+            "start": start_date,
+            "end": start_date + timedelta(days=WEEK_LENGTH - 1),
+            **{
+                f"day{i + 1}": start_date + timedelta(days=i) for i in range(WEEK_LENGTH)
+            },
+        }
+        self.always.apply(draw, format_args)
+        for i, (day_patch, records) in enumerate(zip(self.get_days_list(), schedule)):
+            format_args["date"] = start_date + timedelta(days=i)
+            day_patch.apply(draw, format_args, records)
 
 
 async def render(msg: Msg, js: JetStreamContext, store: ObjectStore):
