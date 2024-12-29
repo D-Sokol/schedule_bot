@@ -65,7 +65,13 @@ class TextPatch(BasePositionedPatch):
 class ImagePatch(BasePositionedPatch):
     type: Literal["image"] = "image"
 
-    name: str
+    name: str | None = None
+    element_id: str | None = None
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.name is None and self.element_id is None:
+            raise ValueError("Either name or element id is required")
 
     def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
         raise NotImplementedError
