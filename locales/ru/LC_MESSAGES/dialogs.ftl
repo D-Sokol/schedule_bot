@@ -1,6 +1,6 @@
 dialog-cancel = ❌ Отставеть!
 dialog-fine = И так сойдет
-dialog-back = Назад
+dialog-back = ⬅️ Назад
 
 dialog-main = Выберите действие!
     .backgrounds-local = Фоновые изображения
@@ -110,10 +110,11 @@ dialog-schedule-date = Выберите, на какие даты будет с�
     .this = Эта неделя
     .next = Следующая неделя
     .custom = Другая дата
+    .back = { dialog-back }
 
 
 dialog-schedule-calendar = Выберите дату
-    .back = ❌ { dialog-back }
+    .back = { dialog-back }
 
 
 dialog-schedule-finish = Спасибо! Расписание готовится...
