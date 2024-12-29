@@ -6,7 +6,9 @@ from typing import Annotated, Any, Literal
 from PIL import ImageColor, ImageDraw, ImageFont
 from pydantic import BaseModel, Field
 
-WEEK_LENGTH = 7
+from .weekdays import WeekDay, Entry, Schedule
+
+WEEK_LENGTH = len(WeekDay)
 
 
 @lru_cache(maxsize=64)
@@ -93,7 +95,7 @@ class DayPatch(TemplateModel):
     if_none: PatchSet = Field(default_factory=PatchSet)
     record_patches: list[PatchSet] = Field(default_factory=list)
 
-    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], entries: list[str]) -> None:
+    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], entries: list[Entry]) -> None:
         self.always.apply(draw, format_args)
         for entry, record_patch in zip(entries, self.record_patches):
             format_args["entry"] = entry
@@ -115,7 +117,7 @@ class Template(TemplateModel):
     def get_days_list(self) -> list[DayPatch]:
         return [self.day1, self.day2, self.day3, self.day4, self.day5, self.day6, self.day7]
 
-    def apply(self, draw: ImageDraw.ImageDraw, start_date: date, schedule: list[list[str]]):  # TODO: schedule type
+    def apply(self, draw: ImageDraw.ImageDraw, start_date: date, schedule: Schedule):
         format_args: dict[str, Any] = {
             "start": start_date,
             "end": start_date + timedelta(days=WEEK_LENGTH - 1),
@@ -124,6 +126,8 @@ class Template(TemplateModel):
             },
         }
         self.always.apply(draw, format_args)
-        for i, (day_patch, records) in enumerate(zip(self.get_days_list(), schedule)):
+
+        for i, day_patch in enumerate(self.get_days_list()):
+            records: list[Entry] = schedule.records.get(WeekDay(i + 1)) or []
             format_args["date"] = start_date + timedelta(days=i)
             day_patch.apply(draw, format_args, records)
