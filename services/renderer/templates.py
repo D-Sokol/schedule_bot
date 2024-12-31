@@ -30,6 +30,7 @@ class BasePatch(TemplateModel, ABC):
 
 class BasePositionedPatch(BasePatch, ABC):
     xy: tuple[int, int]
+    required_tag: str | None = Field(default=None, alias="tag")
 
 
 class TextPatch(BasePositionedPatch):
@@ -83,9 +84,11 @@ class PatchSet(BasePatch):
     type: Literal["set"] = "set"
     patches: list[Annotated[TextPatch | ImagePatch, Field(discriminator="type")]] = Field(default_factory=list)
 
-    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
+    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], tags: set[str] | None = None) -> None:
         for patch in self.patches:
-            patch.apply(draw, format_args)
+            required = patch.required_tag
+            if required is None or (tags and required in tags):
+                patch.apply(draw, format_args)
 
     @model_validator(mode="before")
     @classmethod
@@ -106,7 +109,7 @@ class DayPatch(TemplateModel):
         self.always.apply(draw, format_args)
         for entry, record_patch in zip(entries, self.record_patches):
             format_args["entry"] = entry
-            record_patch.apply(draw, format_args)
+            record_patch.apply(draw, format_args, tags=entry.tags)
         if not entries:
             self.if_none.apply(draw, format_args)
 
