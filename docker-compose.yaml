@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:17.0-alpine
     container_name: db
-    restart: always
+    restart: "no"
     shm_size: 128mb
     environment:
       POSTGRES_PASSWORD: "$POSTGRES_PASSWORD"
@@ -28,6 +28,8 @@ services:
 
   nats:
     image: nats:latest
+    container_name: nats
+    restart: "no"
     entrypoint: /nats-server
     command: "-c /config/server.conf"
     ports:
@@ -40,6 +42,7 @@ services:
   nats-nui:
     image: ghcr.io/nats-nui/nui:latest
     container_name: nats-nui
+    restart: "no"
     ports:
       - "31311:31311"  # Порт для доступа к NATS NUI
     volumes:
