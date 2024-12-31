@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
 from enum import IntEnum
+from pydantic import BaseModel, ConfigDict, Field
 
 
 _DEFAULT_NAMES = ["нл", "пн", "вт", "ср", "чт", "пт", "сб", "вс"]
@@ -16,8 +16,11 @@ class WeekDay(IntEnum):
         return _DEFAULT_NAMES[self.value].capitalize()
 
 
-@dataclass
-class Time:
+class ScheduleModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class Time(ScheduleModel):
     hour: int
     minute: int = 0
 
@@ -25,15 +28,13 @@ class Time:
         return f"{self.hour}:{self.minute:02d}"
 
 
-@dataclass
-class Entry:
+class Entry(ScheduleModel):
     time: Time
     description: str
-    tags: set[str] = field(default_factory=set)
+    tags: set[str] = Field(default_factory=set)
 
 
-@dataclass
-class Schedule:
+class Schedule(ScheduleModel):
     records: dict[WeekDay, list[Entry]]
 
     def is_empty(self) -> bool:

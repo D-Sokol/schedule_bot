@@ -79,7 +79,9 @@ class ScheduleRegistryAbstract(ABC):
                     continue
             # Note: int("09") == 9
             h, m = map(int, time_str.split(":"))
-            entry = Entry(time=Time(h, m), description=desc, tags=set(tags_str.split(",") if tags_str else ()))
+            entry = Entry(
+                time=Time(hour=h, minute=m), description=desc, tags=set(tags_str.split(",") if tags_str else ())
+            )
             schedule[weekday].append(entry)
 
         for entries in schedule.values():
@@ -130,9 +132,14 @@ class MockScheduleRegistry(ScheduleRegistryAbstract):
         if user_id is not None:
             return None
         return Schedule(
-            {
-                WeekDay.TUESDAY: [Entry(Time(11, 0), "Спортзал"), Entry(Time(17, 30), "Отдых")],
-                WeekDay.FRIDAY: [Entry(Time(11, 0), "Неторопливая прогулка по парку")]
+            records={
+                WeekDay.TUESDAY: [
+                    Entry(time=Time(hour=11, minute=0), description="Спортзал"),
+                    Entry(time=Time(hour=17, minute=30), description="Отдых"),
+                ],
+                WeekDay.FRIDAY: [
+                    Entry(time=Time(hour=11, minute=0), description="Неторопливая прогулка по парку"),
+                ],
             }
         )
 
