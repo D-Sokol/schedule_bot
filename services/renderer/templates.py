@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import Annotated, Any, Literal
 
 from PIL import ImageColor, ImageDraw, ImageFont
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .weekdays import WeekDay, Entry, Schedule
 
@@ -17,7 +17,7 @@ def load_font(font_name: str, font_size: int = 72) -> ImageFont.FreeTypeFont:
 
 
 class TemplateModel(BaseModel):
-    pass
+    model_config = ConfigDict(extra="forbid")
 
 
 class BasePatch(TemplateModel, ABC):
