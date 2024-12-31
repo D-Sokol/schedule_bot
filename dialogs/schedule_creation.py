@@ -129,6 +129,7 @@ start_window = Window(
         FluentFormat("dialog-schedule-main.upload"),
         id="upload_background_from_schedule",
         state=UploadBackgroundStates.START,
+        data={"global_scope": False},
         when=can_upload_background_condition,
     ),
     Cancel(FluentFormat("dialog-cancel")),
