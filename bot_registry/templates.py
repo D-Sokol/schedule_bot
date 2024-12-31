@@ -1,3 +1,4 @@
+import json
 import logging
 from abc import ABC, abstractmethod
 
@@ -36,7 +37,8 @@ class DbTemplateRegistry(TemplateRegistryAbstract, DatabaseRegistryMixin):
         if user is None or (template_data := user.user_template) is None:
             return None
 
-        template = Template.model_validate(template_data)
+        template_dict = json.loads(template_data)
+        template = Template.model_validate(template_dict)
         return template
 
     async def update_template(self, user_id: int | None, template: Template) -> None:
