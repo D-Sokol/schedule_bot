@@ -12,6 +12,7 @@ from aiogram_dialog.widgets.kbd import Cancel, Start, Button, SwitchTo, Calendar
 from fluentogram import TranslatorRunner
 from magic_filter import F
 
+from bot_registry import TemplateRegistryAbstract
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
 from database_models import ImageAsset
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
@@ -48,10 +49,14 @@ async def process_date_selected(
     user_id = current_user_id(manager)
     chat_id = current_chat_id(manager)
     schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
+    template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
     logger.info("Selected date: %s", selected_date.isoformat())
     schedule: Schedule = manager.dialog_data["schedule"]
     element: ImageAsset = manager.dialog_data["element"]
-    template = {}  # TODO: get template
+    template = (await template_registry.get_template(user_id)) or (await template_registry.get_template(None))
+    if template is None:
+        logger.error("No template for user %d and global template is also missing!", user_id)
+        return
     await asyncio.gather(
         schedule_registry.render_schedule(user_id, chat_id, schedule, element, template, selected_date),
         schedule_registry.update_last_schedule(user_id, schedule)

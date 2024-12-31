@@ -4,12 +4,14 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import date
 from itertools import count
-from typing import cast, Any
+from typing import cast
 
+import msgpack
 from fluentogram import TranslatorRunner
 
 from database_models import User, ImageAsset
 from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER
+from services.renderer.templates import Template
 from services.renderer.weekdays import WeekDay, Time, Entry, Schedule
 
 from .database_mixin import DatabaseRegistryMixin
@@ -48,7 +50,7 @@ class ScheduleRegistryAbstract(ABC):
             chat_id: int,
             schedule: Schedule,
             background: ImageAsset,
-            template: dict[str, Any],
+            template: Template,
             start: date,
     ) -> None:
         raise NotImplementedError
@@ -152,7 +154,7 @@ class MockScheduleRegistry(ScheduleRegistryAbstract):
             chat_id: int,
             schedule: Schedule,
             background: ImageAsset,
-            template: dict[str, Any],
+            template: Template,
             start: date,
     ) -> None:
         pass
@@ -205,12 +207,17 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
             chat_id: int,
             schedule: Schedule,
             background: ImageAsset,
-            template: dict[str, Any],
+            template: Template,
             start: date,
     ) -> None:
+        payload: bytes = msgpack.packb([
+            template.model_dump(by_alias=True, mode="json"),
+            schedule.model_dump(by_alias=True, mode="json"),
+        ])
+
         await self.js.publish(
             subject=INPUT_SUBJECT_NAME,
-            payload=b'{}',  # TODO: send all required content
+            payload=payload,
             headers={
                 USER_ID_HEADER: str(user_id),
                 ELEMENT_NAME_HEADER: f"{user_id}.{background.element_id}",
