@@ -7,6 +7,7 @@ from functools import partial
 import nats
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
+from aiogram.exceptions import TelegramRetryAfter
 from aiogram.types import BufferedInputFile
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
@@ -27,11 +28,14 @@ async def send(msg: Msg, bot: Bot, filename="Schedule.png") -> None:
         raise ValueError("Headers are required for message processing")
 
     chat_id = int(msg.headers[CHAT_ID_HEADER])
-    await bot.send_document(
-        chat_id=chat_id,
-        document=BufferedInputFile(file=msg.data, filename=filename),
-    )
-    await msg.ack()
+    try:
+        await bot.send_document(
+            chat_id=chat_id,
+            document=BufferedInputFile(file=msg.data, filename=filename),
+        )
+        await msg.ack()
+    except TelegramRetryAfter as e:
+        await msg.nak(e.retry_after)
 
 
 async def sender_loop(js: JetStreamContext, bot: Bot, shutdown_event: asyncio.Event | None = None):
