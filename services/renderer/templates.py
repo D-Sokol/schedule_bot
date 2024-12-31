@@ -108,6 +108,9 @@ class Template(TemplateModel):
     always: PatchSet = Field(default_factory=PatchSet)
     patches: dict[WeekDay, DayPatch] = Field(default_factory=dict)
 
+    width: int = 1280
+    height: int = 720
+
     def apply(self, draw: ImageDraw.ImageDraw, start_date: date, schedule: Schedule):
         format_args: dict[str, Any] = {
             "start": start_date,

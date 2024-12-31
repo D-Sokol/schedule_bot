@@ -40,9 +40,9 @@ async def on_dialog_start(_: Any, manager: DialogManager):
         return
 
     template = await template_registry.get_template(user_id)
-    width = template.get("width", 1280)
+    width = template.width
     manager.dialog_data["expected_width"] = width
-    height = template.get("height", 720)
+    height = template.height
     manager.dialog_data["expected_height"] = height
     logger.debug("Ready to accept image. Expected shape is %d x %d", width, height)
 
