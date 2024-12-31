@@ -106,16 +106,7 @@ class DayPatch(TemplateModel):
 
 class Template(TemplateModel):
     always: PatchSet = Field(default_factory=PatchSet)
-    day1: DayPatch = Field(default_factory=DayPatch)
-    day2: DayPatch = Field(default_factory=DayPatch)
-    day3: DayPatch = Field(default_factory=DayPatch)
-    day4: DayPatch = Field(default_factory=DayPatch)
-    day5: DayPatch = Field(default_factory=DayPatch)
-    day6: DayPatch = Field(default_factory=DayPatch)
-    day7: DayPatch = Field(default_factory=DayPatch)
-
-    def get_days_list(self) -> list[DayPatch]:
-        return [self.day1, self.day2, self.day3, self.day4, self.day5, self.day6, self.day7]
+    patches: dict[WeekDay, DayPatch] = Field(default_factory=dict)
 
     def apply(self, draw: ImageDraw.ImageDraw, start_date: date, schedule: Schedule):
         format_args: dict[str, Any] = {
@@ -127,7 +118,10 @@ class Template(TemplateModel):
         }
         self.always.apply(draw, format_args)
 
-        for i, day_patch in enumerate(self.get_days_list()):
-            records: list[Entry] = schedule.records.get(WeekDay(i + 1)) or []
+        for i, weekday in enumerate(WeekDay):
+            day_patch = self.patches.get(weekday)
+            if day_patch is None:
+                continue
+            records: list[Entry] = schedule.records.get(weekday) or []
             format_args["date"] = start_date + timedelta(days=i)
             day_patch.apply(draw, format_args, records)
