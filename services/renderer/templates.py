@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import Annotated, Any, Literal
 
 from PIL import ImageColor, ImageDraw, ImageFont
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .weekdays import WeekDay, Entry, Schedule
 
@@ -86,6 +86,13 @@ class PatchSet(BasePatch):
     def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
         for patch in self.patches:
             patch.apply(draw, format_args)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _wrap_list(cls, data: Any) -> Any:
+        if isinstance(data, list):
+            return {"patches": data}
+        return data
 
 
 class DayPatch(TemplateModel):
