@@ -3,17 +3,21 @@ This script renders a final schedule as a separate microservice to avoid lags in
 """
 import asyncio
 import io
-import json
 import logging
 import os
 from asyncio import Event
+from datetime import date
 from functools import partial
 
+import msgpack
 import nats
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
 from nats.js.object_store import ObjectStore
-from PIL import Image
+from PIL import Image, ImageDraw
+
+from services.renderer.templates import Template
+from services.renderer.weekdays import Schedule
 
 BUCKET_NAME = "assets"
 INPUT_SUBJECT_NAME = "schedules.request"
@@ -22,6 +26,7 @@ IMAGE_FORMAT = "png"
 
 USER_ID_HEADER = "Sch-User-Id"
 CHAT_ID_HEADER = "Sch-Chat-Id"
+START_DATE_HEADER = "Sch-Start-Date"
 ELEMENT_NAME_HEADER = "Sch-Element-Name"
 
 logger = logging.getLogger(__name__)
@@ -35,17 +40,23 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore):
     user_id = msg.headers[USER_ID_HEADER]
     chat_id = msg.headers[CHAT_ID_HEADER]
     element_name = msg.headers[ELEMENT_NAME_HEADER]
+    start_date = date.fromisoformat(msg.headers[START_DATE_HEADER])
 
-    payload = json.loads(msg.data.decode())
+    logger.debug("Trying to parse objects")
+    template_dict, schedule_dict = msgpack.unpackb(msg.data)
+    template = Template.model_validate(template_dict)
+    schedule = Schedule.model_validate(schedule_dict)
+    logger.debug("Template and schedule successfully parsed")
 
-    logger.info("Converting %s for %s with payload %s", element_name, user_id, payload)
+    logger.info("Converting %s for %s", element_name, user_id)
     background_data = await store.get(element_name)
     if background_data.data is None:
         logger.error("No content in image %s.%s", user_id, element_name)
         raise ValueError("No content in image")
-    background = Image.open(io.BytesIO(background_data.data), formats=[IMAGE_FORMAT])
+    background = Image.open(io.BytesIO(background_data.data), formats=[IMAGE_FORMAT]).convert(mode="RGBA")
+    draw = ImageDraw.ImageDraw(background, mode="RGBA")
+    template.apply(draw, start_date, schedule)
 
-    # TODO: edit wrt template
     stream = io.BytesIO()
     background.save(stream, format=IMAGE_FORMAT)
 

@@ -10,7 +10,7 @@ import msgpack
 from fluentogram import TranslatorRunner
 
 from database_models import User, ImageAsset
-from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER
+from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER, START_DATE_HEADER
 from services.renderer.templates import Template
 from services.renderer.weekdays import WeekDay, Time, Entry, Schedule
 
@@ -221,5 +221,6 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
             headers={
                 USER_ID_HEADER: str(user_id),
                 ELEMENT_NAME_HEADER: f"{user_id}.{background.element_id}",
+                START_DATE_HEADER: start.isoformat(),
             },
         )
