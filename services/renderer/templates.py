@@ -32,6 +32,13 @@ class BasePositionedPatch(BasePatch, ABC):
     xy: tuple[int, int]
     required_tag: str | None = Field(default=None, alias="tag")
 
+    def is_visible(self, tags: set[str] | None = None) -> bool:
+        if self.required_tag is None:
+            return True
+        if tags is None:
+            return False
+        return self.required_tag in tags
+
 
 class TextPatch(BasePositionedPatch):
     type: Literal["text"] = "text"
@@ -86,8 +93,7 @@ class PatchSet(BasePatch):
 
     def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], tags: set[str] | None = None) -> None:
         for patch in self.patches:
-            required = patch.required_tag
-            if required is None or (tags and required in tags):
+            if patch.is_visible(tags):
                 patch.apply(draw, format_args)
 
     @model_validator(mode="before")
