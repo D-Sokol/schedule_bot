@@ -39,10 +39,14 @@ async def on_dialog_start(_: Any, manager: DialogManager):
         await manager.done()
         return
 
-    template = await template_registry.get_template(user_id)
-    width = template.get("width", 1280)
+    template = (await template_registry.get_template(user_id)) or (await template_registry.get_template(None))
+    if template is not None:
+        width = template.width
+        height = template.height
+    else:
+        logging.warning("No template for %d and global is missing, skip checking dimensions!", user_id)
+        width = height = None
     manager.dialog_data["expected_width"] = width
-    height = template.get("height", 720)
     manager.dialog_data["expected_height"] = height
     logger.debug("Ready to accept image. Expected shape is %d x %d", width, height)
 
@@ -110,7 +114,7 @@ async def check_dimensions(
         _widget: Any,
         manager: DialogManager
 ) -> None:
-    ignore_shape_mismatch: bool = manager.dialog_data["global_scope"]
+    ignore_shape_mismatch: bool = manager.start_data["global_scope"]
     if ignore_shape_mismatch:
         logging.debug("Ignore checking dimensions")
         await manager.switch_to(UploadBackgroundStates.UPLOADED_EXPECT_NAME)
@@ -119,6 +123,9 @@ async def check_dimensions(
     real = (manager.dialog_data["real_width"], manager.dialog_data["real_height"])
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
 
+    if expected == (None, None):
+        logger.debug("Ignore checking dimensions because no template available")
+        await manager.switch_to(UploadBackgroundStates.UPLOADED_EXPECT_NAME)
     if real != expected:
         logger.debug("Asking about bad image dimensions")
         await manager.switch_to(UploadBackgroundStates.UPLOADED_BAD_DIMENSIONS)

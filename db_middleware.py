@@ -5,7 +5,7 @@ from aiogram.types import TelegramObject, Message, CallbackQuery
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from bot_registry import DbElementRegistry, DbUserRegistry, MockTemplateRegistry, DbScheduleRegistry
+from bot_registry import DbElementRegistry, DbUserRegistry, DbTemplateRegistry, DbScheduleRegistry
 
 
 class DbSessionMiddleware(BaseMiddleware):
@@ -26,7 +26,7 @@ class DbSessionMiddleware(BaseMiddleware):
             user_registry = DbUserRegistry(session)
             element_registry = DbElementRegistry(session=session, js=self.js)
             schedule_registry = DbScheduleRegistry(session=session, js=self.js, i18n=data["i18n"])
-            template_registry = MockTemplateRegistry()
+            template_registry = DbTemplateRegistry(session=session)
             data["user_registry"] = user_registry
             data["element_registry"] = element_registry
             data["schedule_registry"] = schedule_registry

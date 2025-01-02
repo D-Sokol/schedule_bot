@@ -2,72 +2,22 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from dataclasses import dataclass, field
 from datetime import date
-from enum import Enum
 from itertools import count
-from typing import cast, Any
+from typing import cast
 
+import msgpack
 from fluentogram import TranslatorRunner
 
 from database_models import User, ImageAsset
-from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER
+from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER, START_DATE_HEADER, CHAT_ID_HEADER
+from services.renderer.templates import Template
+from services.renderer.weekdays import WeekDay, Time, Entry, Schedule
 
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin
 
 logger = logging.getLogger(__file__)
-
-
-_DEFAULT_NAMES = ["нл", "пн", "вт", "ср", "чт", "пт", "сб", "вс"]
-class WeekDay(Enum):
-
-    MONDAY = 1
-    TUESDAY = 2
-    WEDNESDAY = 3
-    THURSDAY = 4
-    FRIDAY = 5
-    SATURDAY = 6
-    SUNDAY = 7
-
-    def __str__(self) -> str:
-        return _DEFAULT_NAMES[self.value].capitalize()
-
-
-@dataclass
-class Time:
-    hour: int
-    minute: int = 0
-
-    def __str__(self) -> str:
-        return f"{self.hour}:{self.minute:02d}"
-
-
-@dataclass
-class Entry:
-    time: Time
-    description: str
-    tags: set[str] = field(default_factory=set)
-
-
-@dataclass
-class Schedule:
-    records: dict[WeekDay, list[Entry]]
-
-    def is_empty(self) -> bool:
-        return all(not v for v in self.records.values())
-
-    def __str__(self) -> str:
-        lines = []
-        for weekday in WeekDay:
-            entries = self.records.get(weekday)
-            if not entries:
-                continue
-            for entry in entries:
-                tags = f"({','.join(entry.tags)}) " if entry.tags else ""
-                line = f"{weekday} {entry.time} {tags}{entry.description}"
-                lines.append(line)
-        return "\n".join(lines)
 
 
 class ScheduleRegistryAbstract(ABC):
@@ -100,7 +50,7 @@ class ScheduleRegistryAbstract(ABC):
             chat_id: int,
             schedule: Schedule,
             background: ImageAsset,
-            template: dict[str, Any],
+            template: Template,
             start: date,
     ) -> None:
         raise NotImplementedError
@@ -131,7 +81,9 @@ class ScheduleRegistryAbstract(ABC):
                     continue
             # Note: int("09") == 9
             h, m = map(int, time_str.split(":"))
-            entry = Entry(time=Time(h, m), description=desc, tags=set(tags_str.split(",") if tags_str else ()))
+            entry = Entry(
+                time=Time(hour=h, minute=m), description=desc, tags=set(tags_str.split(",") if tags_str else ())
+            )
             schedule[weekday].append(entry)
 
         for entries in schedule.values():
@@ -182,9 +134,14 @@ class MockScheduleRegistry(ScheduleRegistryAbstract):
         if user_id is not None:
             return None
         return Schedule(
-            {
-                WeekDay.TUESDAY: [Entry(Time(11, 0), "Спортзал"), Entry(Time(17, 30), "Отдых")],
-                WeekDay.FRIDAY: [Entry(Time(11, 0), "Неторопливая прогулка по парку")]
+            records={
+                WeekDay.TUESDAY: [
+                    Entry(time=Time(hour=11, minute=0), description="Спортзал"),
+                    Entry(time=Time(hour=17, minute=30), description="Отдых"),
+                ],
+                WeekDay.FRIDAY: [
+                    Entry(time=Time(hour=11, minute=0), description="Неторопливая прогулка по парку"),
+                ],
             }
         )
 
@@ -197,7 +154,7 @@ class MockScheduleRegistry(ScheduleRegistryAbstract):
             chat_id: int,
             schedule: Schedule,
             background: ImageAsset,
-            template: dict[str, Any],
+            template: Template,
             start: date,
     ) -> None:
         pass
@@ -250,14 +207,21 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
             chat_id: int,
             schedule: Schedule,
             background: ImageAsset,
-            template: dict[str, Any],
+            template: Template,
             start: date,
     ) -> None:
+        payload: bytes = msgpack.packb([
+            template.model_dump(by_alias=True, exclude_none=True, mode="json"),
+            schedule.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        ])
+
         await self.js.publish(
             subject=INPUT_SUBJECT_NAME,
-            payload=b'{}',  # TODO: send all required content
+            payload=payload,
             headers={
                 USER_ID_HEADER: str(user_id),
+                CHAT_ID_HEADER: str(chat_id),
                 ELEMENT_NAME_HEADER: f"{user_id}.{background.element_id}",
+                START_DATE_HEADER: start.isoformat(),
             },
         )
