@@ -184,8 +184,8 @@ class Template(TemplateModel):
     always: PatchSet = Field(default_factory=PatchSet)
     patches: dict[WeekDay, DayPatch] = Field(default_factory=dict)
 
-    width: int = 1280
-    height: int = 720
+    width: int = 1344
+    height: int = 768
 
     async def apply(
             self,
