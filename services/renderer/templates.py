@@ -1,11 +1,15 @@
+import asyncio
+import io
 from abc import ABC, abstractmethod
 from datetime import date, timedelta
 from functools import lru_cache
 from typing import Annotated, Any, Literal
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
+from nats.js.errors import ObjectNotFoundError
 from nats.js.object_store import ObjectStore
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .weekdays import WeekDay, Entry, Schedule
@@ -26,7 +30,7 @@ class BasePatch(TemplateModel, ABC):
     type: str
 
     @abstractmethod
-    def apply(self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], **kwargs) -> None:
+    async def apply(self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], **kwargs) -> None:
         raise NotImplementedError
 
 
@@ -56,7 +60,7 @@ class TextPatch(BasePositionedPatch):
 
     _font: ImageFont.FreeTypeFont
 
-    def apply(self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], **kwargs) -> None:
+    async def apply(self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], **kwargs) -> None:
         draw.multiline_text(
             xy=self.xy,
             text=self.template.format(**format_args),
@@ -85,7 +89,30 @@ class ImagePatch(BasePositionedPatch):
         if self.name is None and self.element_id is None:
             raise ValueError("Either name or element id is required")
 
-    def apply(
+    async def _get_patch(self, store: ObjectStore | None = None, session: AsyncSession | None = None) -> Image.Image:
+        if store is None:
+            raise ValueError("Cannot get patch without store")
+
+        if self.element_id is not None:
+            element_id: str | None = f"0.{self.element_id}"
+        else:
+            assert self.name is not None
+            result = await session.execute(
+                text("SELECT element_id FROM elements WHERE user_id IS NULL AND name = :name LIMIT 1"),
+                {"name": self.name},
+            )
+            element_id = result.scalar()
+            if element_id is None:
+                raise ValueError(f"Unknown image name {self.name}")
+
+        try:
+            result = await store.get(element_id)
+        except ObjectNotFoundError as e:
+            raise ValueError(f"Missing element {element_id} ({self.name=})") from e
+        stream = io.BytesIO(result.data)
+        return Image.open(stream).convert(mode="RGBA")
+
+    async def apply(
             self,
             image: Image.Image,
             draw: ImageDraw.ImageDraw,
@@ -94,14 +121,16 @@ class ImagePatch(BasePositionedPatch):
             session: AsyncSession | None = None,
             **kwargs
     ) -> None:
-        raise NotImplementedError
+        patch = await self._get_patch()
+        mask = patch.getchannel("A")
+        image.paste(patch, self.xy, mask=mask)
 
 
 class PatchSet(BasePatch):
     type: Literal["set"] = "set"
     patches: list[Annotated[TextPatch | ImagePatch, Field(discriminator="type")]] = Field(default_factory=list)
 
-    def apply(
+    async def apply(
             self,
             image: Image.Image,
             draw: ImageDraw.ImageDraw,
@@ -109,9 +138,13 @@ class PatchSet(BasePatch):
             tags: set[str] | None = None,
             **kwargs
     ) -> None:
-        for patch in self.patches:
-            if patch.is_visible(tags):
+        await asyncio.gather(
+            *(
                 patch.apply(image, draw, format_args, **kwargs)
+                for patch in self.patches
+                if patch.is_visible(tags)
+            )
+        )
 
     @model_validator(mode="before")
     @classmethod
@@ -128,7 +161,7 @@ class DayPatch(TemplateModel):
     if_none: PatchSet = Field(default_factory=PatchSet)
     record_patches: list[PatchSet] = Field(default_factory=list)
 
-    def apply(
+    async def apply(
             self,
             image: Image.Image,
             draw: ImageDraw.ImageDraw,
@@ -136,12 +169,12 @@ class DayPatch(TemplateModel):
             entries: list[Entry],
             **kwargs
     ) -> None:
-        self.always.apply(image, draw, format_args, **kwargs)
+        await self.always.apply(image, draw, format_args, **kwargs)
         for entry, record_patch in zip(entries, self.record_patches):
             format_args["entry"] = entry
-            record_patch.apply(image, draw, format_args, tags=entry.tags, **kwargs)
+            await record_patch.apply(image, draw, format_args, tags=entry.tags, **kwargs)
         if not entries:
-            self.if_none.apply(image, draw, format_args, **kwargs)
+            await self.if_none.apply(image, draw, format_args, **kwargs)
 
 
 class Template(TemplateModel):
@@ -151,7 +184,7 @@ class Template(TemplateModel):
     width: int = 1280
     height: int = 720
 
-    def apply(
+    async def apply(
             self,
             image: Image.Image,
             draw: ImageDraw.ImageDraw,
@@ -167,7 +200,7 @@ class Template(TemplateModel):
                 f"day{i + 1}": start_date + timedelta(days=i) for i in range(WEEK_LENGTH)
             },
         }
-        self.always.apply(image, draw, format_args, store=store, session=session)
+        await self.always.apply(image, draw, format_args, store=store, session=session)
 
         for i, weekday in enumerate(WeekDay):
             day_patch = self.patches.get(weekday)
@@ -175,4 +208,4 @@ class Template(TemplateModel):
                 continue
             records: list[Entry] = schedule.records.get(weekday) or []
             format_args["date"] = start_date + timedelta(days=i)
-            day_patch.apply(image, draw, format_args, records, store=store, session=session)
+            await day_patch.apply(image, draw, format_args, records, store=store, session=session)
