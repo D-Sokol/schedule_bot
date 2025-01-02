@@ -55,7 +55,7 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore):
         raise ValueError("No content in image")
     background = Image.open(io.BytesIO(background_data.data), formats=[IMAGE_FORMAT]).convert(mode="RGBA")
     draw = ImageDraw.ImageDraw(background, mode="RGBA")
-    template.apply(draw, start_date, schedule)
+    template.apply(background, draw, start_date, schedule)
 
     stream = io.BytesIO()
     background.save(stream, format=IMAGE_FORMAT)

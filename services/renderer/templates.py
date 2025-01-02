@@ -3,8 +3,10 @@ from datetime import date, timedelta
 from functools import lru_cache
 from typing import Annotated, Any, Literal
 
-from PIL import ImageColor, ImageDraw, ImageFont
+from PIL import Image, ImageColor, ImageDraw, ImageFont
+from nats.js.object_store import ObjectStore
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .weekdays import WeekDay, Entry, Schedule
 
@@ -24,7 +26,7 @@ class BasePatch(TemplateModel, ABC):
     type: str
 
     @abstractmethod
-    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
+    def apply(self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], **kwargs) -> None:
         raise NotImplementedError
 
 
@@ -54,7 +56,7 @@ class TextPatch(BasePositionedPatch):
 
     _font: ImageFont.FreeTypeFont
 
-    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
+    def apply(self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], **kwargs) -> None:
         draw.multiline_text(
             xy=self.xy,
             text=self.template.format(**format_args),
@@ -83,7 +85,15 @@ class ImagePatch(BasePositionedPatch):
         if self.name is None and self.element_id is None:
             raise ValueError("Either name or element id is required")
 
-    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any]) -> None:
+    def apply(
+            self,
+            image: Image.Image,
+            draw: ImageDraw.ImageDraw,
+            format_args: dict[str, Any],
+            store: ObjectStore | None = None,
+            session: AsyncSession | None = None,
+            **kwargs
+    ) -> None:
         raise NotImplementedError
 
 
@@ -91,10 +101,17 @@ class PatchSet(BasePatch):
     type: Literal["set"] = "set"
     patches: list[Annotated[TextPatch | ImagePatch, Field(discriminator="type")]] = Field(default_factory=list)
 
-    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], tags: set[str] | None = None) -> None:
+    def apply(
+            self,
+            image: Image.Image,
+            draw: ImageDraw.ImageDraw,
+            format_args: dict[str, Any],
+            tags: set[str] | None = None,
+            **kwargs
+    ) -> None:
         for patch in self.patches:
             if patch.is_visible(tags):
-                patch.apply(draw, format_args)
+                patch.apply(image, draw, format_args, **kwargs)
 
     @model_validator(mode="before")
     @classmethod
@@ -111,13 +128,20 @@ class DayPatch(TemplateModel):
     if_none: PatchSet = Field(default_factory=PatchSet)
     record_patches: list[PatchSet] = Field(default_factory=list)
 
-    def apply(self, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], entries: list[Entry]) -> None:
-        self.always.apply(draw, format_args)
+    def apply(
+            self,
+            image: Image.Image,
+            draw: ImageDraw.ImageDraw,
+            format_args: dict[str, Any],
+            entries: list[Entry],
+            **kwargs
+    ) -> None:
+        self.always.apply(image, draw, format_args, **kwargs)
         for entry, record_patch in zip(entries, self.record_patches):
             format_args["entry"] = entry
-            record_patch.apply(draw, format_args, tags=entry.tags)
+            record_patch.apply(image, draw, format_args, tags=entry.tags, **kwargs)
         if not entries:
-            self.if_none.apply(draw, format_args)
+            self.if_none.apply(image, draw, format_args, **kwargs)
 
 
 class Template(TemplateModel):
@@ -127,7 +151,15 @@ class Template(TemplateModel):
     width: int = 1280
     height: int = 720
 
-    def apply(self, draw: ImageDraw.ImageDraw, start_date: date, schedule: Schedule):
+    def apply(
+            self,
+            image: Image.Image,
+            draw: ImageDraw.ImageDraw,
+            start_date: date,
+            schedule: Schedule,
+            store: ObjectStore | None = None,
+            session: AsyncSession | None = None,
+    ):
         format_args: dict[str, Any] = {
             "start": start_date,
             "end": start_date + timedelta(days=WEEK_LENGTH - 1),
@@ -135,7 +167,7 @@ class Template(TemplateModel):
                 f"day{i + 1}": start_date + timedelta(days=i) for i in range(WEEK_LENGTH)
             },
         }
-        self.always.apply(draw, format_args)
+        self.always.apply(image, draw, format_args, store=store, session=session)
 
         for i, weekday in enumerate(WeekDay):
             day_patch = self.patches.get(weekday)
@@ -143,4 +175,4 @@ class Template(TemplateModel):
                 continue
             records: list[Entry] = schedule.records.get(weekday) or []
             format_args["date"] = start_date + timedelta(days=i)
-            day_patch.apply(draw, format_args, records)
+            day_patch.apply(image, draw, format_args, records, store=store, session=session)
