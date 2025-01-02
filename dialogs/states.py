@@ -26,3 +26,7 @@ class UploadBackgroundStates(StatesGroup):
     UPLOADED_BAD_DIMENSIONS = State()
     UPLOADED_EXPECT_NAME = State()
     UPLOAD_FAILED = State()
+
+
+class TemplatesStates(StatesGroup):
+    START = State()
