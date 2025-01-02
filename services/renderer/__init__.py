@@ -6,6 +6,7 @@ import io
 import logging
 import os
 from asyncio import Event
+from contextlib import nullcontext
 from datetime import date
 from functools import partial
 
@@ -15,6 +16,7 @@ from nats.aio.msg import Msg
 from nats.js import JetStreamContext
 from nats.js.object_store import ObjectStore
 from PIL import Image, ImageDraw
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from services.renderer.templates import Template
 from services.renderer.weekdays import Schedule
@@ -32,7 +34,7 @@ ELEMENT_NAME_HEADER = "Sch-Element-Name"
 logger = logging.getLogger(__name__)
 
 
-async def render(msg: Msg, js: JetStreamContext, store: ObjectStore):
+async def render(msg: Msg, js: JetStreamContext, store: ObjectStore, session_pool: async_sessionmaker | None = None):
     if msg.headers is None:
         logger.error("Got message without headers")
         raise ValueError("Headers are required for message processing")
@@ -55,7 +57,9 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore):
         raise ValueError("No content in image")
     background = Image.open(io.BytesIO(background_data.data), formats=[IMAGE_FORMAT]).convert(mode="RGBA")
     draw = ImageDraw.ImageDraw(background, mode="RGBA")
-    await template.apply(background, draw, start_date, schedule)
+
+    async with (session_pool or nullcontext)() as session:
+        await template.apply(background, draw, start_date, schedule, store=store, session=session)
 
     stream = io.BytesIO()
     background.save(stream, format=IMAGE_FORMAT)
@@ -72,9 +76,18 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore):
     await msg.ack()
 
 
-async def render_loop(js: JetStreamContext, shutdown_event: asyncio.Event | None = None):
+async def render_loop(
+        js: JetStreamContext,
+        session_pool: async_sessionmaker | None = None,
+        shutdown_event: asyncio.Event | None = None
+):
     store = await js.object_store(BUCKET_NAME)
-    await js.subscribe(INPUT_SUBJECT_NAME, cb=partial(render, js=js, store=store), durable="renderer", manual_ack=True)
+    await js.subscribe(
+        INPUT_SUBJECT_NAME,
+        cb=partial(render, js=js, store=store, session_pool=session_pool),
+        durable="renderer",
+        manual_ack=True,
+    )
     logger.info("Connected to NATS")
 
     if shutdown_event is None:
@@ -88,16 +101,24 @@ async def render_loop(js: JetStreamContext, shutdown_event: asyncio.Event | None
     logger.warning("Exiting main task")
 
 
-async def main(servers: str = "nats://localhost:4222"):
+async def main(servers: str = "nats://localhost:4222", db_url: str | None = None):
     nc = await nats.connect(servers=servers)
     js = nc.jetstream()
-    await render_loop(js)
+    if db_url:
+        engine = create_async_engine(db_url, echo=False)
+        session_pool = async_sessionmaker(engine, expire_on_commit=False)
+    else:
+        session_pool = None
+    await render_loop(js, session_pool)
     await nc.close()
 
 
 if __name__ == '__main__':
     nats_servers_ = os.getenv("NATS_SERVERS")
+    database_url = os.getenv("DB_URL")
     if nats_servers_ is None:
         logger.critical("Cannot run without nats url")
         exit(1)
-    asyncio.run(main(nats_servers_))
+    if database_url is None:
+        logger.warning("Loading images via name is not possible")
+    asyncio.run(main(nats_servers_, database_url))

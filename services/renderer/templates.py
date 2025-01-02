@@ -11,6 +11,7 @@ from nats.js.object_store import ObjectStore
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from .weekdays import WeekDay, Entry, Schedule
 
@@ -94,16 +95,18 @@ class ImagePatch(BasePositionedPatch):
             raise ValueError("Cannot get patch without store")
 
         if self.element_id is not None:
-            element_id: str | None = f"0.{self.element_id}"
+            element_id: str = f"0.{self.element_id}"
         else:
             assert self.name is not None
             result = await session.execute(
                 text("SELECT element_id FROM elements WHERE user_id IS NULL AND name = :name LIMIT 1"),
                 {"name": self.name},
             )
-            element_id = result.scalar()
-            if element_id is None:
+            element_uuid: UUID | None = result.scalar()
+            print(element_uuid, type(element_uuid))
+            if element_uuid is None:
                 raise ValueError(f"Unknown image name {self.name}")
+            element_id = f"0.{element_uuid}"
 
         try:
             result = await store.get(element_id)
@@ -121,7 +124,7 @@ class ImagePatch(BasePositionedPatch):
             session: AsyncSession | None = None,
             **kwargs
     ) -> None:
-        patch = await self._get_patch()
+        patch = await self._get_patch(store, session)
         mask = patch.getchannel("A")
         image.paste(patch, self.xy, mask=mask)
 
