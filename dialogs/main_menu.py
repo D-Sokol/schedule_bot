@@ -20,7 +20,7 @@ start_window = Window(
     Start(FluentFormat("dialog-main.create"), id="create_schedule", state=ScheduleStates.START),
     Button(FluentFormat("dialog-main.templates"), id="manage_templates"),
     Start(
-        FluentFormat("dialog-main.backgrounds-local"),
+        FluentFormat("dialog-main.backgrounds-global"),
         id="manage_elements",
         state=BackgroundsStates.START,
         data={"global_scope": True, "select_only": False},
