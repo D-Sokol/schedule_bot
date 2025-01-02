@@ -55,7 +55,9 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore, session_poo
     if background_data.data is None:
         logger.error("No content in image %s.%s", user_id, element_name)
         raise ValueError("No content in image")
-    background = Image.open(io.BytesIO(background_data.data), formats=[IMAGE_FORMAT]).convert(mode="RGBA")
+    # If background has an alpha channel, pasting an RGBA patches produces an unexpected transparency.
+    # Now partially transparent background is not supported, see also :func:`PIL.Image.alpha_composite` .
+    background = Image.open(io.BytesIO(background_data.data), formats=[IMAGE_FORMAT]).convert(mode="RGB")
     draw = ImageDraw.ImageDraw(background, mode="RGBA")
 
     async with (session_pool or nullcontext)() as session:
