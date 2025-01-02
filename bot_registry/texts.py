@@ -211,8 +211,8 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
             start: date,
     ) -> None:
         payload: bytes = msgpack.packb([
-            template.model_dump(by_alias=True, mode="json"),
-            schedule.model_dump(by_alias=True, mode="json"),
+            template.model_dump(by_alias=True, exclude_none=True, mode="json"),
+            schedule.model_dump(by_alias=True, exclude_none=True, mode="json"),
         ])
 
         await self.js.publish(

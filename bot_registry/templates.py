@@ -51,6 +51,6 @@ class DbTemplateRegistry(TemplateRegistryAbstract, DatabaseRegistryMixin):
             logger.error("Cannot save schedule for unknown user id %d", user_id)
             return
 
-        user.user_template = template.model_dump_json(exclude_defaults=False, by_alias=True)
+        user.user_template = template.model_dump_json(by_alias=True, exclude_none=True)
         self.session.add(user)
         await self.session.commit()
