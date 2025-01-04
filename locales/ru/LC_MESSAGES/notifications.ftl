@@ -1,4 +1,5 @@
 notify-unknown_intent = Эта кнопка слишком старая. Я даже не помню, о чем мы говорили!
+notify-not_implemented = Этот функционал будет добавлен в дальнейшем. Извините.
 
 
 notify-saved_image =

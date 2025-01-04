@@ -48,9 +48,10 @@ def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery | Mess
     return callback
 
 
-async def not_implemented_button_handler(callback: CallbackQuery, button: Button, _manager: DialogManager):
+async def not_implemented_button_handler(callback: CallbackQuery, button: Button, manager: DialogManager):
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
     logging.warning("Called button [%s] which is not implemented!", button.widget_id)
-    await callback.answer("Функционал не реализован.")
+    await callback.answer(i18n.get("notify-not_implemented"))
 
 
 class BotAwareMessageManager(MessageManager):
