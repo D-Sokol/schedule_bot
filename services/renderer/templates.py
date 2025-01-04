@@ -51,10 +51,10 @@ class TextPatch(BasePositionedPatch):
     type: Literal["text"] = "text"
 
     template: str = Field(alias="text", description="f-string template for this patch")
-    fill: str = Field(alias="color")
+    fill: str = Field(alias="color", default="black")
     # See https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html#text-anchors for anchors
     anchor: str = Field(default="la", pattern=r"[lmr][amsbd]")
-    font_size: int = 28
+    font_size: int = 20
     font_name: str = "Arial.ttf"
     stroke_width: int = 0
     stroke_fill: str | None = Field(default=None, alias="stroke_color")
