@@ -17,7 +17,7 @@ from bot_registry.texts import ScheduleRegistryAbstract, Schedule
 from database_models import ImageAsset
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
 from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates
-from .utils import current_user_id, current_chat_id, FluentFormat
+from .utils import current_user_id, current_chat_id, FluentFormat, handler_not_implemented_button
 
 logger = logging.getLogger(__file__)
 
@@ -75,6 +75,7 @@ async def previous_schedule_getter(
     user_last_schedule = await schedule_registry.get_last_schedule(user_id)
     global_last_schedule = await schedule_registry.get_last_schedule(None)
     if global_last_schedule is None:
+        logger.warning("Global last schedule is missing. Text from locales file will be used instead")
         # A good example should be provided in DB, but we want to provide an example in any case
         global_last_schedule = i18n.get("dialog-schedule-text.example")
 
@@ -156,6 +157,11 @@ expect_input_window = Window(
         state=ScheduleStates.EXPECT_DATE,
         on_click=process_accept_previous,
         when=F["user_has_schedule"],
+    ),
+    Button(
+        FluentFormat("dialog-schedule-text.wizard"),
+        id="enter_wizard",
+        on_click=handler_not_implemented_button,
     ),
     Cancel(FluentFormat("dialog-cancel")),
     TextInput(id="schedule_text", on_success=process_schedule_creation),

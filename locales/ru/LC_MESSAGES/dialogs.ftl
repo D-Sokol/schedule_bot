@@ -7,6 +7,7 @@ dialog-main = Выберите действие!
     .create = Создать расписание
     .templates = Шаблон расписания
     .backgrounds-global = Накладываемые элементы
+    .settings = Настройки
 
 
 dialog-backgrounds-main = Unused
@@ -103,6 +104,7 @@ dialog-schedule-text = Unused
         Пн 11:30 (важное) Отжимания
         Пт 18:00 Сходить в бар
     .accept_previous = Использовать предыдущее
+    .wizard = Открыть редактор
     .warn_empty = <b>Невозможно создать расписание</b>: нет ни одного пункта
     .warn_unparsed = <b>Следующие строки были непонятны и были исключены из расписания</b>:
 
