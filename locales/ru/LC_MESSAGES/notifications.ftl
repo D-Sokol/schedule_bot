@@ -24,3 +24,7 @@ notify-templates = Unused
     .error_validation = Присланный файл не выглядит как шаблон
     .old_filename = Предыдущий шаблон.json
     .old_description = На всякий случай отправляю предыдущий шаблон!
+    .local_filename = Шаблон.json
+    .local_description = Шаблон, который будет использоваться сейчас
+    .global_filename = Общий шаблон.json
+    .global_description = Стандартный шаблон по умолчанию

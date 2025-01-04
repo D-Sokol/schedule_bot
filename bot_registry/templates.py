@@ -17,15 +17,18 @@ class TemplateRegistryAbstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def update_template(self, user_id: int | None, template: Template) -> None:
+    async def update_template(self, user_id: int | None, template: Template | None) -> None:
         raise NotImplementedError
+
+    async def clear_template(self, user_id: int | None) -> None:
+        await self.update_template(user_id, template=None)
 
 
 class MockTemplateRegistry(TemplateRegistryAbstract):
     async def get_template(self, user_id: int | None) -> Template:
         return Template()
 
-    async def update_template(self, user_id: int | None, template: Template) -> None:
+    async def update_template(self, user_id: int | None, template: Template | None) -> None:
         pass
 
 
@@ -41,16 +44,16 @@ class DbTemplateRegistry(TemplateRegistryAbstract, DatabaseRegistryMixin):
         template = Template.model_validate(template_dict)
         return template
 
-    async def update_template(self, user_id: int | None, template: Template) -> None:
+    async def update_template(self, user_id: int | None, template: Template | None) -> None:
         logger.info("Saving template for user %d", user_id)
         if user_id is None:
             logger.error("Cannot save template in global scope!")
             return
         user: User | None = await self.session.get(User, user_id)
         if user is None:
-            logger.error("Cannot save schedule for unknown user id %d", user_id)
+            logger.error("Cannot save template for unknown user id %d", user_id)
             return
 
-        user.user_template = template.model_dump_json(by_alias=True, exclude_none=True)
+        user.user_template = template.model_dump_json(by_alias=True, exclude_none=True) if template else None
         self.session.add(user)
         await self.session.commit()

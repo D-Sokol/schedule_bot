@@ -1,10 +1,11 @@
 import io
 import json
 import logging
+from functools import partial
 from typing import Any
 
 from aiogram import Bot
-from aiogram.types import ContentType, Message, BufferedInputFile
+from aiogram.types import CallbackQuery, ContentType, Message, BufferedInputFile
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Cancel
@@ -35,6 +36,7 @@ has_user_template = F["dialog_data"]["template"]
 async def send_template(
         bot: Bot, chat_id: int, template: Template, filename: str, description: str | None = None
 ) -> None:
+    logger.debug("Send template as '%s' to chat %d", filename, chat_id)
     body = template.model_dump_json(by_alias=True, exclude_none=True).encode()
     await bot.send_document(chat_id, BufferedInputFile(file=body, filename=filename), caption=description)
 
@@ -52,6 +54,7 @@ async def handle_new_template(
 
     file = await bot.download(message.document.file_id)
     assert file is not None, "image loaded to file system"
+    logger.info("Got new template for %s", message.from_user.id)
 
     try:
         data = json.load(io.TextIOWrapper(file))
@@ -80,11 +83,71 @@ async def handle_new_template(
     manager.dialog_data["template"] = new_template
 
 
+async def handle_download_template(
+        callback: CallbackQuery,
+        _widget: Button,
+        manager: DialogManager,
+        global_template: bool = True,
+):
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
+    template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
+    bot = callback.bot
+    user_id = current_user_id(manager) if not global_template else None
+
+    template = await template_registry.get_template(user_id)
+    if template is None:
+        logger.error("Cannot send missing template for %d!", user_id)
+        return
+
+    await send_template(
+        bot,
+        manager.middleware_data["event_chat"].id,
+        template,
+        i18n.get("notify-templates.local_filename"),
+        i18n.get("notify-templates.local_description"),
+    )
+
+
+async def handle_clear_template(callback: CallbackQuery, _widget: Button, manager: DialogManager):
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
+    template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
+    bot = callback.bot
+    user_id = current_user_id(manager)
+
+    template = await template_registry.get_template(user_id)
+    if template is None:
+        logger.error("Cannot send missing template for %d!", user_id)
+        return
+
+    await send_template(
+        bot,
+        manager.middleware_data["event_chat"].id,
+        template,
+        i18n.get("notify-templates.old_filename"),
+        i18n.get("notify-templates.old_description"),
+    )
+    await template_registry.clear_template(user_id)
+
+
 start_window = Window(
     FluentFormat("dialog-templates", has_local=has_user_template.cast(bool).cast(int)),
-    Button(FluentFormat("dialog-templates.view_user"), "download_local", when=has_user_template),  # TODO
-    Button(FluentFormat("dialog-templates.view_global"), "download_global"),  # TODO
-    Button(FluentFormat("dialog-templates.clear"), "clear", when=has_user_template),  # TODO
+    Button(
+        FluentFormat("dialog-templates.view_user"),
+        id="download_local",
+        on_click=partial(handle_download_template, global_template=False),
+        when=has_user_template,
+    ),
+    Button(
+        FluentFormat("dialog-templates.view_global"),
+        id="download_global",
+        on_click=partial(handle_download_template, global_template=True),
+    ),
+    Button(
+        FluentFormat("dialog-templates.clear"),
+        id="clear",
+        when=has_user_template,
+        on_click=handle_clear_template,
+    ),
     Cancel(FluentFormat("dialog-cancel")),
     MessageInput(
         handle_new_template,
