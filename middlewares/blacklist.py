@@ -2,7 +2,7 @@ import logging
 from typing import Any, Awaitable, Callable, cast
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject
+from aiogram.types import TelegramObject, CallbackQuery
 
 from database_models import User
 
@@ -19,6 +19,9 @@ class BlacklistMiddleware(BaseMiddleware):
         user: User = data.get("user")
         if user and user.is_banned:
             logger.info("Update from user %d ignored due to blacklist", user.tg_id)
+            if isinstance(event, CallbackQuery):
+                # CallbackQuery should be answered to avoid lagging animation on user side.
+                await event.answer()
             return
 
         return await handler(event, data)
