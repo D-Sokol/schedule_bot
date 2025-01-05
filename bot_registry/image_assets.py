@@ -23,7 +23,7 @@ from .nats_mixin import NATSRegistryMixin
 logger = logging.getLogger(__file__)
 
 
-LOCAL_SCOPE_ELEMENTS_LIMIT = 6
+LOCAL_SCOPE_ELEMENTS_LIMIT = 10
 GLOBAL_SCOPE_ELEMENTS_LIMIT = 1_000
 
 
