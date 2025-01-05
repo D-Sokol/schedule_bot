@@ -28,7 +28,7 @@ def _next_display_order(context: DefaultExecutionContext) -> int:
     cursor = context.root_connection.execute(
         select(func.max(ImageAsset.display_order) + text("1")).where(ImageAsset.user_id == owner_id)
     )
-    display_order, = cast(Sequence[int], cursor.fetchone())
+    display_order, = cast(Sequence[int | None], cursor.fetchone())
     return display_order or 0
 
 

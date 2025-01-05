@@ -34,9 +34,7 @@ class MockTemplateRegistry(TemplateRegistryAbstract):
 
 class DbTemplateRegistry(TemplateRegistryAbstract, DatabaseRegistryMixin):
     async def get_template(self, user_id: int | None) -> Template | None:
-        if user_id is None:
-            return None
-        user: User | None = await self.session.get(User, user_id)
+        user: User | None = await self.session.get(User, user_id or 0)
         if user is None or (template_data := user.user_template) is None:
             return None
 
@@ -46,10 +44,7 @@ class DbTemplateRegistry(TemplateRegistryAbstract, DatabaseRegistryMixin):
 
     async def update_template(self, user_id: int | None, template: Template | None) -> None:
         logger.info("Saving template for user %d", user_id)
-        if user_id is None:
-            logger.error("Cannot save template in global scope!")
-            return
-        user: User | None = await self.session.get(User, user_id)
+        user: User | None = await self.session.get(User, user_id or 0)
         if user is None:
             logger.error("Cannot save template for unknown user id %d", user_id)
             return

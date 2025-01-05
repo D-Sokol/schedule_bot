@@ -178,9 +178,7 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
         return result
 
     async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
-        if user_id is None:
-            return None
-        user: User | None = await self.session.get(User, user_id)
+        user: User | None = await self.session.get(User, user_id or 0)
         if user is None or (last_schedule := user.last_schedule) is None:
             return None
         schedule, unparsed = self.parse_schedule_text(last_schedule)
@@ -189,10 +187,7 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
 
     async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
         logger.info("Saving schedule for user %s", user_id)
-        if user_id is None:
-            logger.error("Cannot save schedule in global scope!")
-            return
-        user: User | None = await self.session.get(User, user_id)
+        user: User | None = await self.session.get(User, user_id or 0)
         if user is None:
             logger.error("Cannot save schedule for unknown user id %d", user_id)
             return
