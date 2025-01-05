@@ -163,6 +163,7 @@ expect_input_window = Window(
         id="enter_wizard",
         on_click=handler_not_implemented_button,
     ),
+    SwitchTo(FluentFormat("dialog-schedule-text.back"), id="back", state=ScheduleStates.START),
     Cancel(FluentFormat("dialog-cancel")),
     TextInput(id="schedule_text", on_success=process_schedule_creation),
     getter=previous_schedule_getter,
