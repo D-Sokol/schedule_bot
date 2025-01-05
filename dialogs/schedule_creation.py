@@ -6,7 +6,7 @@ from functools import partial
 from typing import Any, cast
 
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import Dialog, Window, Data, DialogManager
+from aiogram_dialog import Dialog, Window, Data, DialogManager, ShowMode
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Cancel, Start, Button, SwitchTo, Calendar
 from fluentogram import TranslatorRunner
@@ -200,7 +200,7 @@ expect_date_calendar_window = Window(
 
 finish_window = Window(
     FluentFormat("dialog-schedule-finish"),
-    Cancel(FluentFormat("dialog-schedule-finish.return")),
+    Cancel(FluentFormat("dialog-schedule-finish.return"), show_mode=ShowMode.DELETE_AND_SEND),
     state=ScheduleStates.FINISH,
 )
 

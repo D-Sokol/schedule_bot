@@ -6,7 +6,7 @@ from typing import Any
 
 from aiogram import Bot
 from aiogram.types import CallbackQuery, ContentType, Message, BufferedInputFile
-from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog import Dialog, DialogManager, Window, ShowMode
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Cancel
 from fluentogram import TranslatorRunner
@@ -78,6 +78,7 @@ async def handle_new_template(
             i18n.get("notify-templates.old_filename"),
             i18n.get("notify-templates.old_description"),
         )
+        manager.show_mode = ShowMode.DELETE_AND_SEND
 
     await template_registry.update_template(current_user_id(manager), new_template)
     manager.dialog_data["template"] = new_template
@@ -106,6 +107,7 @@ async def handle_download_template(
         i18n.get("notify-templates.local_filename"),
         i18n.get("notify-templates.local_description"),
     )
+    manager.show_mode = ShowMode.DELETE_AND_SEND
 
 
 async def handle_clear_template(callback: CallbackQuery, _widget: Button, manager: DialogManager):
@@ -126,7 +128,9 @@ async def handle_clear_template(callback: CallbackQuery, _widget: Button, manage
         i18n.get("notify-templates.old_filename"),
         i18n.get("notify-templates.old_description"),
     )
+    manager.show_mode = ShowMode.DELETE_AND_SEND
     await template_registry.clear_template(user_id)
+    manager.dialog_data["template"] = None
 
 
 start_window = Window(
