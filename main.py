@@ -24,6 +24,7 @@ from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs.utils import BotAwareMessageManager
 from middlewares.registry import DbSessionMiddleware
 from middlewares.i18n import TranslatorRunnerMiddleware, create_translator_hub
+from middlewares.blacklist import BlacklistMiddleware
 
 from services.converter import convert_loop
 from services.renderer import render_loop
@@ -78,11 +79,14 @@ async def setup_middlewares(dp: Dispatcher, session_pool: async_sessionmaker, js
     message_manager = BotAwareMessageManager(session_pool, js)
 
     tr_middleware = TranslatorRunnerMiddleware(create_translator_hub())
+    bl_middleware = BlacklistMiddleware()
 
     dp.message.middleware(tr_middleware)
     dp.message.middleware(db_middleware)
+    dp.message.middleware(bl_middleware)
     dp.callback_query.middleware(tr_middleware)
     dp.callback_query.middleware(db_middleware)
+    dp.callback_query.middleware(bl_middleware)
     dp.errors.middleware(tr_middleware)
 
     dp.include_router(dialogs_router)
