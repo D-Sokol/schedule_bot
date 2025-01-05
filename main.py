@@ -19,11 +19,11 @@ from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from bot_registry.users import DbUserRegistry
-from db_middleware import DbSessionMiddleware
-from i18n_middleware import TranslatorRunnerMiddleware, create_translator_hub
 from dialogs import all_dialogs
 from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs.utils import BotAwareMessageManager
+from middlewares.registry import DbSessionMiddleware
+from middlewares.i18n import TranslatorRunnerMiddleware, create_translator_hub
 
 from services.converter import convert_loop
 from services.renderer import render_loop
