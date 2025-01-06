@@ -17,16 +17,25 @@ def create_translator_hub() -> TranslatorHub:
         },
         [
             FluentTranslator(
-                locale="ru",
+                locale=locale,
                 translator=FluentBundle.from_files(
-                    locale="ru-RU",
-                    filenames=list(Path("locales/ru/LC_MESSAGES/").glob("*.ftl")),
+                    locale=locale,
+                    filenames=list(Path(f"locales/{locale}/LC_MESSAGES/").glob("*.ftl")),
                 )
-            ),
+            )
+            for locale in all_translator_locales()
         ],
         root_locale="ru",
     )
     return translator_hub
+
+
+def all_translator_locales() -> list[str]:
+    return ["ru"]
+
+
+def root_locale() -> str:
+    return all_translator_locales()[0]
 
 
 class TranslatorRunnerMiddleware(BaseMiddleware):

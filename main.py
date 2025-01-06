@@ -14,7 +14,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent
 from aiogram_dialog import setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
-from fluentogram import TranslatorRunner
+from fluentogram import TranslatorRunner, TranslatorHub
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
@@ -22,10 +22,10 @@ from bot_registry.users import DbUserRegistry
 from dialogs import all_dialogs
 from dialogs.utils import BotAwareMessageManager
 from middlewares.registry import DbSessionMiddleware
-from middlewares.i18n import TranslatorRunnerMiddleware, create_translator_hub
+from middlewares.i18n import TranslatorRunnerMiddleware, create_translator_hub, all_translator_locales, root_locale
 from middlewares.blacklist import BlacklistMiddleware
 
-from commands import commands_router
+from commands import commands_router, set_commands
 from services.converter import convert_loop
 from services.renderer import render_loop
 from services.sender import sender_loop
@@ -66,11 +66,11 @@ async def setup_db(db_url: str, admin_id: int = -1, log_level: str = "WARNING") 
     return session_pool
 
 
-async def setup_middlewares(dp: Dispatcher, session_pool: async_sessionmaker, js: JetStreamContext) -> None:
+async def setup_middlewares(dp: Dispatcher, session_pool: async_sessionmaker, js: JetStreamContext, hub: TranslatorHub) -> None:
     db_middleware = DbSessionMiddleware(session_pool, js)
     message_manager = BotAwareMessageManager(session_pool, js)
 
-    tr_middleware = TranslatorRunnerMiddleware(create_translator_hub())
+    tr_middleware = TranslatorRunnerMiddleware(hub)
     bl_middleware = BlacklistMiddleware()
 
     dp.message.middleware(tr_middleware)
@@ -103,7 +103,9 @@ async def main(
 
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
-    await setup_middlewares(dp, session_pool, js)
+    hub = create_translator_hub()
+    hub_locales = all_translator_locales()
+    await setup_middlewares(dp, session_pool, js, hub)
     logging.info("Created middlewares")
 
     shutdown_event = asyncio.Event()
@@ -111,9 +113,12 @@ async def main(
     dp.shutdown.register(_shutdown)
     logging.info("Registered event for converter stopping")
 
+    logging.info("Setting up bot...")
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
-    logging.info("Starting bot...")
+    await set_commands(bot, hub=hub, locales=hub_locales, root_locale=root_locale())
     await bot.delete_webhook(drop_pending_updates=True)
+
+    logging.info("Starting bot...")
     await asyncio.gather(
         dp.start_polling(bot),
         sender_loop(js, bot, shutdown_event),
