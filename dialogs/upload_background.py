@@ -15,7 +15,7 @@ from magic_filter import F
 from bot_registry import ElementsRegistryAbstract, TemplateRegistryAbstract
 from exceptions import DuplicateNameException
 from .states import UploadBackgroundStates
-from .utils import save_to_dialog_data, active_user_id, FluentFormat
+from .utils import save_to_dialog_data, active_user_id, FluentFormat, has_admin_privileges
 
 
 logger = logging.getLogger(__file__)
@@ -156,6 +156,12 @@ async def save_image(
         message_to_answer = update
     else:
         message_to_answer = None
+
+    if user_id is None and not has_admin_privileges(manager):
+        if message_to_answer:
+            await message_to_answer.answer(i18n.get("notify-forbidden"))
+        await manager.done()
+        return
 
     try:
         new_element = await registry.save_element(

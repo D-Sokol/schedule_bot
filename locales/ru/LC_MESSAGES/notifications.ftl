@@ -29,3 +29,6 @@ notify-templates = Unused
     .local_description = Шаблон, который будет использоваться сейчас
     .global_filename = Общий шаблон.json
     .global_description = Стандартный шаблон по умолчанию
+
+
+notify-forbidden = Этот функционал доступен только для администраторов.

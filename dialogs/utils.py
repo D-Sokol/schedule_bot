@@ -30,15 +30,20 @@ def current_user_id(dialog_manager: DialogManager) -> int:
     return user.tg_id
 
 
-def current_chat_id(dialog_manager: DialogManager) -> int:
-    chat = cast(Chat, dialog_manager.middleware_data["event_chat"])
-    return chat.id
-
-
 def active_user_id(dialog_manager: DialogManager) -> int | None:
     if isinstance(dialog_manager.start_data, dict) and dialog_manager.start_data.get("global_scope"):
         return None
     return current_user_id(dialog_manager)
+
+
+def has_admin_privileges(dialog_manager: DialogManager) -> bool:
+    user = cast(User, dialog_manager.middleware_data["user"])
+    return user.is_admin
+
+
+def current_chat_id(dialog_manager: DialogManager) -> int:
+    chat = cast(Chat, dialog_manager.middleware_data["event_chat"])
+    return chat.id
 
 
 def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery | Message, Any, DialogManager], Awaitable]:

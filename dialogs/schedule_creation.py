@@ -112,7 +112,8 @@ async def process_upload_new_background(_start_data: Data, result: Data, manager
         # User cancelled upload, nothing is changed
         return
     assert isinstance(result, dict), f"Wrong type {type(result)} returned from child dialog"
-    new_record = cast(ImageAsset, result.get("element"))
+    assert result.get("element") is not None, "No element found in resulting dictionary!"
+    new_record = cast(ImageAsset, result["element"])
     manager.dialog_data["element"] = new_record
     await manager.switch_to(ScheduleStates.EXPECT_TEXT)
 

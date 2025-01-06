@@ -17,7 +17,7 @@ from magic_filter import F, MagicFilter
 from bot_registry import ElementsRegistryAbstract
 from database_models import ImageAsset
 from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
-from .utils import active_user_id, StartWithData, FluentFormat
+from .utils import StartWithData, FluentFormat, active_user_id, current_user_id, has_admin_privileges
 
 
 logger = logging.getLogger(__file__)
@@ -80,7 +80,13 @@ async def delete_image_handler(callback: CallbackQuery, _widget: Button, manager
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
     element: ImageAsset = manager.dialog_data["element"]
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
-    await registry.delete_element(active_user_id(manager), element.element_id)
+    user_id = active_user_id(manager)
+
+    if user_id is None and not has_admin_privileges(manager):
+        logger.info("Removing global assets is blocked for user %d", current_user_id(manager))
+        await callback.answer(i18n.get("notify-forbidden"))
+        return
+    await registry.delete_element(user_id, element.element_id)
     await callback.answer(i18n.get("notify-remove_image", escaped_name=element.name))
 
 
@@ -111,33 +117,52 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
 
 async def make_new_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
     element: ImageAsset = manager.dialog_data["element"]
-    await registry.reorder_make_first(active_user_id(manager), element.element_id)
+    user_id = active_user_id(manager)
+
+    if user_id is None and not has_admin_privileges(manager):
+        logger.info("Reordering global assets is blocked for user %d", current_user_id(manager))
+        await callback.answer(i18n.get("notify-forbidden"))
+        return
+    await registry.reorder_make_first(user_id, element.element_id)
     await manager.switch_to(BackgroundsStates.START)
 
-    i18n: TranslatorRunner = manager.middleware_data["i18n"]
     await callback.answer(i18n.get("notify-reorder.first", name=html.escape(element.name)))
 
 
 async def make_old_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
     element: ImageAsset = manager.dialog_data["element"]
-    await registry.reorder_make_last(active_user_id(manager), element.element_id)
+    user_id = active_user_id(manager)
+
+    if user_id is None and not has_admin_privileges(manager):
+        logger.info("Reordering global assets is blocked for user %d", current_user_id(manager))
+        await callback.answer(i18n.get("notify-forbidden"))
+        return
+    await registry.reorder_make_last(user_id, element.element_id)
     await manager.switch_to(BackgroundsStates.START)
 
-    i18n: TranslatorRunner = manager.middleware_data["i18n"]
     await callback.answer(i18n.get("notify-reorder.last", name=html.escape(element.name)))
 
 
 async def rename_image(
-        _update: Message,
+        message: Message,
         _widget: Any,
         manager: DialogManager,
         data: str,
 ):
     element: ImageAsset = manager.dialog_data["element"]
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
-    await registry.update_element_name(active_user_id(manager), element.element_id, name=data)
+    user_id = active_user_id(manager)
+
+    if user_id is None and not has_admin_privileges(manager):
+        logger.info("Renaming global assets is blocked for user %d", current_user_id(manager))
+        i18n: TranslatorRunner = manager.middleware_data["i18n"]
+        await message.answer(i18n.get("notify-forbidden"))
+        return
+    await registry.update_element_name(user_id, element.element_id, name=data)
     await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
