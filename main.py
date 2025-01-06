@@ -6,13 +6,13 @@ import sqlalchemy
 from contextlib import suppress
 from typing import cast
 
-from aiogram import Bot, Dispatcher, Router
+from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import CommandStart, ExceptionTypeFilter
+from aiogram.filters import ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Message, ErrorEvent
-from aiogram_dialog import DialogManager, setup_dialogs
+from aiogram.types import ErrorEvent
+from aiogram_dialog import setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
 from fluentogram import TranslatorRunner
 from nats.js import JetStreamContext
@@ -20,23 +20,15 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from bot_registry.users import DbUserRegistry
 from dialogs import all_dialogs
-from dialogs.main_menu import MainMenuStates as MainMenuStates
 from dialogs.utils import BotAwareMessageManager
 from middlewares.registry import DbSessionMiddleware
 from middlewares.i18n import TranslatorRunnerMiddleware, create_translator_hub
 from middlewares.blacklist import BlacklistMiddleware
 
+from commands import commands_router
 from services.converter import convert_loop
 from services.renderer import render_loop
 from services.sender import sender_loop
-
-
-dialogs_router = Router(name="start")
-
-
-@dialogs_router.message(CommandStart())
-async def handler(_: Message, dialog_manager: DialogManager) -> None:
-    await dialog_manager.start(MainMenuStates.START)
 
 
 # This handler must be registered via DP instead of `dialogs_router`
@@ -89,7 +81,7 @@ async def setup_middlewares(dp: Dispatcher, session_pool: async_sessionmaker, js
     dp.callback_query.middleware(bl_middleware)
     dp.errors.middleware(tr_middleware)
 
-    dp.include_router(dialogs_router)
+    dp.include_router(commands_router)
     dp.include_routers(*all_dialogs)
     dp.error.register(handle_old_button, ExceptionTypeFilter(UnknownIntent))
     setup_dialogs(dp, message_manager=message_manager)
