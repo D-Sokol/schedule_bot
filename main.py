@@ -12,27 +12,27 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent
-from aiogram_dialog import setup_dialogs
+from aiogram_dialog import DialogManager, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
 from fluentogram import TranslatorRunner, TranslatorHub
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from bot_registry.users import DbUserRegistry
+from commands import commands_router, set_commands
 from dialogs import all_dialogs
+from dialogs.states import MainMenuStates
 from dialogs.utils import BotAwareMessageManager
 from middlewares.registry import DbSessionMiddleware
 from middlewares.i18n import TranslatorRunnerMiddleware, create_translator_hub, all_translator_locales, root_locale
 from middlewares.blacklist import BlacklistMiddleware
-
-from commands import commands_router, set_commands
 from services.converter import convert_loop
 from services.renderer import render_loop
 from services.sender import sender_loop
 
 
 # This handler must be registered via DP instead of `dialogs_router`
-async def handle_old_button(event: ErrorEvent, i18n: TranslatorRunner) -> None:
+async def handle_old_button(event: ErrorEvent, i18n: TranslatorRunner, dialog_manager: DialogManager) -> None:
     exc = cast(UnknownIntent, event.exception)
     logging.info("Old button used: %s", exc)
     if (callback_query := event.update.callback_query) is not None:
@@ -40,10 +40,13 @@ async def handle_old_button(event: ErrorEvent, i18n: TranslatorRunner) -> None:
             await callback_query.answer(i18n.get("notify-unknown_intent"))
             await callback_query.message.delete()  # type: ignore[union-attr]
     else:
-        logging.warning(
+        logging.error(
             "Unknown Intent for non-callback type: %s",
             event.model_dump_json(exclude_none=True, exclude_defaults=True, exclude_unset=True),
         )
+
+    if dialog_manager.current_stack().empty():
+        await dialog_manager.start(MainMenuStates.START)
 
 
 async def _shutdown(shutdown_event: asyncio.Event):
