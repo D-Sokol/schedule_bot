@@ -1,0 +1,12 @@
+NOTES
+.env
+
+.venv/
+.git/
+.mypy_cache/
+
+data/nats/data/
+data/nui/
+data/pgadmin/
+data/postgres_data/
+data/web/

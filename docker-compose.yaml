@@ -1,4 +1,58 @@
 services:
+  bot:
+    image: schedule_bot
+    container_name: bot
+    restart: "no"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      TOKEN: "$TOKEN"
+      ADMIN_ID: "$ADMIN_ID"
+      DB_URL: "$DB_URL"
+      NATS_SERVERS: "$NATS_SERVERS"
+
+      LOG_LEVEL: INFO
+    depends_on:
+      - db
+      - nats
+      - sender
+      - renderer
+      - converter
+
+  sender:
+    image: schedule_bot
+    container_name: sender
+    restart: "no"
+    environment:
+      TOKEN: "$TOKEN"
+      NATS_SERVERS: "$NATS_SERVERS"
+    entrypoint: ["python3", "-m", "services.sender"]
+    depends_on:
+      - nats
+
+  renderer:
+    image: schedule_bot
+    container_name: renderer
+    restart: "no"
+    environment:
+      DB_URL: "$DB_URL"
+      NATS_SERVERS: "$NATS_SERVERS"
+    entrypoint: ["python3", "-m", "services.renderer"]
+    depends_on:
+      - db
+      - nats
+
+  converter:
+    image: schedule_bot
+    container_name: converter
+    restart: "no"
+    environment:
+      NATS_SERVERS: "$NATS_SERVERS"
+    entrypoint: ["python3", "-m", "services.converter"]
+    depends_on:
+      - nats
+
   db:
     image: postgres:17.0-alpine
     container_name: db
@@ -44,7 +98,7 @@ services:
     container_name: nats-nui
     restart: "no"
     ports:
-      - "31311:31311"  # Порт для доступа к NATS NUI
+      - "31311:31311"
     volumes:
       - "./data/nui/db:/db"
     depends_on:

@@ -124,9 +124,9 @@ async def main(
     logging.info("Starting bot...")
     await asyncio.gather(
         dp.start_polling(bot),
-        sender_loop(js, bot, shutdown_event),
-        convert_loop(js, shutdown_event),  # TODO: launch as a separate process.
-        render_loop(js, session_pool, shutdown_event),  # TODO: launch as a separate process.
+        # sender_loop(js, bot, shutdown_event),
+        # convert_loop(js, shutdown_event),  # TODO: launch as a separate process.
+        # render_loop(js, session_pool, shutdown_event),  # TODO: launch as a separate process.
     )
 
 
