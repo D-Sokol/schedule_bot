@@ -59,13 +59,22 @@ class TextPatch(BasePositionedPatch):
     font_name: str = "Arial.ttf"
     stroke_width: int = 0
     stroke_fill: str | None = Field(default=None, alias="stroke_color")
+    capitalization: Literal["u", "l", "c"] | None = Field(default=None)
 
     _font: ImageFont.FreeTypeFont
 
     async def apply(self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], **kwargs) -> None:
+        formatted_text = self.template.format(**format_args)
+        if self.capitalization == "u":
+            formatted_text = formatted_text.upper()
+        elif self.capitalization == "l":
+            formatted_text = formatted_text.lower()
+        elif self.capitalization == "c":
+            formatted_text = formatted_text.capitalize()
+
         draw.multiline_text(
             xy=self.xy,
-            text=self.template.format(**format_args),
+            text=formatted_text,
             fill=self.fill,
             font=self._font,
             anchor=self.anchor,
