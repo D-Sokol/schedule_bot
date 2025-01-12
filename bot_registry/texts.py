@@ -25,7 +25,7 @@ class ScheduleRegistryAbstract(ABC):
         r"""
             (\w+)\s+  # weekday: пн
             (\d{1,2}:\d{1,2})\s+  # time: 17:00
-            (?:\((\w+)\)\s+)?  # tag in brackets: (platform1)
+            (?:\(([\w, ]+)\)\s+)?  # tag in brackets: (platform1,platform2)
             (.*)  # The following is entry description 
         """,
         re.VERBOSE,
@@ -82,7 +82,9 @@ class ScheduleRegistryAbstract(ABC):
             # Note: int("09") == 9
             h, m = map(int, time_str.split(":"))
             entry = Entry(
-                time=Time(hour=h, minute=m), description=desc, tags=set(tags_str.split(",") if tags_str else ())
+                time=Time(hour=h, minute=m),
+                description=desc,
+                tags={t.strip() for t in tags_str.split(",")} if tags_str else set(),
             )
             schedule[weekday].append(entry)
 
