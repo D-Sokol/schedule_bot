@@ -60,21 +60,25 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore, session_poo
     background = Image.open(io.BytesIO(background_data.data), formats=[IMAGE_FORMAT]).convert(mode="RGB")
     draw = ImageDraw.ImageDraw(background, mode="RGBA")
 
-    async with (session_pool or nullcontext)() as session:
-        await template.apply(background, draw, start_date, schedule, store=store, session=session)
+    try:
+        async with (session_pool or nullcontext)() as session:
+            await template.apply(background, draw, start_date, schedule, store=store, session=session)
 
-    stream = io.BytesIO()
-    background.save(stream, format=IMAGE_FORMAT)
+        stream = io.BytesIO()
+        background.save(stream, format=IMAGE_FORMAT)
 
-    logging.debug("Created schedule for %s", user_id)
-    await js.publish(
-        subject=OUTPUT_SUBJECT_NAME,
-        payload=stream.getvalue(),
-        headers={
-            USER_ID_HEADER: user_id,
-            CHAT_ID_HEADER: chat_id,
-        },
-    )
+        logging.debug("Created schedule for %s", user_id)
+        await js.publish(
+            subject=OUTPUT_SUBJECT_NAME,
+            payload=stream.getvalue(),
+            headers={
+                USER_ID_HEADER: user_id,
+                CHAT_ID_HEADER: chat_id,
+            },
+        )
+    except ValueError as e:
+        logger.warning("Cannot render desired image: %s", e, exc_info=True)
+
     await msg.ack()
 
 
