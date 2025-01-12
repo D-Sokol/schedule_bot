@@ -50,7 +50,8 @@ async def process_date_selected(
     chat_id = current_chat_id(manager)
     schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
     template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
-    logger.info("Selected date: %s", selected_date.isoformat())
+    result_date = selected_date - timedelta(days=selected_date.weekday())  # First day of selected week (always Monday)
+    logger.info("Selected date: %s, start of week: %s", selected_date.isoformat(), result_date.isoformat())
     schedule: Schedule = manager.dialog_data["schedule"]
     element: ImageAsset = manager.dialog_data["element"]
     template = (await template_registry.get_template(user_id)) or (await template_registry.get_template(None))
@@ -58,7 +59,7 @@ async def process_date_selected(
         logger.error("No template for user %d and global template is also missing!", user_id)
         return
     await asyncio.gather(
-        schedule_registry.render_schedule(user_id, chat_id, schedule, element, template, selected_date),
+        schedule_registry.render_schedule(user_id, chat_id, schedule, element, template, result_date),
         schedule_registry.update_last_schedule(user_id, schedule)
     )
     await manager.switch_to(ScheduleStates.FINISH)
