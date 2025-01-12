@@ -141,13 +141,9 @@ class PatchSet(BasePatch):
             tags: set[str] | None = None,
             **kwargs
     ) -> None:
-        await asyncio.gather(
-            *(
-                patch.apply(image, draw, format_args, **kwargs)
-                for patch in self.patches
-                if patch.is_visible(tags)
-            )
-        )
+        for patch in self.patches:
+            if patch.is_visible(tags):
+                await patch.apply(image, draw, format_args, **kwargs)
 
     @model_validator(mode="before")
     @classmethod
