@@ -26,9 +26,6 @@ from dialogs.utils import BotAwareMessageManager
 from middlewares.registry import DbSessionMiddleware
 from middlewares.i18n import TranslatorRunnerMiddleware, create_translator_hub, all_translator_locales, root_locale
 from middlewares.blacklist import BlacklistMiddleware
-from services.converter import convert_loop
-from services.renderer import render_loop
-from services.sender import sender_loop
 
 
 # This handler must be registered via DP instead of `dialogs_router`
