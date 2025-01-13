@@ -66,8 +66,6 @@ services:
       POSTGRES_USER: "$POSTGRES_USER"
     volumes:
       - ./data/postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -89,9 +87,6 @@ services:
     restart: "no"
     entrypoint: /nats-server
     command: "-c /config/server.conf"
-    ports:
-      - "4222:4222"
-      - "8222:8222"
     volumes:
       - "./data/nats/data:/data"
       - "./data/nats/server.conf:/config/server.conf:ro"
