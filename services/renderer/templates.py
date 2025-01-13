@@ -56,7 +56,7 @@ class TextPatch(BasePositionedPatch):
     # See https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html#text-anchors for anchors
     anchor: str = Field(default="la", pattern=r"[lmr][amsbd]")
     font_size: int = 20
-    font_name: str = "Arial.ttf"
+    font_name: str = "FreeSans.ttf"
     stroke_width: int = 0
     stroke_fill: str | None = Field(default=None, alias="stroke_color")
     capitalization: Literal["u", "l", "c"] | None = Field(default=None)

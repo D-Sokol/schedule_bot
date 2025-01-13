@@ -13,6 +13,9 @@ services:
       NATS_SERVERS: "$NATS_SERVERS"
 
       LOG_LEVEL: INFO
+      LC_TIME: "ru_RU.UTF-8"
+    volumes:
+      - ./data/fonts:/root/.local/share/fonts
     depends_on:
       - db
       - nats
