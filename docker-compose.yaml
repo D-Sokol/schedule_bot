@@ -2,7 +2,7 @@ services:
   bot:
     image: schedule_bot
     container_name: bot
-    restart: "no"
+    restart: "unless-stopped"
     build:
       context: .
       dockerfile: Dockerfile
@@ -26,7 +26,7 @@ services:
   sender:
     image: schedule_bot
     container_name: sender
-    restart: "no"
+    restart: "unless-stopped"
     environment:
       TOKEN: "$TOKEN"
       NATS_SERVERS: "nats://nats:4222"
@@ -37,7 +37,7 @@ services:
   renderer:
     image: schedule_bot
     container_name: renderer
-    restart: "no"
+    restart: "unless-stopped"
     environment:
       DB_URL: "$DB_URL"
       NATS_SERVERS: "nats://nats:4222"
@@ -50,7 +50,7 @@ services:
   converter:
     image: schedule_bot
     container_name: converter
-    restart: "no"
+    restart: "unless-stopped"
     environment:
       NATS_SERVERS: "nats://nats:4222"
     entrypoint: ["python3", "-m", "services.converter"]
@@ -60,7 +60,7 @@ services:
   db:
     image: postgres:17.0-alpine
     container_name: db
-    restart: "no"
+    restart: "unless-stopped"
     shm_size: 128mb
     environment:
       POSTGRES_PASSWORD: "$POSTGRES_PASSWORD"
@@ -71,7 +71,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
-    restart: "no"
+    restart: "unless-stopped"
     ports:
       - "8080:80"
     environment:
@@ -85,7 +85,7 @@ services:
   nats:
     image: nats:latest
     container_name: nats
-    restart: "no"
+    restart: "unless-stopped"
     entrypoint: /nats-server
     command: "-c /config/server.conf"
     volumes:
@@ -95,7 +95,7 @@ services:
   nats-nui:
     image: ghcr.io/nats-nui/nui:latest
     container_name: nats-nui
-    restart: "no"
+    restart: "unless-stopped"
     ports:
       - "31311:31311"
     volumes:
