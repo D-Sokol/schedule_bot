@@ -13,7 +13,7 @@ from aiogram.filters import ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent
 from aiogram_dialog import DialogManager, setup_dialogs
-from aiogram_dialog.api.exceptions import UnknownIntent
+from aiogram_dialog.api.exceptions import UnknownIntent, OutdatedIntent
 from fluentogram import TranslatorRunner, TranslatorHub
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -39,7 +39,8 @@ async def handle_old_button(event: ErrorEvent, i18n: TranslatorRunner, dialog_ma
     else:
         logging.error(
             "Unknown Intent for non-callback type: %s",
-            event.model_dump_json(exclude_none=True, exclude_defaults=True, exclude_unset=True),
+            # Cannot use model_dump_json since exceptions are usually not JSON-serializable
+            event.model_dump(exclude_none=True, exclude_defaults=True, exclude_unset=True),
         )
 
     if dialog_manager.current_stack().empty():
@@ -83,7 +84,7 @@ async def setup_middlewares(dp: Dispatcher, session_pool: async_sessionmaker, js
 
     dp.include_router(commands_router)
     dp.include_routers(*all_dialogs)
-    dp.error.register(handle_old_button, ExceptionTypeFilter(UnknownIntent))
+    dp.error.register(handle_old_button, ExceptionTypeFilter(UnknownIntent, OutdatedIntent))
     setup_dialogs(dp, message_manager=message_manager)
 
 
