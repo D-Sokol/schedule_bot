@@ -10,7 +10,7 @@ services:
       TOKEN: "$TOKEN"
       ADMIN_ID: "$ADMIN_ID"
       DB_URL: "$DB_URL"
-      NATS_SERVERS: "$NATS_SERVERS"
+      NATS_SERVERS: "nats://nats:4222"
 
       LOG_LEVEL: INFO
       LC_TIME: "ru_RU.UTF-8"
@@ -29,7 +29,7 @@ services:
     restart: "no"
     environment:
       TOKEN: "$TOKEN"
-      NATS_SERVERS: "$NATS_SERVERS"
+      NATS_SERVERS: "nats://nats:4222"
     entrypoint: ["python3", "-m", "services.sender"]
     depends_on:
       - nats
@@ -40,7 +40,7 @@ services:
     restart: "no"
     environment:
       DB_URL: "$DB_URL"
-      NATS_SERVERS: "$NATS_SERVERS"
+      NATS_SERVERS: "nats://nats:4222"
       LC_TIME: "ru_RU.UTF-8"
     entrypoint: ["python3", "-m", "services.renderer"]
     depends_on:
@@ -52,7 +52,7 @@ services:
     container_name: converter
     restart: "no"
     environment:
-      NATS_SERVERS: "$NATS_SERVERS"
+      NATS_SERVERS: "nats://nats:4222"
     entrypoint: ["python3", "-m", "services.converter"]
     depends_on:
       - nats
