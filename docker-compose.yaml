@@ -11,6 +11,7 @@ services:
       ADMIN_ID: "$ADMIN_ID"
       DB_URL: "$DB_URL"
       NATS_SERVERS: "nats://nats:4222"
+      SOURCE_CODE_URL: "$SOURCE_CODE_URL"
 
       LOG_LEVEL: INFO
       LC_TIME: "ru_RU.UTF-8"

@@ -92,6 +92,7 @@ async def main(
         token: str,
         db_url: str,
         nats_servers: str,
+        source_code_url: str,
         log_level: str = "WARNING",
         admin_id: int = -1,
 ) -> None:
@@ -104,6 +105,7 @@ async def main(
 
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
+    dp["source_code_url"] = source_code_url
     hub = create_translator_hub()
     hub_locales = all_translator_locales()
     await setup_middlewares(dp, session_pool, js, hub)
@@ -128,6 +130,7 @@ if __name__ == '__main__':
     database_url = os.getenv("DB_URL")
     admin_tg_id = int(os.getenv("ADMIN_ID") or -1)
     nats_servers_ = os.getenv("NATS_SERVERS")
+    source_code_url_ = os.getenv("SOURCE_CODE_URL")
     if bot_token is None:
         logging.critical("Cannot run without bot token")
         exit(2)
@@ -137,10 +140,20 @@ if __name__ == '__main__':
     if nats_servers_ is None:
         logging.critical("Cannot run instance without nats url")
         exit(2)
+    if source_code_url_ is None:
+        logging.critical("Please provide an url to source code repository according to license requirements")
+        exit(2)
     log_level_ = os.getenv("LOG_LEVEL", "WARNING")
     logging.basicConfig(
         level=log_level_,
         format="{filename}:{lineno} #{levelname:8} [{asctime}] - {name} - {message}",
         style="{",
     )
-    asyncio.run(main(bot_token, database_url, nats_servers_, log_level=log_level_, admin_id=admin_tg_id))
+    asyncio.run(main(
+        bot_token,
+        database_url,
+        nats_servers_,
+        log_level=log_level_,
+        admin_id=admin_tg_id,
+        source_code_url=source_code_url_,
+    ))

@@ -10,6 +10,7 @@ import msgpack
 from fluentogram import TranslatorRunner
 
 from database_models import User, ImageAsset
+from fluentogram_utils import clear_fluentogram_message
 from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER, START_DATE_HEADER, CHAT_ID_HEADER
 from services.renderer.templates import Template
 from services.renderer.weekdays import WeekDay, Time, Entry, Schedule
@@ -60,7 +61,7 @@ class ScheduleRegistryAbstract(ABC):
         weekdays = self.load_weekdays()
         unparsed = []
         for line in text.splitlines():
-            line = line.strip().replace('\u2068', '')  # fluent things
+            line = clear_fluentogram_message(line.strip())
             if not line:
                 continue
             match = self._ENTRY_PATTERN.fullmatch(line)
