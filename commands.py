@@ -9,7 +9,7 @@ from fluentogram import TranslatorRunner, TranslatorHub
 
 from database_models import User
 from dialogs.states import MainMenuStates, BackgroundsStates, TemplatesStates, ScheduleStates, UploadBackgroundStates
-
+from fluentogram_utils import clear_fluentogram_message
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +78,15 @@ async def schedule_creation_handler(_: Message, dialog_manager: DialogManager) -
 
 
 @commands_router.message(Command("help"))
-async def help_handler(message: Message, dialog_manager: DialogManager, i18n: TranslatorRunner) -> None:
-    await message.answer(i18n.get("notify-help"))
+async def help_handler(
+        message: Message,
+        dialog_manager: DialogManager,
+        i18n: TranslatorRunner,
+        source_code_url: str,
+) -> None:
+    help_text = i18n.get("notify-help", source_code_url=source_code_url)
+    help_text = clear_fluentogram_message(help_text)  # Clearing extra symbols is required for links.
+    await message.answer(help_text)
     if not dialog_manager.current_stack().empty():
         logger.debug("Showing dialog message again")
         await dialog_manager.show(ShowMode.DELETE_AND_SEND)
