@@ -2,7 +2,7 @@ import io
 import locale
 from abc import ABC, abstractmethod
 from datetime import date, timedelta
-from functools import lru_cache
+from functools import lru_cache, cached_property
 from typing import Annotated, Any, Literal
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
@@ -69,7 +69,9 @@ class TextPatch(BasePositionedPatch):
     stroke_fill: str | None = Field(default=None, alias="stroke_color")
     capitalization: Literal["u", "l", "c"] | None = Field(default=None)
 
-    _font: ImageFont.FreeTypeFont
+    @cached_property
+    def _font(self) -> ImageFont.FreeTypeFont:
+        return load_font(self.font_name, self.font_size)
 
     async def apply(self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], **kwargs) -> None:
         formatted_text = self.template.format(**format_args)
@@ -90,12 +92,11 @@ class TextPatch(BasePositionedPatch):
             stroke_fill=self.stroke_fill,
         )
 
-    def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
+    def check(self) -> None:
         _ = ImageColor.getrgb(self.fill)
         if self.stroke_fill is not None:
             _ = ImageColor.getrgb(self.stroke_fill)
-        self._font = load_font(self.font_name, self.font_size)
+        _ = self._font
 
 
 class ImagePatch(BasePositionedPatch):
