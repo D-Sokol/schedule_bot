@@ -38,14 +38,22 @@ class BasePatch(TemplateModel, ABC):
 
 class BasePositionedPatch(BasePatch, ABC):
     xy: tuple[int, int]
-    required_tag: str | None = Field(default=None, alias="tag")
+    required_tag: str | None = Field(default=None, alias="tag", deprecated=True)
+    required_tags: set[str] | None = None
+    forbidden_tags: set[str] | None = None
 
     def is_visible(self, tags: set[str] | None = None) -> bool:
-        if self.required_tag is None:
-            return True
+        assert self.required_tag is None
         if tags is None:
-            return False
-        return self.required_tag in tags
+            return not self.required_tags
+        return self.required_tags.issubset(tags) and self.forbidden_tags.isdisjoint(tags)
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.required_tag is not None:
+            if self.required_tags is None:
+                self.required_tags = set()
+            self.required_tags.add(self.required_tag)
+            self.required_tag = None
 
 
 class TextPatch(BasePositionedPatch):
@@ -83,6 +91,7 @@ class TextPatch(BasePositionedPatch):
         )
 
     def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
         _ = ImageColor.getrgb(self.fill)
         if self.stroke_fill is not None:
             _ = ImageColor.getrgb(self.stroke_fill)
