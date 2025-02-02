@@ -46,7 +46,9 @@ class BasePositionedPatch(BasePatch, ABC):
         assert self.required_tag is None
         if tags is None:
             return not self.required_tags
-        return self.required_tags.issubset(tags) and self.forbidden_tags.isdisjoint(tags)
+        required = self.required_tags or set()
+        forbidden = self.forbidden_tags or set()
+        return required.issubset(tags) and forbidden.isdisjoint(tags)
 
     def model_post_init(self, __context: Any) -> None:
         if self.required_tag is not None:
