@@ -3,7 +3,7 @@ import locale
 from abc import ABC, abstractmethod
 from datetime import date, timedelta
 from functools import lru_cache, cached_property
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, ClassVar
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 from nats.js.errors import ObjectNotFoundError
@@ -180,6 +180,8 @@ class DayPatch(TemplateModel):
     if_none: PatchSet = Field(default_factory=PatchSet)
     record_patches: list[PatchSet] = Field(default_factory=list)
 
+    TOTAL_TAG_TEMPLATE: ClassVar[str] = "total={}"
+
     async def apply(
             self,
             image: Image.Image,
@@ -189,9 +191,11 @@ class DayPatch(TemplateModel):
             **kwargs
     ) -> None:
         await self.always.apply(image, draw, format_args, **kwargs)
+        n_total = len(entries)
         for entry, record_patch in zip(entries, self.record_patches):
             format_args["entry"] = entry
-            await record_patch.apply(image, draw, format_args, tags=entry.tags, **kwargs)
+            tags = entry.tags | {self.TOTAL_TAG_TEMPLATE.format(n_total)}
+            await record_patch.apply(image, draw, format_args, tags=tags, **kwargs)
         if not entries:
             await self.if_none.apply(image, draw, format_args, **kwargs)
 
