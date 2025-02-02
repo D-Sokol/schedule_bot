@@ -73,7 +73,10 @@ class TextPatch(BasePositionedPatch):
 
     @cached_property
     def _font(self) -> ImageFont.FreeTypeFont:
-        return load_font(self.font_name, self.font_size)
+        try:
+            return load_font(self.font_name, self.font_size)
+        except OSError as e:
+            raise ValueError(f"No font named {self.font_name}") from e
 
     async def apply(self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], **kwargs) -> None:
         formatted_text = self.template.format(**format_args)
