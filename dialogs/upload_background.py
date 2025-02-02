@@ -67,7 +67,7 @@ async def handle_image_upload(
         logger.debug("Accepted document object")
         file_id = document.file_id
         file_size = cast(int, document.file_size)
-        sent_name = None
+        sent_name = message.caption or document.file_name or None
         is_document = True
     else:
         assert False, "Filters is not properly configured"
