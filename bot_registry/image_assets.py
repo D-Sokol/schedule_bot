@@ -11,7 +11,7 @@ import sqlalchemy.exc
 from PIL import Image
 from nats.js.errors import ObjectNotFoundError
 from nats.js.object_store import ObjectStore
-from sqlalchemy import func, select, update, delete
+from sqlalchemy import func, select, update, delete, text
 
 from services.converter import IMAGE_FORMAT, SAVE_NAME_HEADER, RESIZE_MODE_HEADER, TARGET_SIZE_HEADER
 from database_models import ImageAsset
@@ -353,6 +353,18 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
 
     async def delete_element(self, user_id: int | None, element_id: str | UUID) -> None:
         logger.info("Removing %s/%s", user_id, element_id)
+        await self.session.execute(
+            update(ImageAsset)
+            .where(
+                ImageAsset.user_id == user_id,
+                ImageAsset.display_order > (
+                    select(ImageAsset.display_order)
+                    .where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
+                    .scalar_subquery()
+                )
+            )
+            .values(display_order=ImageAsset.display_order - text("1"))
+        )
         await self.session.execute(
             delete(ImageAsset)
             .where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
