@@ -181,7 +181,7 @@ async def save_image(
     if message_to_answer:
         await message_to_answer.answer(i18n.get("notify-saved_image", escaped_name=html.escape(data)))
     # Since we send a custom message, dialogs should send new one to use the latest message in the chat
-    await manager.done(result={"element": new_element}, show_mode=ShowMode.SEND)
+    await manager.done(result={"element_id": new_element.element_id}, show_mode=ShowMode.SEND)
 
 
 async def save_image_auto_name(
