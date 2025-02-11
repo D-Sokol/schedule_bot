@@ -115,6 +115,11 @@ services:
     restart: "unless-stopped"
     entrypoint: /nats-server
     command: "-c /config/server.conf"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
     volumes:
       - "./data/nats/data:/data"
       - "./data/nats/server.conf:/config/server.conf:ro"
