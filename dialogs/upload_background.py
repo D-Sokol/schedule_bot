@@ -92,7 +92,7 @@ async def handle_image_upload(
     try:
         image = Image.open(file)
     except UnidentifiedImageError:
-        logger.info("Image rejected: cannot open as image")
+        logger.info("Image rejected: cannot open as image (file_id %s)", file_id)
         manager.dialog_data["fail_reason"] = UNREADABLE_ERROR_REASON
         await manager.switch_to(UploadBackgroundStates.UPLOAD_FAILED)
         return
@@ -100,7 +100,6 @@ async def handle_image_upload(
     width, height = image.size
     manager.dialog_data["real_width"] = width
     manager.dialog_data["real_height"] = height
-    manager.dialog_data["document"] = image
     manager.dialog_data["resize_mode"] = "ignore"
 
     if not is_document:
@@ -142,7 +141,6 @@ async def save_image(
 ):
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
-    image: Image.Image = manager.dialog_data["document"]
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
     resize_mode = manager.dialog_data["resize_mode"]
     file_id = manager.dialog_data["file_id"]
@@ -165,7 +163,7 @@ async def save_image(
 
     try:
         new_element = await registry.save_element(
-            image, user_id,
+            None, user_id,
             element_name=data,
             file_id_document=file_id if file_type == "document" else None,
             file_id_photo=file_id if file_type == "photo" else None,

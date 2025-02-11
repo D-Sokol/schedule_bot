@@ -68,6 +68,7 @@ services:
     container_name: converter
     restart: "unless-stopped"
     environment:
+      TOKEN: "$TOKEN"
       NATS_SERVERS: "nats://nats:4222"
     logging:
       driver: "json-file"
