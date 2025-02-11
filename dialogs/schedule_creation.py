@@ -3,7 +3,7 @@ import html
 import logging
 from datetime import date, timedelta
 from functools import partial
-from typing import Any, cast
+from typing import Any
 
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import Dialog, Window, Data, DialogManager, ShowMode
@@ -14,7 +14,6 @@ from magic_filter import F
 
 from bot_registry import TemplateRegistryAbstract
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
-from database_models import ImageAsset
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
 from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates
 from .utils import current_user_id, current_chat_id, FluentFormat, handler_not_implemented_button
@@ -22,19 +21,19 @@ from .utils import current_user_id, current_chat_id, FluentFormat, handler_not_i
 logger = logging.getLogger(__file__)
 
 
-has_preselected_background_condition = F["start_data"]["element"]
-has_selected_background_condition = F["dialog_data"]["element"]
+has_preselected_background_condition = F["start_data"]["element_id"]
+has_selected_background_condition = F["dialog_data"]["element_id"]
 
 
 async def on_dialog_start(start_data: Data, manager: DialogManager):
     assert start_data is None or isinstance(start_data, dict)
-    element = None
+    element_id: str | None = None
     if start_data:
-        element = start_data.get("element")
-    manager.dialog_data["element"] = element
-    logger.info("Start planning a schedule, has preselected background: %s", element is not None)
+        element_id: str = start_data.get("element_id")
+    manager.dialog_data["element_id"] = element_id
+    logger.info("Start planning a schedule, has preselected background: %s", element_id is not None)
     initial_state = manager.current_context().state
-    if element is None:
+    if element_id is None:
         assert initial_state == ScheduleStates.START, f"Misconfigured state setting: {initial_state}"
     else:
         assert initial_state == ScheduleStates.EXPECT_TEXT, f"Misconfigured state setting: {initial_state}"
@@ -53,13 +52,13 @@ async def process_date_selected(
     result_date = selected_date - timedelta(days=selected_date.weekday())  # First day of selected week (always Monday)
     logger.info("Selected date: %s, start of week: %s", selected_date.isoformat(), result_date.isoformat())
     schedule: Schedule = manager.dialog_data["schedule"]
-    element: ImageAsset = manager.dialog_data["element"]
+    element_id: str = manager.dialog_data["element_id"]
     template = (await template_registry.get_template(user_id)) or (await template_registry.get_template(None))
     if template is None:
         logger.error("No template for user %d and global template is also missing!", user_id)
         return
     await asyncio.gather(
-        schedule_registry.render_schedule(user_id, chat_id, schedule, element, template, result_date),
+        schedule_registry.render_schedule(user_id, chat_id, schedule, element_id, template, result_date),
         schedule_registry.update_last_schedule(user_id, schedule)
     )
     await manager.switch_to(ScheduleStates.FINISH)
@@ -113,9 +112,8 @@ async def process_upload_new_background(_start_data: Data, result: Data, manager
         # User cancelled upload, nothing is changed
         return
     assert isinstance(result, dict), f"Wrong type {type(result)} returned from child dialog"
-    assert result.get("element") is not None, "No element found in resulting dictionary!"
-    new_record = cast(ImageAsset, result["element"])
-    manager.dialog_data["element"] = new_record
+    assert result.get("element_id") is not None, "No element id found in resulting dictionary!"
+    manager.dialog_data["element_id"] = result["element_id"]
     await manager.switch_to(ScheduleStates.EXPECT_TEXT)
 
 

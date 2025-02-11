@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import date
 from itertools import count
 from typing import cast
+from uuid import UUID
 
 import msgpack
 from fluentogram import TranslatorRunner
@@ -50,7 +51,7 @@ class ScheduleRegistryAbstract(ABC):
             user_id: int,
             chat_id: int,
             schedule: Schedule,
-            background: ImageAsset,
+            background_id: str | UUID,
             template: Template,
             start: date,
     ) -> None:
@@ -156,7 +157,7 @@ class MockScheduleRegistry(ScheduleRegistryAbstract):
             user_id: int,
             chat_id: int,
             schedule: Schedule,
-            background: ImageAsset,
+            background_id: str | UUID,
             template: Template,
             start: date,
     ) -> None:
@@ -204,7 +205,7 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
             user_id: int,
             chat_id: int,
             schedule: Schedule,
-            background: ImageAsset,
+            background_id: str | UUID,
             template: Template,
             start: date,
     ) -> None:
@@ -219,7 +220,7 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
             headers={
                 USER_ID_HEADER: str(user_id),
                 CHAT_ID_HEADER: str(chat_id),
-                ELEMENT_NAME_HEADER: f"{user_id}.{background.element_id}",
+                ELEMENT_NAME_HEADER: f"{user_id}.{background_id}",
                 START_DATE_HEADER: start.isoformat(),
             },
         )

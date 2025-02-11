@@ -23,6 +23,7 @@ logger = logging.getLogger(__file__)
 
 FILE_SIZE_LIMIT = 1 * 1024 * 1024
 
+
 async def on_dialog_start(_: Any, manager: DialogManager) -> None:
     template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
     user_id = current_user_id(manager)
