@@ -51,7 +51,7 @@ async def process_date_selected(
     template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
     result_date = selected_date - timedelta(days=selected_date.weekday())  # First day of selected week (always Monday)
     logger.info("Selected date: %s, start of week: %s", selected_date.isoformat(), result_date.isoformat())
-    schedule: Schedule = manager.dialog_data["schedule"]
+    schedule = Schedule.model_validate(manager.dialog_data["schedule"])
     element_id: str = manager.dialog_data["element_id"]
     template = (await template_registry.get_template(user_id)) or (await template_registry.get_template(None))
     if template is None:
@@ -103,7 +103,7 @@ async def process_schedule_creation(
             [i18n.get("dialog-schedule-text.warn_unparsed"), *unparsed]
         )
         await message.answer(answer)
-    manager.dialog_data["schedule"] = schedule
+    manager.dialog_data["schedule"] = schedule.model_dump(mode="json", exclude_defaults=True)
     await manager.switch_to(ScheduleStates.EXPECT_DATE)
 
 
@@ -145,7 +145,7 @@ async def process_accept_previous(_callback: CallbackQuery, _widget: Button, man
 
     schedule = await schedule_registry.get_last_schedule(user_id)
     assert schedule is not None and not schedule.is_empty(), "Displaying button error"
-    manager.dialog_data["schedule"] = schedule
+    manager.dialog_data["schedule"] = schedule.model_dump(mode="json", exclude_defaults=True)
 
 
 expect_input_window = Window(
