@@ -2,7 +2,6 @@ import io
 import json
 import logging
 from abc import ABC, abstractmethod
-from collections import defaultdict
 from datetime import datetime
 from typing import ClassVar, Literal, cast, final
 from uuid import UUID
@@ -122,75 +121,6 @@ class ElementsRegistryAbstract(ABC):
         bot_uri = bot_uri.removeprefix(cls.BOT_URI_PREFIX)
         user_id, element_id = bot_uri.split("/")
         return int(user_id) or None, element_id
-
-class MockElementRegistry(ElementsRegistryAbstract):
-    def __init__(self) -> None:
-        self.default_items = [
-            ImageAsset(name="Фон 1", element_id="1"),
-            ImageAsset(name="Фон 2", element_id="2"),
-        ]
-        self.items: dict[int | None, list] = defaultdict(lambda: self.default_items.copy())
-
-    async def get_elements(self, user_id: int | None) -> list[ImageAsset]:
-        return self.items[user_id]
-
-    async def get_element(self, user_id: int | None, element_id: str | UUID) -> ImageAsset:
-        return self.items[user_id][int(element_id) - 1]  # In the mock data ids are 1-based.
-
-    async def get_element_content(self, user_id: int | None, element_id: str | UUID) -> bytes:
-        image = Image.new("RGBA", (200, 200), "black")
-        stream = io.BytesIO()
-        image.save(stream, format="png")
-        return stream.getvalue()
-
-    async def save_element(
-            self,
-            element: Image.Image | None,
-            user_id: int | None,
-            element_name: str,
-            target_size: tuple[int, int],
-            file_id_photo: str | None = None,
-            file_id_document: str | None = None,
-            resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
-    ) -> ImageAsset:
-        logger.info("Saving %s (size %s) as '%s', mode=%s", element, element.size, element_name, resize_mode)
-        next_id = int(self.items[user_id][-1].element_id) + 1 if self.items[user_id] else 0
-        new_record = ImageAsset(
-            name=element_name,
-            id=next_id,
-            file_id_photo=file_id_photo,
-            file_id_document=file_id_document,
-        )
-        self.items[user_id].append(new_record)
-        return new_record
-
-    async def update_element_file_id(
-            self,
-            user_id: int | None,
-            element_id: str | UUID,
-            file_id: str | None,
-            file_type: Literal["photo", "document"] = "document",
-    ) -> None:
-        logger.debug("Save file_id %s for element %s.%d/%s", file_id, user_id, element_id, file_type)
-        item = await self.get_element(user_id, element_id)
-        if file_type == "photo":
-            item.file_id_photo = file_id
-        elif file_type == "document":
-            item.file_id_document = file_id
-        else:
-            logger.error("Trying to update file_id for unknown file_type: %s", file_type)
-
-    async def update_element_name(self, user_id: int | None, element_id: str | UUID, name: str) -> None:
-        pass
-
-    async def reorder_make_first(self, user_id: int | None, element_id: str | UUID) -> None:
-        pass
-
-    async def reorder_make_last(self, user_id: int | None, element_id: str | UUID) -> None:
-        pass
-
-    async def delete_element(self, user_id: int | None, element_id: str | UUID) -> None:
-        pass
 
 
 class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSRegistryMixin):

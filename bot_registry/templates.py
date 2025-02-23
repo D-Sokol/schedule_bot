@@ -24,14 +24,6 @@ class TemplateRegistryAbstract(ABC):
         await self.update_template(user_id, template=None)
 
 
-class MockTemplateRegistry(TemplateRegistryAbstract):
-    async def get_template(self, user_id: int | None) -> Template:
-        return Template()
-
-    async def update_template(self, user_id: int | None, template: Template | None) -> None:
-        pass
-
-
 class DbTemplateRegistry(TemplateRegistryAbstract, DatabaseRegistryMixin):
     async def get_template(self, user_id: int | None) -> Template | None:
         user: User | None = await self.session.get(User, user_id or 0)

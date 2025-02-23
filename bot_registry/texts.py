@@ -10,7 +10,7 @@ from uuid import UUID
 import msgpack
 from fluentogram import TranslatorRunner
 
-from database_models import User, ImageAsset
+from database_models import User
 from fluentogram_utils import clear_fluentogram_message
 from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER, START_DATE_HEADER, CHAT_ID_HEADER
 from services.renderer.templates import Template
@@ -106,62 +106,6 @@ class ScheduleRegistryAbstract(ABC):
                 line = f"{weekday.value} {entry.time} {tags}{entry.description}"
                 lines.append(line)
         return "\n".join(lines)
-
-
-class MockScheduleRegistry(ScheduleRegistryAbstract):
-    def load_weekdays(self) -> dict[str, WeekDay]:
-        _WEEKDAY_BY_NAMES: dict[str, WeekDay] = {
-            "пн": WeekDay.MONDAY,
-            "вт": WeekDay.TUESDAY,
-            "ср": WeekDay.WEDNESDAY,
-            "чт": WeekDay.THURSDAY,
-            "пт": WeekDay.FRIDAY,
-            "сб": WeekDay.SATURDAY,
-            "вс": WeekDay.SUNDAY,
-        }
-        _WEEKDAY_BY_ALIAS: dict[str, WeekDay] = {
-            "понедельник": WeekDay.MONDAY,
-            "вторник": WeekDay.TUESDAY,
-            "среда": WeekDay.WEDNESDAY,
-            "четверг": WeekDay.THURSDAY,
-            "пятница": WeekDay.FRIDAY,
-            "суббота": WeekDay.SATURDAY,
-            "субкота": WeekDay.SATURDAY,  # noqa
-            "воскресенье": WeekDay.SUNDAY,
-        }
-
-        _WEEKDAY_BY_ALL_NAMES: dict[str, WeekDay] = {**_WEEKDAY_BY_NAMES, **_WEEKDAY_BY_ALIAS}
-        assert all(s.islower() for s in _WEEKDAY_BY_ALL_NAMES)
-        return _WEEKDAY_BY_ALL_NAMES
-
-    async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
-        if user_id is not None:
-            return None
-        return Schedule(
-            records={
-                WeekDay.TUESDAY: [
-                    Entry(time=Time(hour=11, minute=0), description="Спортзал"),
-                    Entry(time=Time(hour=17, minute=30), description="Отдых"),
-                ],
-                WeekDay.FRIDAY: [
-                    Entry(time=Time(hour=11, minute=0), description="Неторопливая прогулка по парку"),
-                ],
-            }
-        )
-
-    async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
-        logger.info("Saving schedule for user %s:\n%s", user_id, schedule)
-
-    async def render_schedule(
-            self,
-            user_id: int,
-            chat_id: int,
-            schedule: Schedule,
-            background_id: str | UUID,
-            template: Template,
-            start: date,
-    ) -> None:
-        pass
 
 
 class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRegistryMixin):

@@ -17,14 +17,6 @@ class UserRegistryAbstract(ABC):
         raise NotImplementedError
 
 
-class MockUserRegistry(UserRegistryAbstract):
-    async def get_or_create_user(self, tg_id: int, create_admin: bool = False) -> User:
-        return User(tg_id=tg_id, is_admin=create_admin)
-
-    async def get_user(self, tg_id: int) -> User | None:
-        return None
-
-
 class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
     async def get_or_create_user(self, tg_id: int, create_admin: bool = False) -> User:
         statement = insert(User).values((tg_id, create_admin))
