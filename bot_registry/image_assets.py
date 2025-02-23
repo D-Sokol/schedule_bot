@@ -11,7 +11,7 @@ import sqlalchemy.exc
 from PIL import Image
 from nats.js.errors import ObjectNotFoundError
 from nats.js.object_store import ObjectStore
-from sqlalchemy import func, select, update, delete
+from sqlalchemy import func, select, update, delete, text
 
 from services.converter import IMAGE_FORMAT, SAVE_NAME_HEADER, RESIZE_MODE_HEADER, TARGET_SIZE_HEADER
 from database_models import ImageAsset
@@ -55,7 +55,7 @@ class ElementsRegistryAbstract(ABC):
     @abstractmethod
     async def save_element(
             self,
-            element: Image.Image,
+            element: Image.Image | None,
             user_id: int | None,
             element_name: str,
             target_size: tuple[int, int],
@@ -145,7 +145,7 @@ class MockElementRegistry(ElementsRegistryAbstract):
 
     async def save_element(
             self,
-            element: Image.Image,
+            element: Image.Image | None,
             user_id: int | None,
             element_name: str,
             target_size: tuple[int, int],
@@ -195,7 +195,8 @@ class MockElementRegistry(ElementsRegistryAbstract):
 
 class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSRegistryMixin):
     BUCKET_NAME: ClassVar[str] = "assets"
-    CONVERT_SUBJECT_NAME: ClassVar[str] = "assets.convert"
+    CONVERT_RAW_SUBJECT_NAME: ClassVar[str] = "assets.convert.raw"
+    CONVERT_FILE_ID_SUBJECT_NAME: ClassVar[str] = "assets.convert.file_id"
 
     async def get_elements(self, user_id: int | None) -> list[ImageAsset]:
         result = await self.session.execute(
@@ -242,7 +243,7 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
 
     async def save_element(
             self,
-            element: Image.Image,
+            element: Image.Image | None,
             user_id: int | None,
             element_name: str,
             target_size: tuple[int, int],
@@ -250,28 +251,35 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
             file_id_document: str | None = None,
             resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
     ) -> ImageAsset:
-        if resize_mode != "ignore":
-            # Image will be converted somehow, therefore these file_ids for the original file is not correct.
-            logging.debug("Ignore file ids because of resize mode is %s", resize_mode)
-            file_id_photo = file_id_document = None
+        if element is None and file_id_photo is None and file_id_document is None:
+            raise ValueError("Cannot save element without image or file_id to get it")
 
         try:
             element_record = ImageAsset(
                 user_id=user_id,
                 name=element_name,
-                file_id_photo=file_id_photo,
-                file_id_document=file_id_document,
+                file_id_photo=file_id_photo if resize_mode == "ignore" else None,
+                file_id_document=file_id_document if resize_mode == "ignore" else None,
             )
             self.session.add(element_record)
             await self.session.commit()  # sqlalchemy.exc.IntegrityError
         except sqlalchemy.exc.IntegrityError as e:
             raise DuplicateNameException(element_name) from e
 
-        stream = io.BytesIO()
-        element.save(stream, format=IMAGE_FORMAT)
+        if element is not None:
+            stream = io.BytesIO()
+            element.save(stream, format=IMAGE_FORMAT)
+            payload = stream.getvalue()
+            subject = self.CONVERT_RAW_SUBJECT_NAME
+        else:
+            file_id = file_id_document or file_id_photo
+            assert file_id is not None
+            payload = file_id.encode()
+            subject = self.CONVERT_FILE_ID_SUBJECT_NAME
+
         await self.js.publish(
-            subject=self.CONVERT_SUBJECT_NAME,
-            payload=stream.getvalue(),
+            subject=subject,
+            payload=payload,
             headers={
                 SAVE_NAME_HEADER: self._nats_object_name(user_id, element_record.element_id),
                 RESIZE_MODE_HEADER: resize_mode,
@@ -353,6 +361,18 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
 
     async def delete_element(self, user_id: int | None, element_id: str | UUID) -> None:
         logger.info("Removing %s/%s", user_id, element_id)
+        await self.session.execute(
+            update(ImageAsset)
+            .where(
+                ImageAsset.user_id == user_id,
+                ImageAsset.display_order > (
+                    select(ImageAsset.display_order)
+                    .where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
+                    .scalar_subquery()
+                )
+            )
+            .values(display_order=ImageAsset.display_order - text("1"))
+        )
         await self.session.execute(
             delete(ImageAsset)
             .where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)

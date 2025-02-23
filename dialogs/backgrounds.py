@@ -2,7 +2,6 @@ import html
 import logging
 from pathlib import Path
 from typing import Any, cast
-from uuid import UUID
 
 from aiogram.types import BufferedInputFile, ContentType, CallbackQuery, Message
 
@@ -15,7 +14,6 @@ from fluentogram import TranslatorRunner
 from magic_filter import F, MagicFilter
 
 from bot_registry import ElementsRegistryAbstract
-from database_models import ImageAsset
 from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
 from .utils import StartWithData, FluentFormat, active_user_id, current_user_id, has_admin_privileges
 
@@ -45,16 +43,28 @@ async def saved_backs_getter(
 async def selected_image_getter(
         dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, **_
 ) -> dict[str, Any]:
-    file_name: str = dialog_manager.dialog_data["element"].name
-    file_id: str = dialog_manager.dialog_data["element"].file_id_photo
+    element_id: str = dialog_manager.dialog_data["element_id"]
     user_id = active_user_id(dialog_manager)
-    element_id: UUID = dialog_manager.dialog_data["element"].element_id
+    element = await element_registry.get_element(user_id, element_id)
+    file_id: str = element.file_id_photo
+
     if file_id is None:
         file_id = element_registry.format_bot_uri(user_id, element_id)
     return {
         "background": MediaAttachment(ContentType.PHOTO, file_id=MediaId(file_id)),
-        "escaped_name": html.escape(file_name),
-        "ready": await element_registry.is_element_content_ready(user_id, element_id)
+        "escaped_name": html.escape(element.name),
+        "ready": await element_registry.is_element_content_ready(user_id, element_id),
+    }
+
+
+async def selected_image_name_getter(
+        dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, **_
+) -> dict[str, str]:
+    element_id: str = dialog_manager.dialog_data["element_id"]
+    user_id = active_user_id(dialog_manager)
+    element = await element_registry.get_element(user_id, element_id)
+    return {
+        "element_name": element.name,
     }
 
 
@@ -64,47 +74,49 @@ async def select_image_handler(
         manager: DialogManager,
         item_id: str,
 ):
-    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     user_id = active_user_id(manager)
-    element = await registry.get_element(user_id, item_id)
-    manager.dialog_data["element"] = element
-    logger.debug("Getter: selected image %s/%s, id %s", user_id, element.name, item_id)
+    manager.dialog_data["element_id"] = item_id
+    logger.debug("Getter: selected image %s/%s", user_id, item_id)
     if cast(dict[str, Any], manager.start_data)["select_only"]:
         logging.debug("Finishing dialog since select only mode requested")
-        await manager.done(result={"element": element})
+        await manager.done(result={"element_id": item_id})
     else:
         await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
 async def delete_image_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
-    element: ImageAsset = manager.dialog_data["element"]
+    element_id: str = manager.dialog_data["element_id"]
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     user_id = active_user_id(manager)
+    element = await registry.get_element(user_id, element_id)
 
     if user_id is None and not has_admin_privileges(manager):
         logger.info("Removing global assets is blocked for user %d", current_user_id(manager))
         await callback.answer(i18n.get("notify-forbidden"))
         return
-    await registry.delete_element(user_id, element.element_id)
-    await callback.answer(i18n.get("notify-remove_image", escaped_name=element.name))
+    await registry.delete_element(user_id, element_id)
+    await callback.answer(i18n.get("notify-remove_image", escaped_name=html.escape(element.name)))
 
 
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
-    element: ImageAsset = manager.dialog_data["element"]
+    user_id = active_user_id(manager)
+    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
+    element_id: str = manager.dialog_data["element_id"]
+    element = await registry.get_element(user_id, element_id)
     file_name: str = element.name
     file_id: str | None = element.file_id_document
     if file_id is not None:
         logger.debug("Sending full version for image %s", file_name)
         await callback.message.answer_document(document=file_id, caption=html.escape(file_name))
     else:
-        user_id = active_user_id(manager)
-        registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
         logger.info("Sending image %s as document via bytes", file_name)
         # We don't check existing via `.is_element_content_ready` since this is not called unless so.
-        content = await registry.get_element_content(user_id, element.element_id)
+        content = await registry.get_element_content(user_id, element_id)
         input_document = BufferedInputFile(content, filename=str(Path(file_name).with_suffix(".png")))
-        document_message = await callback.message.answer_document(document=input_document, caption=html.escape(file_name))
+        document_message = await callback.message.answer_document(
+            document=input_document, caption=html.escape(file_name)
+        )
         document = document_message.document
         assert document is not None, "document was not sent"
         logger.debug("Get file_id for document %s", file_name)
@@ -118,14 +130,15 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
 async def make_new_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
-    element: ImageAsset = manager.dialog_data["element"]
     user_id = active_user_id(manager)
+    element_id: str = manager.dialog_data["element_id"]
+    element = await registry.get_element(user_id, element_id)
 
     if user_id is None and not has_admin_privileges(manager):
         logger.info("Reordering global assets is blocked for user %d", current_user_id(manager))
         await callback.answer(i18n.get("notify-forbidden"))
         return
-    await registry.reorder_make_first(user_id, element.element_id)
+    await registry.reorder_make_first(user_id, element_id)
     await manager.switch_to(BackgroundsStates.START)
 
     await callback.answer(i18n.get("notify-reorder.first", name=html.escape(element.name)))
@@ -134,14 +147,15 @@ async def make_new_handler(callback: CallbackQuery, _widget: Button, manager: Di
 async def make_old_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
-    element: ImageAsset = manager.dialog_data["element"]
     user_id = active_user_id(manager)
+    element_id: str = manager.dialog_data["element_id"]
+    element = await registry.get_element(user_id, element_id)
 
     if user_id is None and not has_admin_privileges(manager):
         logger.info("Reordering global assets is blocked for user %d", current_user_id(manager))
         await callback.answer(i18n.get("notify-forbidden"))
         return
-    await registry.reorder_make_last(user_id, element.element_id)
+    await registry.reorder_make_last(user_id, element_id)
     await manager.switch_to(BackgroundsStates.START)
 
     await callback.answer(i18n.get("notify-reorder.last", name=html.escape(element.name)))
@@ -153,16 +167,16 @@ async def rename_image(
         manager: DialogManager,
         data: str,
 ):
-    element: ImageAsset = manager.dialog_data["element"]
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     user_id = active_user_id(manager)
+    element_id: str = manager.dialog_data["element_id"]
 
     if user_id is None and not has_admin_privileges(manager):
         logger.info("Renaming global assets is blocked for user %d", current_user_id(manager))
         i18n: TranslatorRunner = manager.middleware_data["i18n"]
         await message.answer(i18n.get("notify-forbidden"))
         return
-    await registry.update_element_name(user_id, element.element_id, name=data)
+    await registry.update_element_name(user_id, element_id, name=data)
     await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
@@ -212,7 +226,7 @@ selected_image_window = Window(
         FluentFormat("dialog-backgrounds-selected.create"),
         id="schedule_from_selected",
         state=ScheduleStates.EXPECT_TEXT,
-        dialog_data_keys=["element"],
+        dialog_data_keys=["element_id"],
     ),
     SwitchTo(FluentFormat("dialog-backgrounds-selected.rename"), id="rename_selected", state=BackgroundsStates.RENAME),
     Button(FluentFormat("dialog-backgrounds-selected.full"), id="send_full", on_click=send_full_handler, when="ready"),
@@ -239,7 +253,7 @@ rename_image_window = Window(
 confirm_delete_window = Window(
     FluentFormat(
         "dialog-backgrounds-delete",
-        escaped_name=F["dialog_data"]["element"].name.func(html.escape),
+        escaped_name=F["element_name"].func(html.escape),
     ),
     SwitchTo(
         FluentFormat("dialog-backgrounds-delete.confirm"),
@@ -250,6 +264,7 @@ confirm_delete_window = Window(
         id="cancel_delete", state=BackgroundsStates.SELECTED_IMAGE
     ),
     state=BackgroundsStates.CONFIRM_DELETE,
+    getter=selected_image_name_getter,
 )
 
 

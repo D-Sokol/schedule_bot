@@ -22,6 +22,7 @@ from services.renderer.weekdays import Schedule
 BUCKET_NAME = "assets"
 INPUT_SUBJECT_NAME = "schedules.request"
 OUTPUT_SUBJECT_NAME = "schedules.ready"
+OUTPUT_SUBJECT_NAME_ERROR = "schedules.error"
 IMAGE_FORMAT = "png"
 
 USER_ID_HEADER = "Sch-User-Id"
@@ -58,6 +59,10 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore, session_poo
     background = Image.open(io.BytesIO(background_data.data), formats=[IMAGE_FORMAT]).convert(mode="RGB")
     draw = ImageDraw.ImageDraw(background, mode="RGBA")
 
+    headers = {
+        USER_ID_HEADER: user_id,
+        CHAT_ID_HEADER: chat_id,
+    }
     try:
         async with (session_pool or nullcontext)() as session:
             await template.apply(background, draw, start_date, schedule, store=store, session=session)
@@ -66,16 +71,10 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore, session_poo
         background.save(stream, format=IMAGE_FORMAT)
 
         logging.debug("Created schedule for %s", user_id)
-        await js.publish(
-            subject=OUTPUT_SUBJECT_NAME,
-            payload=stream.getvalue(),
-            headers={
-                USER_ID_HEADER: user_id,
-                CHAT_ID_HEADER: chat_id,
-            },
-        )
+        await js.publish(subject=OUTPUT_SUBJECT_NAME, payload=stream.getvalue(), headers=headers)
     except ValueError as e:
         logger.warning("Cannot render desired image: %s", e, exc_info=True)
+        await js.publish(subject=OUTPUT_SUBJECT_NAME_ERROR, payload=str(e).encode(), headers=headers)
 
     await msg.ack()
 

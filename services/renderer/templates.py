@@ -2,8 +2,8 @@ import io
 import locale
 from abc import ABC, abstractmethod
 from datetime import date, timedelta
-from functools import lru_cache
-from typing import Annotated, Any, Literal
+from functools import lru_cache, cached_property
+from typing import Annotated, Any, Literal, ClassVar
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 from nats.js.errors import ObjectNotFoundError
@@ -38,14 +38,24 @@ class BasePatch(TemplateModel, ABC):
 
 class BasePositionedPatch(BasePatch, ABC):
     xy: tuple[int, int]
-    required_tag: str | None = Field(default=None, alias="tag")
+    required_tag: str | None = Field(default=None, alias="tag", deprecated=True)
+    required_tags: set[str] | None = None
+    forbidden_tags: set[str] | None = None
 
     def is_visible(self, tags: set[str] | None = None) -> bool:
-        if self.required_tag is None:
-            return True
+        assert self.required_tag is None
         if tags is None:
-            return False
-        return self.required_tag in tags
+            return not self.required_tags
+        required = self.required_tags or set()
+        forbidden = self.forbidden_tags or set()
+        return required.issubset(tags) and forbidden.isdisjoint(tags)
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.required_tag is not None:
+            if self.required_tags is None:
+                self.required_tags = set()
+            self.required_tags.add(self.required_tag)
+            self.required_tag = None
 
 
 class TextPatch(BasePositionedPatch):
@@ -61,7 +71,12 @@ class TextPatch(BasePositionedPatch):
     stroke_fill: str | None = Field(default=None, alias="stroke_color")
     capitalization: Literal["u", "l", "c"] | None = Field(default=None)
 
-    _font: ImageFont.FreeTypeFont
+    @cached_property
+    def _font(self) -> ImageFont.FreeTypeFont:
+        try:
+            return load_font(self.font_name, self.font_size)
+        except OSError as e:
+            raise ValueError(f"No font named {self.font_name}") from e
 
     async def apply(self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], **kwargs) -> None:
         formatted_text = self.template.format(**format_args)
@@ -82,11 +97,11 @@ class TextPatch(BasePositionedPatch):
             stroke_fill=self.stroke_fill,
         )
 
-    def model_post_init(self, __context: Any) -> None:
+    def check(self) -> None:
         _ = ImageColor.getrgb(self.fill)
         if self.stroke_fill is not None:
             _ = ImageColor.getrgb(self.stroke_fill)
-        self._font = load_font(self.font_name, self.font_size)
+        _ = self._font
 
 
 class ImagePatch(BasePositionedPatch):
@@ -170,6 +185,8 @@ class DayPatch(TemplateModel):
     if_none: PatchSet = Field(default_factory=PatchSet)
     record_patches: list[PatchSet] = Field(default_factory=list)
 
+    TOTAL_TAG_TEMPLATE: ClassVar[str] = "total={}"
+
     async def apply(
             self,
             image: Image.Image,
@@ -179,9 +196,11 @@ class DayPatch(TemplateModel):
             **kwargs
     ) -> None:
         await self.always.apply(image, draw, format_args, **kwargs)
+        n_total = len(entries)
         for entry, record_patch in zip(entries, self.record_patches):
             format_args["entry"] = entry
-            await record_patch.apply(image, draw, format_args, tags=entry.tags, **kwargs)
+            tags = entry.tags | {self.TOTAL_TAG_TEMPLATE.format(n_total)}
+            await record_patch.apply(image, draw, format_args, tags=tags, **kwargs)
         if not entries:
             await self.if_none.apply(image, draw, format_args, **kwargs)
 

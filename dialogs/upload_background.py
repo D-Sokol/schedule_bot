@@ -67,7 +67,7 @@ async def handle_image_upload(
         logger.debug("Accepted document object")
         file_id = document.file_id
         file_size = cast(int, document.file_size)
-        sent_name = None
+        sent_name = message.caption or document.file_name or None
         is_document = True
     else:
         assert False, "Filters is not properly configured"
@@ -92,7 +92,7 @@ async def handle_image_upload(
     try:
         image = Image.open(file)
     except UnidentifiedImageError:
-        logger.info("Image rejected: cannot open as image")
+        logger.info("Image rejected: cannot open as image (file_id %s)", file_id)
         manager.dialog_data["fail_reason"] = UNREADABLE_ERROR_REASON
         await manager.switch_to(UploadBackgroundStates.UPLOAD_FAILED)
         return
@@ -100,7 +100,6 @@ async def handle_image_upload(
     width, height = image.size
     manager.dialog_data["real_width"] = width
     manager.dialog_data["real_height"] = height
-    manager.dialog_data["document"] = image
     manager.dialog_data["resize_mode"] = "ignore"
 
     if not is_document:
@@ -142,7 +141,6 @@ async def save_image(
 ):
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
-    image: Image.Image = manager.dialog_data["document"]
     expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
     resize_mode = manager.dialog_data["resize_mode"]
     file_id = manager.dialog_data["file_id"]
@@ -165,7 +163,7 @@ async def save_image(
 
     try:
         new_element = await registry.save_element(
-            image, user_id,
+            None, user_id,
             element_name=data,
             file_id_document=file_id if file_type == "document" else None,
             file_id_photo=file_id if file_type == "photo" else None,
@@ -181,7 +179,7 @@ async def save_image(
     if message_to_answer:
         await message_to_answer.answer(i18n.get("notify-saved_image", escaped_name=html.escape(data)))
     # Since we send a custom message, dialogs should send new one to use the latest message in the chat
-    await manager.done(result={"element": new_element}, show_mode=ShowMode.SEND)
+    await manager.done(result={"element_id": new_element.element_id}, show_mode=ShowMode.SEND)
 
 
 async def save_image_auto_name(
