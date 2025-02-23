@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from bot_registry import ElementsRegistryAbstract
 from bot_registry.image_assets import DbElementRegistry
 from database_models import User
+from fluentogram_utils import clear_fluentogram_message
 
 
 logger = logging.getLogger(__file__)
@@ -197,4 +198,4 @@ class FluentFormat(Text):
         text_value: str | None = i18n.get(self.key, **data)
         if text_value is None:
             raise ValueError(f"Missing key {self.key}")
-        return text_value
+        return clear_fluentogram_message(text_value)
