@@ -130,4 +130,4 @@ if __name__ == '__main__':
     if nats_servers_ is None:
         logger.critical("Cannot run without nats url")
         exit(1)
-    asyncio.run(main(nats_servers_, bot_token))
+    asyncio.run(main(bot_token, nats_servers_))
