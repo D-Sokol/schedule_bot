@@ -93,6 +93,8 @@ services:
       options:
         max-size: "5m"
         max-file: "3"
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./data/postgres_data:/var/lib/postgresql/data
 
@@ -120,6 +122,8 @@ services:
       options:
         max-size: "5m"
         max-file: "3"
+    ports:
+      - "127.0.0.1:4222:4222"
     volumes:
       - "./data/nats/data:/data"
       - "./data/nats/server.conf:/config/server.conf:ro"
