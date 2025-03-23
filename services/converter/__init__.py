@@ -5,14 +5,11 @@ import asyncio
 import io
 import json
 import logging
-import os
 from asyncio import Event
 from functools import partial
 from typing import cast
 
-import nats
 from aiogram import Bot
-from aiogram.client.default import DefaultBotProperties
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
 from PIL import Image
@@ -111,23 +108,3 @@ async def convert_loop(js: JetStreamContext, bot: Bot, shutdown_event: asyncio.E
     except asyncio.CancelledError:
         logger.debug("Main task was cancelled")
     logger.warning("Exiting main task")
-
-
-async def main(token: str, servers: str = "nats://localhost:4222"):
-    nc = await nats.connect(servers=servers)
-    js = nc.jetstream()
-    bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
-    await convert_loop(js, bot)
-    await nc.close()
-
-
-if __name__ == '__main__':
-    bot_token = os.getenv("TOKEN")
-    nats_servers_ = os.getenv("NATS_SERVERS")
-    if bot_token is None:
-        logger.critical("Cannot run without bot token")
-        exit(1)
-    if nats_servers_ is None:
-        logger.critical("Cannot run without nats url")
-        exit(1)
-    asyncio.run(main(bot_token, nats_servers_))
