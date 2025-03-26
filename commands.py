@@ -1,12 +1,17 @@
 import asyncio
 import logging
+from typing import cast
 
-from aiogram import Bot, Router
-from aiogram.filters import CommandStart, Command
-from aiogram.types import BotCommand, Message
+from aiogram import Bot, Router, F
+from aiogram.enums import MessageOriginType
+from aiogram.filters import CommandStart, Command, CommandObject
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.types import BotCommand, Message, MessageOriginUser
 from aiogram_dialog import DialogManager, StartMode, ShowMode
 from fluentogram import TranslatorRunner, TranslatorHub
 
+from bot_registry import UserRegistryAbstract
 from database_models import User
 from dialogs.states import MainMenuStates, BackgroundsStates, TemplatesStates, ScheduleStates, UploadBackgroundStates
 from fluentogram_utils import clear_fluentogram_message
@@ -17,14 +22,16 @@ commands_router = Router(name="commands")
 
 
 @commands_router.message(CommandStart())
-async def start_handler(_: Message, dialog_manager: DialogManager) -> None:
+async def start_handler(_: Message, dialog_manager: DialogManager, state: FSMContext) -> None:
     logger.info("Starting main dialog from command")
+    await state.set_state(None)
     await dialog_manager.start(MainMenuStates.START, mode=StartMode.RESET_STACK)
 
 
 @commands_router.message(Command("backgrounds"))
-async def backgrounds_handler(_: Message, dialog_manager: DialogManager) -> None:
+async def backgrounds_handler(_: Message, dialog_manager: DialogManager, state: FSMContext) -> None:
     logger.info("Starting backgrounds (user-local) dialog from command")
+    await state.set_state(None)
     await dialog_manager.start(
         MainMenuStates.START, mode=StartMode.RESET_STACK, show_mode=ShowMode.NO_UPDATE
     )
@@ -34,8 +41,9 @@ async def backgrounds_handler(_: Message, dialog_manager: DialogManager) -> None
 
 
 @commands_router.message(Command("templates"))
-async def templates_handler(_: Message, dialog_manager: DialogManager) -> None:
+async def templates_handler(_: Message, dialog_manager: DialogManager, state: FSMContext) -> None:
     logger.info("Starting templates dialog from command")
+    await state.set_state(None)
     await dialog_manager.start(
         MainMenuStates.START, mode=StartMode.RESET_STACK, show_mode=ShowMode.NO_UPDATE
     )
@@ -43,8 +51,15 @@ async def templates_handler(_: Message, dialog_manager: DialogManager) -> None:
 
 
 @commands_router.message(Command("elements"))
-async def backgrounds_global_handler(message: Message, dialog_manager: DialogManager, i18n: TranslatorRunner, user: User) -> None:
+async def backgrounds_global_handler(
+        message: Message,
+        dialog_manager: DialogManager,
+        i18n: TranslatorRunner,
+        user: User,
+        state: FSMContext,
+) -> None:
     logger.info("Starting backgrounds (global scope) dialog from command")
+    await state.set_state(None)
     if not user.is_admin:
         logger.info("Editing global scope assets is blocked for user %d", user.tg_id)
         await message.answer(i18n.get("notify-forbidden"))
@@ -60,8 +75,9 @@ async def backgrounds_global_handler(message: Message, dialog_manager: DialogMan
 
 
 @commands_router.message(Command("upload"))
-async def templates_handler(_: Message, dialog_manager: DialogManager) -> None:
+async def templates_handler(_: Message, dialog_manager: DialogManager, state: FSMContext) -> None:
     logger.info("Starting templates dialog from command")
+    await state.set_state(None)
     await dialog_manager.start(
         MainMenuStates.START, mode=StartMode.RESET_STACK, show_mode=ShowMode.NO_UPDATE
     )
@@ -69,8 +85,9 @@ async def templates_handler(_: Message, dialog_manager: DialogManager) -> None:
 
 
 @commands_router.message(Command("create"))
-async def schedule_creation_handler(_: Message, dialog_manager: DialogManager) -> None:
+async def schedule_creation_handler(_: Message, dialog_manager: DialogManager, state: FSMContext) -> None:
     logger.info("Starting creating schedule dialog from command")
+    await state.set_state(None)
     await dialog_manager.start(
         ScheduleStates.START, mode=StartMode.RESET_STACK, show_mode=ShowMode.NO_UPDATE
     )
@@ -83,13 +100,127 @@ async def help_handler(
         dialog_manager: DialogManager,
         i18n: TranslatorRunner,
         source_code_url: str,
+        state: FSMContext,
 ) -> None:
     help_text = i18n.get("notify-help", source_code_url=source_code_url)
     help_text = clear_fluentogram_message(help_text)  # Clearing extra symbols is required for links.
     await message.answer(help_text)
+    await state.set_state(None)
     if not dialog_manager.current_stack().empty():
         logger.debug("Showing dialog message again")
         await dialog_manager.show(ShowMode.DELETE_AND_SEND)
+
+
+class HandlingAdminPrivilegesStates(StatesGroup):
+    forward_grant = State()
+    forward_revoke = State()
+
+
+@commands_router.message(Command("grant"))
+async def grant_handler(
+        message: Message,
+        dialog_manager: DialogManager,
+        i18n: TranslatorRunner,
+        user: User,
+        user_registry: UserRegistryAbstract,
+        command: CommandObject,
+        state: FSMContext,
+) -> None:
+    if not user.is_admin:
+        logger.info("Refuse to grant someone for user %d", user.tg_id)
+        await message.answer(i18n.get("notify-forbidden"))
+        return
+
+    if command.args is None:
+        logger.info("Await message from %d to grant privileges", user.tg_id)
+        await dialog_manager.reset_stack()
+        await message.answer(i18n.get("command-grant.forward"))
+        await state.set_state(HandlingAdminPrivilegesStates.forward_grant)
+        return
+
+    try:
+        tg_id = int(command.args)
+        if tg_id <= 0:
+            raise ValueError("User id must be positive!")
+    except ValueError:
+        logger.info("Could not understand grant command: %s", command.args)
+        await message.answer(i18n.get("command-grant.unparsed"))
+        return
+
+    logger.info("Grant admin privileges for %d due to %d command", tg_id, user.tg_id)
+    await user_registry.grant_admin(tg_id)
+    await message.answer(i18n.get("command-grant.success"))
+
+
+
+@commands_router.message(Command("revoke"))
+async def revoke_handler(
+        message: Message,
+        dialog_manager: DialogManager,
+        i18n: TranslatorRunner,
+        user: User,
+        user_registry: UserRegistryAbstract,
+        command: CommandObject,
+        state: FSMContext,
+) -> None:
+    if not user.is_admin:
+        logger.info("Refuse to revoke someone for user %d", user.tg_id)
+        await message.answer(i18n.get("notify-forbidden"))
+        return
+
+    if command.args is None:
+        logger.info("Await message from %d to revoke privileges", user.tg_id)
+        await dialog_manager.reset_stack()
+        await message.answer(i18n.get("command-revoke.forward"))
+        await state.set_state(HandlingAdminPrivilegesStates.forward_revoke)
+        return
+
+    try:
+        tg_id = int(command.args)
+        if tg_id <= 0:
+            raise ValueError("User id must be positive!")
+    except ValueError:
+        logger.info("Could not understand revoke command: %s", command.args)
+        await message.answer(i18n.get("command-revoke.unparsed"))
+        return
+
+    logger.info("Revoke admin privileges for %d due to %d command", tg_id, user.tg_id)
+    await user_registry.revoke_admin(tg_id)
+    await message.answer(i18n.get("command-revoke.success"))
+
+
+@commands_router.message(HandlingAdminPrivilegesStates.forward_grant, F.forward_origin.type == MessageOriginType.USER)
+async def grant_by_forward_handler(
+        message: Message,
+        i18n: TranslatorRunner,
+        user: User,
+        user_registry: UserRegistryAbstract,
+):
+    if not user.is_admin:
+        logger.info("Refuse to grant someone for user %d", user.tg_id)
+        await message.answer(i18n.get("notify-forbidden"))
+        return
+
+    tg_id = cast(MessageOriginUser, message.forward_origin).sender_user.id
+    await user_registry.grant_admin(tg_id)
+    await message.answer(i18n.get("command-grant.success"))
+
+
+@commands_router.message(HandlingAdminPrivilegesStates.forward_revoke, F.forward_origin.type == MessageOriginType.USER)
+async def revoke_by_forward_handler(
+        message: Message,
+        i18n: TranslatorRunner,
+        user: User,
+        user_registry: UserRegistryAbstract,
+):
+    if not user.is_admin:
+        logger.info("Refuse to revoke someone for user %d", user.tg_id)
+        await message.answer(i18n.get("notify-forbidden"))
+        return
+
+    tg_id = cast(MessageOriginUser, message.forward_origin).sender_user.id
+    await user_registry.revoke_admin(tg_id)
+    await message.answer(i18n.get("command-revoke.success"))
 
 
 _BOT_COMMANDS = ["start", "backgrounds", "templates", "elements", "upload", "create", "help"]
