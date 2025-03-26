@@ -223,7 +223,7 @@ async def revoke_by_forward_handler(
     await message.answer(i18n.get("command-revoke.success"))
 
 
-_BOT_COMMANDS = ["start", "backgrounds", "templates", "elements", "upload", "create", "help"]
+_BOT_COMMANDS = ["start", "backgrounds", "templates", "elements", "upload", "create", "help", "grant", "revoke"]
 
 
 async def set_commands(bot: Bot, hub: TranslatorHub, locales: list[str], root_locale: str | None = None) -> None:
