@@ -162,6 +162,7 @@ async def revoke_handler(
         user_registry: UserRegistryAbstract,
         command: CommandObject,
         state: FSMContext,
+        primary_admin_id: int,
 ) -> None:
     if not user.is_admin:
         logger.info("Refuse to revoke someone for user %d", user.tg_id)
@@ -182,6 +183,10 @@ async def revoke_handler(
     except ValueError:
         logger.info("Could not understand revoke command: %s", command.args)
         await message.answer(i18n.get("command-revoke.unparsed"))
+        return
+
+    if tg_id == primary_admin_id:
+        logger.info("Refuse to revoke primary admin for user %d", user.tg_id)
         return
 
     logger.info("Revoke admin privileges for %d due to %d command", tg_id, user.tg_id)
@@ -212,6 +217,7 @@ async def revoke_by_forward_handler(
         i18n: TranslatorRunner,
         user: User,
         user_registry: UserRegistryAbstract,
+        primary_admin_id: int,
 ):
     if not user.is_admin:
         logger.info("Refuse to revoke someone for user %d", user.tg_id)
@@ -219,6 +225,10 @@ async def revoke_by_forward_handler(
         return
 
     tg_id = cast(MessageOriginUser, message.forward_origin).sender_user.id
+    if tg_id == primary_admin_id:
+        logger.info("Refuse to revoke primary admin for user %d", user.tg_id)
+        return
+
     await user_registry.revoke_admin(tg_id)
     await message.answer(i18n.get("command-revoke.success"))
 

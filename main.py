@@ -114,7 +114,8 @@ async def main(
     shutdown_event = asyncio.Event()
     dp["shutdown_event"] = shutdown_event
     dp.shutdown.register(_shutdown)
-    logging.info("Registered event for converter stopping")
+
+    dp["primary_admin_id"] = admin_id
 
     logging.info("Setting up bot...")
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
