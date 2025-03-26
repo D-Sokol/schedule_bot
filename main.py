@@ -58,7 +58,7 @@ async def setup_db(db_url: str, admin_id: int = -1, log_level: str = "WARNING") 
         # Register user and grant him admin privileges AND check db connection
         async with session_pool() as session:
             user_registry = DbUserRegistry(session)
-            await user_registry.get_or_create_user(admin_id, create_admin=True)
+            await user_registry.grant_admin(admin_id)
         logging.info("User %d promoted to admins", admin_id)
     else:
         # Just check db connection
@@ -114,7 +114,8 @@ async def main(
     shutdown_event = asyncio.Event()
     dp["shutdown_event"] = shutdown_event
     dp.shutdown.register(_shutdown)
-    logging.info("Registered event for converter stopping")
+
+    dp["primary_admin_id"] = admin_id
 
     logging.info("Setting up bot...")
     bot = Bot(token, default=DefaultBotProperties(parse_mode="HTML"))
