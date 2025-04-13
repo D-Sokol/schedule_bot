@@ -8,7 +8,7 @@ from aiogram.filters import CommandStart, Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import BotCommand, Message, MessageOriginUser
-from aiogram_dialog import DialogManager, StartMode, ShowMode
+from aiogram_dialog import DialogManager, ShowMode
 from fluentogram import TranslatorRunner, TranslatorHub
 
 from bot_registry import UserRegistryAbstract
@@ -25,16 +25,14 @@ commands_router = Router(name="commands")
 async def start_handler(_: Message, dialog_manager: DialogManager, state: FSMContext) -> None:
     logger.info("Starting main dialog from command")
     await state.set_state(None)
-    await dialog_manager.start(MainMenuStates.START, mode=StartMode.RESET_STACK)
+    await dialog_manager.start(MainMenuStates.START)
 
 
 @commands_router.message(Command("backgrounds"))
 async def backgrounds_handler(_: Message, dialog_manager: DialogManager, state: FSMContext) -> None:
     logger.info("Starting backgrounds (user-local) dialog from command")
     await state.set_state(None)
-    await dialog_manager.start(
-        MainMenuStates.START, mode=StartMode.RESET_STACK, show_mode=ShowMode.NO_UPDATE
-    )
+    await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(
         BackgroundsStates.START, data={"global_scope": False, "select_only": False}, show_mode=ShowMode.SEND
     )
@@ -44,9 +42,7 @@ async def backgrounds_handler(_: Message, dialog_manager: DialogManager, state: 
 async def templates_handler(_: Message, dialog_manager: DialogManager, state: FSMContext) -> None:
     logger.info("Starting templates dialog from command")
     await state.set_state(None)
-    await dialog_manager.start(
-        MainMenuStates.START, mode=StartMode.RESET_STACK, show_mode=ShowMode.NO_UPDATE
-    )
+    await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(TemplatesStates.START, show_mode=ShowMode.SEND)
 
 
@@ -66,9 +62,7 @@ async def backgrounds_global_handler(
         return
 
     logger.debug("Editing global scope assets is allowed for user %d", user.tg_id)
-    await dialog_manager.start(
-        MainMenuStates.START, mode=StartMode.RESET_STACK, show_mode=ShowMode.NO_UPDATE
-    )
+    await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(
         BackgroundsStates.START, data={"global_scope": True, "select_only": False}, show_mode=ShowMode.SEND
     )
@@ -78,9 +72,7 @@ async def backgrounds_global_handler(
 async def templates_handler(_: Message, dialog_manager: DialogManager, state: FSMContext) -> None:
     logger.info("Starting templates dialog from command")
     await state.set_state(None)
-    await dialog_manager.start(
-        MainMenuStates.START, mode=StartMode.RESET_STACK, show_mode=ShowMode.NO_UPDATE
-    )
+    await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(UploadBackgroundStates.START, show_mode=ShowMode.SEND, data={"global_scope": False})
 
 
@@ -88,9 +80,7 @@ async def templates_handler(_: Message, dialog_manager: DialogManager, state: FS
 async def schedule_creation_handler(_: Message, dialog_manager: DialogManager, state: FSMContext) -> None:
     logger.info("Starting creating schedule dialog from command")
     await state.set_state(None)
-    await dialog_manager.start(
-        ScheduleStates.START, mode=StartMode.RESET_STACK, show_mode=ShowMode.NO_UPDATE
-    )
+    await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(ScheduleStates.START, show_mode=ShowMode.SEND)
 
 

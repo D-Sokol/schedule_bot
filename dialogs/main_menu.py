@@ -3,6 +3,7 @@ from typing import cast
 
 from aiogram.types import CallbackQuery
 from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog.api.entities import LaunchMode
 from aiogram_dialog.widgets.kbd import Button, Start
 from fluentogram import TranslatorRunner
 
@@ -52,4 +53,4 @@ start_window = Window(
     state=MainMenuStates.START,
 )
 
-dialog = Dialog(start_window, name=__file__)
+dialog = Dialog(start_window, name=__file__, launch_mode=LaunchMode.ROOT)
