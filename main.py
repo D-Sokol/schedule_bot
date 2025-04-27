@@ -81,6 +81,8 @@ async def setup_middlewares(dp: Dispatcher, session_pool: async_sessionmaker, js
     dp.callback_query.middleware(db_middleware)
     dp.callback_query.middleware(bl_middleware)
     dp.errors.middleware(tr_middleware)
+    dp.errors.middleware(db_middleware)
+    # blacklist middleware is probably useless in error handling?
 
     dp.include_router(commands_router)
     dp.include_routers(*all_dialogs)

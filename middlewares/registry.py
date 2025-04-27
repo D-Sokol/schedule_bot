@@ -1,7 +1,7 @@
 from typing import Callable, ClassVar, Awaitable, Dict, Any
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, Message, CallbackQuery
+from aiogram.types import TelegramObject, Message, CallbackQuery, ErrorEvent
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
@@ -19,7 +19,7 @@ class DbSessionMiddleware(BaseMiddleware):
     async def __call__(
             self,
             handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
-            event: Message | CallbackQuery,
+            event: Message | CallbackQuery | ErrorEvent,
             data: Dict[str, Any],
     ) -> Any:
         async with self.session_pool() as session:
@@ -32,7 +32,9 @@ class DbSessionMiddleware(BaseMiddleware):
             data["schedule_registry"] = schedule_registry
             data["template_registry"] = template_registry
 
-            if (tg_user := event.from_user) is not None:
+            tg_event: Message | CallbackQuery = event if isinstance(event, (Message, CallbackQuery)) else event.update.event
+
+            if (tg_user := tg_event.from_user) is not None:
                 user = await user_registry.get_or_create_user(tg_user.id)
                 data["user"] = user
 
