@@ -15,6 +15,7 @@ from nats.js import JetStreamContext
 from PIL import Image
 from nats.js.object_store import ObjectStore
 
+
 BUCKET_NAME = "assets"
 CONVERT_RAW_SUBJECT_NAME = "assets.convert.raw"
 CONVERT_FILE_ID_SUBJECT_NAME = "assets.convert.file_id"
