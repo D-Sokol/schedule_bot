@@ -25,7 +25,17 @@ class ActionWithUser(StrEnum):
 
 
 async def process_action(action: ActionWithUser, user_tg_id: int, user_registry: UserRegistryAbstract):
-    logger.error("Cannot perform action %s", action)  # TODO. Also check privileges
+    match action:
+        case ActionWithUser.GRANT_ADMIN:
+            await user_registry.grant_admin(user_tg_id)
+        case ActionWithUser.REVOKE_ADMIN:
+            await user_registry.revoke_admin(user_tg_id)
+        case ActionWithUser.BAN_USER:
+            await user_registry.ban_user(user_tg_id)
+        case ActionWithUser.UNBAN_USER:
+            await user_registry.unban_user(user_tg_id)
+        case _:
+            logger.error("Unknown action %s", action)
 
 
 async def on_dialog_start(start_data: dict[str, Any] | None, manager: DialogManager):
@@ -43,6 +53,16 @@ async def on_dialog_start(start_data: dict[str, Any] | None, manager: DialogMana
         return
 
     user_registry: UserRegistryAbstract = manager.middleware_data["user_registry"]
+    if not has_admin_privileges(manager):
+        logger.info("Refuse to perform action %s(%d) for user %d", action, user_id, current_user_id(manager))
+        return
+    if (
+            action in {ActionWithUser.REVOKE_ADMIN, ActionWithUser.BAN_USER}
+            and user_id == manager.middleware_data.get("primary_admin_id")
+    ):
+        logger.info("Refuse to perform action %s for user %d to primary admin", action, current_user_id(manager))
+        return
+
     await process_action(action, user_id, user_registry)
     # Dialog was called via a command, we close it instantly
     await manager.done()
@@ -55,6 +75,16 @@ async def on_process_result(_: Any, result: dict[str, Any] | None, manager: Dial
     assert user_id is not None, "No user id found in resulting dictionary"
     action: ActionWithUser = manager.dialog_data["action"]
     user_registry: UserRegistryAbstract = manager.middleware_data["user_registry"]
+    if not has_admin_privileges(manager):
+        logger.info("Refuse to perform action %s(%d) for user %d", action, user_id, current_user_id(manager))
+        return
+    if (
+            action in {ActionWithUser.REVOKE_ADMIN, ActionWithUser.BAN_USER}
+            and user_id == manager.middleware_data.get("primary_admin_id")
+    ):
+        logger.info("Refuse to perform action %s for user %d to primary admin", action, current_user_id(manager))
+        return
+
     await process_action(action, user_id, user_registry)
 
 

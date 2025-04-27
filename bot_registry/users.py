@@ -25,6 +25,14 @@ class UserRegistryAbstract(ABC):
     async def revoke_admin(self, tg_id: int) -> None:
         pass
 
+    @abstractmethod
+    async def ban_user(self, tg_id: int) -> None:
+        pass
+
+    @abstractmethod
+    async def unban_user(self, tg_id: int) -> None:
+        pass
+
 
 class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
     async def get_or_create_user(self, tg_id: int) -> User:
@@ -54,3 +62,19 @@ class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
 
         await self.session.execute(statement)
         await self.session.commit()
+
+    async def ban_user(self, tg_id: int) -> None:
+        statement = (
+            insert(User).values((tg_id, False, True))
+            .on_conflict_do_update(index_elements=("tg_id",), set_={"is_admin": False, "is_banned": True})
+        )
+        await self.session.execute(statement)
+        await self.session.commit()
+
+    async def unban_user(self, tg_id: int) -> None:
+        # User is never created in this function because not being banned is, again, default thing.
+        statement = update(User).where(User.tg_id == tg_id).values(is_admin=False, is_banned=False)
+
+        await self.session.execute(statement)
+        await self.session.commit()
+
