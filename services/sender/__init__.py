@@ -8,6 +8,7 @@ from aiogram.exceptions import TelegramRetryAfter
 from aiogram.types import BufferedInputFile
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
+from nats.js.api import ObjectStoreConfig, StorageType
 from nats.js.object_store import ObjectStore
 
 RESULT_BUCKET_NAME = "rendered"
@@ -74,6 +75,11 @@ async def response_error(msg: Msg, bot: Bot) -> None:
 
 
 async def sender_loop(js: JetStreamContext, bot: Bot, shutdown_event: asyncio.Event | None = None):
+    await js.create_object_store("rendered", config=ObjectStoreConfig(
+        description="Stores rendered schedules before sending them to the user",
+        ttl=4 * 3600,
+        storage=StorageType.MEMORY,
+    ))
     store = await js.object_store(RESULT_BUCKET_NAME)
     await js.subscribe(INPUT_RAW_SUBJECT_NAME, cb=partial(send_raw, bot=bot), durable="sender", manual_ack=True)
     await js.subscribe(

@@ -13,6 +13,7 @@ from functools import partial
 import msgpack
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
+from nats.js.api import ObjectStoreConfig, StorageType
 from nats.js.object_store import ObjectStore
 from PIL import Image, ImageDraw
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -98,6 +99,11 @@ async def render_loop(
         shutdown_event: asyncio.Event | None = None
 ):
     assets_store = await js.object_store(ASSETS_BUCKET_NAME)
+    await js.create_object_store("rendered", config=ObjectStoreConfig(
+        description="Stores rendered schedules before sending them to the user",
+        ttl=4 * 3600,
+        storage=StorageType.MEMORY,
+    ))
     result_store = await js.object_store(RESULT_BUCKET_NAME)
     await js.subscribe(
         INPUT_SUBJECT_NAME,
