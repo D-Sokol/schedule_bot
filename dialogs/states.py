@@ -38,5 +38,3 @@ class AdministrationStates(StatesGroup):
 
 class UserSelectionStates(StatesGroup):
     START = State()
-    HIDDEN_USER_MSG = State()
-    INCORRECT_TEXT_MSG = State()

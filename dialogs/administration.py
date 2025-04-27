@@ -62,8 +62,13 @@ async def on_dialog_start(start_data: dict[str, Any] | None, manager: DialogMana
     if user_id is None is action:
         return
 
-    if user_id is None or action is None:
-        # Only one of required argument is provided, probably a programmer error
+    if user_id is None:
+        manager.dialog_data["action"] = action
+        await manager.start(UserSelectionStates.START)
+        return
+
+    if action is None:
+        # user id provided without an action to perform, must be a programmer error.
         logger.error("Incorrect admin dialog call detected: user_id=%s, action=%s", user_id, action)
         return
 
