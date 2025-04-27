@@ -38,6 +38,21 @@ async def process_action(action: ActionWithUser, user_tg_id: int, user_registry:
             logger.error("Unknown action %s", action)
 
 
+async def report_action_done(action: ActionWithUser, user_tg_id: int, manager: DialogManager):
+    i18n: TranslatorRunner = manager.middleware_data["i18n"]
+    match action:
+        case ActionWithUser.GRANT_ADMIN:
+            await manager.event.answer(i18n.get("notify-admin.grant", user_id=user_tg_id))
+        case ActionWithUser.REVOKE_ADMIN:
+            await manager.event.answer(i18n.get("notify-admin.revoke", user_id=user_tg_id))
+        case ActionWithUser.BAN_USER:
+            await manager.event.answer(i18n.get("notify-admin.ban", user_id=user_tg_id))
+        case ActionWithUser.UNBAN_USER:
+            await manager.event.answer(i18n.get("notify-admin.unban", user_id=user_tg_id))
+        case _:
+            logger.error("Unknown action %s", action)
+
+
 async def on_dialog_start(start_data: dict[str, Any] | None, manager: DialogManager):
     if start_data is None:
         return
@@ -64,6 +79,7 @@ async def on_dialog_start(start_data: dict[str, Any] | None, manager: DialogMana
         return
 
     await process_action(action, user_id, user_registry)
+    await report_action_done(action, user_id, manager)
     # Dialog was called via a command, we close it instantly
     await manager.done()
 
@@ -86,6 +102,7 @@ async def on_process_result(_: Any, result: dict[str, Any] | None, manager: Dial
         return
 
     await process_action(action, user_id, user_registry)
+    await report_action_done(action, user_id, manager)
 
 
 async def user_action_handler(
