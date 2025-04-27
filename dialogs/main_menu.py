@@ -9,7 +9,7 @@ from fluentogram import TranslatorRunner
 
 from database_models import User
 from .states import MainMenuStates, BackgroundsStates, ScheduleStates, TemplatesStates
-from .utils import FluentFormat, handler_not_implemented_button
+from .utils import FluentFormat, handler_not_implemented_button, has_admin_privileges_filter
 
 logger = logging.getLogger(__file__)
 
@@ -44,6 +44,7 @@ start_window = Window(
         FluentFormat("dialog-main.backgrounds-global"),
         id="manage_elements",
         on_click=start_background_global,
+        when=has_admin_privileges_filter,
     ),
     Button(
         FluentFormat("dialog-main.settings"),
