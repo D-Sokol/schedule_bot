@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
 from database_models import User
@@ -9,32 +10,33 @@ from .database_mixin import DatabaseRegistryMixin
 
 class UserRegistryAbstract(ABC):
     @abstractmethod
-    async def get_or_create_user(self, tg_id: int, create_admin: bool = False) -> User:
+    async def get_or_create_user(self, tg_id: int) -> User:
         raise NotImplementedError
 
     @abstractmethod
     async def get_user(self, tg_id: int) -> User | None:
         raise NotImplementedError
 
+    @abstractmethod
+    async def grant_admin(self, tg_id: int) -> None:
+        pass
 
-class MockUserRegistry(UserRegistryAbstract):
-    async def get_or_create_user(self, tg_id: int, create_admin: bool = False) -> User:
-        return User(tg_id=tg_id, is_admin=create_admin)
+    @abstractmethod
+    async def revoke_admin(self, tg_id: int) -> None:
+        pass
 
-    async def get_user(self, tg_id: int) -> User | None:
-        return None
+    @abstractmethod
+    async def ban_user(self, tg_id: int) -> None:
+        pass
+
+    @abstractmethod
+    async def unban_user(self, tg_id: int) -> None:
+        pass
 
 
 class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
-    async def get_or_create_user(self, tg_id: int, create_admin: bool = False) -> User:
-        statement = insert(User).values((tg_id, create_admin))
-        if create_admin:
-            # Only called from start check, so user should become admin even if they are already registered.
-            statement = statement.on_conflict_do_update(index_elements=("tg_id",), set_={"is_admin": True})
-        else:
-            # Middleware calls this method with default arguments, so we should not revoke admin privileges here.
-            statement = statement.on_conflict_do_nothing()
-
+    async def get_or_create_user(self, tg_id: int) -> User:
+        statement = insert(User).values((tg_id, False)).on_conflict_do_nothing()
         await self.session.execute(statement)
         await self.session.commit()
 
@@ -45,3 +47,34 @@ class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
     async def get_user(self, tg_id: int) -> User | None:
         user: User | None = await self.session.get(User, tg_id)
         return user
+
+    async def grant_admin(self, tg_id: int) -> None:
+        statement = (
+            insert(User).values((tg_id, True))
+            .on_conflict_do_update(index_elements=("tg_id",), set_={"is_admin": True})
+        )
+        await self.session.execute(statement)
+        await self.session.commit()
+
+    async def revoke_admin(self, tg_id: int) -> None:
+        # User is never created in this function because not being an admin is default thing.
+        statement = update(User).where(User.tg_id == tg_id).values(is_admin=False)
+
+        await self.session.execute(statement)
+        await self.session.commit()
+
+    async def ban_user(self, tg_id: int) -> None:
+        statement = (
+            insert(User).values((tg_id, False, True))
+            .on_conflict_do_update(index_elements=("tg_id",), set_={"is_admin": False, "is_banned": True})
+        )
+        await self.session.execute(statement)
+        await self.session.commit()
+
+    async def unban_user(self, tg_id: int) -> None:
+        # User is never created in this function because not being banned is, again, default thing.
+        statement = update(User).where(User.tg_id == tg_id).values(is_admin=False, is_banned=False)
+
+        await self.session.execute(statement)
+        await self.session.commit()
+

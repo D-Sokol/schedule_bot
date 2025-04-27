@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Optional, Union, cast, ClassVar
 
-from aiogram import Bot
+from aiogram import Bot, F
 from aiogram.fsm.state import State
 from aiogram.types import BufferedInputFile, CallbackQuery, Chat, Message, InputFile
 from aiogram_dialog import DialogManager, Data
@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from bot_registry import ElementsRegistryAbstract
 from bot_registry.image_assets import DbElementRegistry
 from database_models import User
+from fluentogram_utils import clear_fluentogram_message
 
 
 logger = logging.getLogger(__file__)
@@ -39,6 +40,9 @@ def active_user_id(dialog_manager: DialogManager) -> int | None:
 def has_admin_privileges(dialog_manager: DialogManager) -> bool:
     user = cast(User, dialog_manager.middleware_data["user"])
     return user.is_admin
+
+
+has_admin_privileges_filter = F["middleware_data"]["user"].is_admin
 
 
 def current_chat_id(dialog_manager: DialogManager) -> int:
@@ -197,4 +201,4 @@ class FluentFormat(Text):
         text_value: str | None = i18n.get(self.key, **data)
         if text_value is None:
             raise ValueError(f"Missing key {self.key}")
-        return text_value
+        return clear_fluentogram_message(text_value)

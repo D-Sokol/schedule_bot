@@ -30,3 +30,11 @@ class UploadBackgroundStates(StatesGroup):
 
 class TemplatesStates(StatesGroup):
     START = State()
+
+
+class AdministrationStates(StatesGroup):
+    START = State()
+
+
+class UserSelectionStates(StatesGroup):
+    START = State()

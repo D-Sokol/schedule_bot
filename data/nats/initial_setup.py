@@ -13,6 +13,11 @@ async def upgrade(servers: str):
         description="Images for scheduler bot, both backgrounds and patches",
         storage=StorageType.FILE,
     ))
+    await js.create_object_store("rendered", config=ObjectStoreConfig(
+        description="Stores rendered schedules before sending them to the user",
+        ttl=4 * 3600,
+        storage=StorageType.MEMORY,
+    ))
     await js.add_stream(StreamConfig(
         name="Assets-queue",
         description="Working queue for cropping/resizing images",
@@ -36,6 +41,7 @@ async def downgrade(servers: str):
     js = nc.jetstream()
 
     await js.delete_object_store("assets")
+    # `rendered` object store does not persist anyway.
     await js.delete_stream("Assets-queue")
     await js.delete_stream("Schedules-queue")
 

@@ -4,6 +4,7 @@ This script renders a final schedule as a separate microservice to avoid lags in
 import asyncio
 import io
 import logging
+import uuid
 from asyncio import Event
 from contextlib import nullcontext
 from datetime import date
@@ -12,6 +13,7 @@ from functools import partial
 import msgpack
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
+from nats.js.api import ObjectStoreConfig, StorageType
 from nats.js.object_store import ObjectStore
 from PIL import Image, ImageDraw
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -19,10 +21,13 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from services.renderer.templates import Template
 from services.renderer.weekdays import Schedule
 
-BUCKET_NAME = "assets"
+ASSETS_BUCKET_NAME = "assets"
+RESULT_BUCKET_NAME = "rendered"
+
 INPUT_SUBJECT_NAME = "schedules.request"
-OUTPUT_SUBJECT_NAME = "schedules.ready"
+OUTPUT_SUBJECT_NAME = "schedules.ready_store"
 OUTPUT_SUBJECT_NAME_ERROR = "schedules.error"
+
 IMAGE_FORMAT = "png"
 
 USER_ID_HEADER = "Sch-User-Id"
@@ -33,7 +38,13 @@ ELEMENT_NAME_HEADER = "Sch-Element-Name"
 logger = logging.getLogger(__name__)
 
 
-async def render(msg: Msg, js: JetStreamContext, store: ObjectStore, session_pool: async_sessionmaker | None = None):
+async def render(
+        msg: Msg,
+        js: JetStreamContext,
+        assets_store: ObjectStore,
+        result_store: ObjectStore,
+        session_pool: async_sessionmaker | None = None,
+):
     if msg.headers is None:
         logger.error("Got message without headers")
         raise ValueError("Headers are required for message processing")
@@ -50,7 +61,7 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore, session_poo
     logger.debug("Template and schedule successfully parsed")
 
     logger.info("Converting %s for %s", element_name, user_id)
-    background_data = await store.get(element_name)
+    background_data = await assets_store.get(element_name)
     if background_data.data is None:
         logger.error("No content in image %s.%s", user_id, element_name)
         raise ValueError("No content in image")
@@ -65,13 +76,16 @@ async def render(msg: Msg, js: JetStreamContext, store: ObjectStore, session_poo
     }
     try:
         async with (session_pool or nullcontext)() as session:
-            await template.apply(background, draw, start_date, schedule, store=store, session=session)
+            await template.apply(background, draw, start_date, schedule, store=assets_store, session=session)
 
         stream = io.BytesIO()
         background.save(stream, format=IMAGE_FORMAT)
 
-        logging.debug("Created schedule for %s", user_id)
-        await js.publish(subject=OUTPUT_SUBJECT_NAME, payload=stream.getvalue(), headers=headers)
+        rendered_name = str(uuid.uuid4())
+        logger.info("Created schedule for %s as %s", user_id, rendered_name)
+        await result_store.put(name=rendered_name, data=stream.getvalue())
+        logger.debug("Saved %s into store", rendered_name)
+        await js.publish(subject=OUTPUT_SUBJECT_NAME, payload=rendered_name.encode(), headers=headers)
     except ValueError as e:
         logger.warning("Cannot render desired image: %s", e, exc_info=True)
         await js.publish(subject=OUTPUT_SUBJECT_NAME_ERROR, payload=str(e).encode(), headers=headers)
@@ -84,10 +98,16 @@ async def render_loop(
         session_pool: async_sessionmaker | None = None,
         shutdown_event: asyncio.Event | None = None
 ):
-    store = await js.object_store(BUCKET_NAME)
+    assets_store = await js.object_store(ASSETS_BUCKET_NAME)
+    await js.create_object_store("rendered", config=ObjectStoreConfig(
+        description="Stores rendered schedules before sending them to the user",
+        ttl=4 * 3600,
+        storage=StorageType.MEMORY,
+    ))
+    result_store = await js.object_store(RESULT_BUCKET_NAME)
     await js.subscribe(
         INPUT_SUBJECT_NAME,
-        cb=partial(render, js=js, store=store, session_pool=session_pool),
+        cb=partial(render, js=js, assets_store=assets_store, result_store=result_store, session_pool=session_pool),
         durable="renderer",
         manual_ack=True,
     )
