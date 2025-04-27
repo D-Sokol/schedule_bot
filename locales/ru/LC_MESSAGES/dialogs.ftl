@@ -7,6 +7,7 @@ dialog-main = Выберите действие!
     .create = Создать расписание
     .templates = Шаблон расписания
     .backgrounds-global = Накладываемые элементы
+    .admin = Администраторошная
     .settings = Настройки
 
 
@@ -138,3 +139,10 @@ dialog-templates =
     .view_user = Скачать свой шаблон
     .view_global = Скачать общий шаблон
     .clear = Удалить свой шаблон
+
+
+dialog-admin-main = Функции для администрирования бота
+    .plus-admin = В админы
+    .minus-admin = Из админов
+    .plus-ban = В бан
+    .minus-ban = Из бана

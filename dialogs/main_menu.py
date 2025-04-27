@@ -46,6 +46,12 @@ start_window = Window(
         on_click=start_background_global,
         when=has_admin_privileges_filter,
     ),
+    Start(
+        FluentFormat("dialog-main.admin"),
+        id="admin",
+        state=AdministrationStates.START,
+        when=has_admin_privileges_filter,
+    ),
     Button(
         FluentFormat("dialog-main.settings"),
         id="user_settings",

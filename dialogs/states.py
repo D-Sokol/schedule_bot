@@ -30,3 +30,13 @@ class UploadBackgroundStates(StatesGroup):
 
 class TemplatesStates(StatesGroup):
     START = State()
+
+
+class AdministrationStates(StatesGroup):
+    START = State()
+
+
+class UserSelectionStates(StatesGroup):
+    START = State()
+    HIDDEN_USER_MSG = State()
+    INCORRECT_TEXT_MSG = State()
