@@ -128,7 +128,6 @@ class ImagePatch(BasePositionedPatch):
                 {"name": self.name},
             )
             element_uuid: UUID | None = result.scalar()
-            print(element_uuid, type(element_uuid))
             if element_uuid is None:
                 raise ValueError(f"Unknown image name {self.name}")
             element_id = f"0.{element_uuid}"
