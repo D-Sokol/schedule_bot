@@ -1,0 +1,3 @@
+[tool.black]
+line-length = 120
+split_before_logical_operation = true
