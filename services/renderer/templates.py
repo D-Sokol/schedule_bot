@@ -140,13 +140,13 @@ class ImagePatch(BasePositionedPatch):
         return Image.open(stream).convert(mode="RGBA")
 
     async def apply(
-            self,
-            image: Image.Image,
-            draw: ImageDraw.ImageDraw,
-            format_args: dict[str, Any],
-            store: ObjectStore | None = None,
-            session: AsyncSession | None = None,
-            **kwargs
+        self,
+        image: Image.Image,
+        draw: ImageDraw.ImageDraw,
+        format_args: dict[str, Any],
+        store: ObjectStore | None = None,
+        session: AsyncSession | None = None,
+        **kwargs,
     ) -> None:
         patch = await self._get_patch(store, session)
         mask = patch.getchannel("A")
@@ -158,12 +158,12 @@ class PatchSet(BasePatch):
     patches: list[Annotated[TextPatch | ImagePatch, Field(discriminator="type")]] = Field(default_factory=list)
 
     async def apply(
-            self,
-            image: Image.Image,
-            draw: ImageDraw.ImageDraw,
-            format_args: dict[str, Any],
-            tags: set[str] | None = None,
-            **kwargs
+        self,
+        image: Image.Image,
+        draw: ImageDraw.ImageDraw,
+        format_args: dict[str, Any],
+        tags: set[str] | None = None,
+        **kwargs,
     ) -> None:
         for patch in self.patches:
             if patch.is_visible(tags):
@@ -187,12 +187,7 @@ class DayPatch(TemplateModel):
     TOTAL_TAG_TEMPLATE: ClassVar[str] = "total={}"
 
     async def apply(
-            self,
-            image: Image.Image,
-            draw: ImageDraw.ImageDraw,
-            format_args: dict[str, Any],
-            entries: list[Entry],
-            **kwargs
+        self, image: Image.Image, draw: ImageDraw.ImageDraw, format_args: dict[str, Any], entries: list[Entry], **kwargs
     ) -> None:
         await self.always.apply(image, draw, format_args, **kwargs)
         n_total = len(entries)
@@ -212,20 +207,18 @@ class Template(TemplateModel):
     height: int = 1098
 
     async def apply(
-            self,
-            image: Image.Image,
-            draw: ImageDraw.ImageDraw,
-            start_date: date,
-            schedule: Schedule,
-            store: ObjectStore | None = None,
-            session: AsyncSession | None = None,
+        self,
+        image: Image.Image,
+        draw: ImageDraw.ImageDraw,
+        start_date: date,
+        schedule: Schedule,
+        store: ObjectStore | None = None,
+        session: AsyncSession | None = None,
     ):
         format_args: dict[str, Any] = {
             "start": start_date,
             "end": start_date + timedelta(days=WEEK_LENGTH - 1),
-            **{
-                f"day{i + 1}": start_date + timedelta(days=i) for i in range(WEEK_LENGTH)
-            },
+            **{f"day{i + 1}": start_date + timedelta(days=i) for i in range(WEEK_LENGTH)},
         }
         await self.always.apply(image, draw, format_args, store=store, session=session)
 

@@ -17,10 +17,10 @@ class DbSessionMiddleware(BaseMiddleware):
         self.js = js
 
     async def __call__(
-            self,
-            handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
-            event: Message | CallbackQuery | ErrorEvent,
-            data: Dict[str, Any],
+        self,
+        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        event: Message | CallbackQuery | ErrorEvent,
+        data: Dict[str, Any],
     ) -> Any:
         async with self.session_pool() as session:
             user_registry = DbUserRegistry(session)
@@ -32,7 +32,9 @@ class DbSessionMiddleware(BaseMiddleware):
             data["schedule_registry"] = schedule_registry
             data["template_registry"] = template_registry
 
-            tg_event: Message | CallbackQuery = event if isinstance(event, (Message, CallbackQuery)) else event.update.event
+            tg_event: Message | CallbackQuery = (
+                event if isinstance(event, (Message, CallbackQuery)) else event.update.event
+            )
 
             if (tg_user := tg_event.from_user) is not None:
                 user = await user_registry.get_or_create_user(tg_user.id)

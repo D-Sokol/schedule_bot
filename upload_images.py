@@ -55,9 +55,9 @@ async def ensure_loaded(file_path: Path, store: ObjectStore, session: AsyncSessi
 
 
 async def main(
-        folder: Path,
-        db_url: str,
-        nats_servers: str,
+    folder: Path,
+    db_url: str,
+    nats_servers: str,
 ):
     if not folder.is_dir():
         logging.critical("No such directory: %s", folder)
@@ -78,7 +78,7 @@ async def main(
             await ensure_loaded(image, store, session)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     database_url = os.getenv("DB_URL")
     nats_servers_ = os.getenv("NATS_SERVERS")
     if database_url is None:
@@ -98,8 +98,10 @@ if __name__ == '__main__':
     parser.add_argument("folder", type=Path)
     args = parser.parse_args()
 
-    asyncio.run(main(
-        args.folder,
-        database_url,
-        nats_servers_,
-    ))
+    asyncio.run(
+        main(
+            args.folder,
+            database_url,
+            nats_servers_,
+        )
+    )

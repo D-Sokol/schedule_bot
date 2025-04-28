@@ -53,24 +53,24 @@ class ElementsRegistryAbstract(ABC):
 
     @abstractmethod
     async def save_element(
-            self,
-            element: Image.Image | None,
-            user_id: int | None,
-            element_name: str,
-            target_size: tuple[int, int],
-            file_id_photo: str | None = None,
-            file_id_document: str | None = None,
-            resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
+        self,
+        element: Image.Image | None,
+        user_id: int | None,
+        element_name: str,
+        target_size: tuple[int, int],
+        file_id_photo: str | None = None,
+        file_id_document: str | None = None,
+        resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
     ) -> ImageAsset:
         raise NotImplementedError
 
     @abstractmethod
     async def update_element_file_id(
-            self,
-            user_id: int | None,
-            element_id: str | UUID,
-            file_id: str | None,
-            file_type: Literal["photo", "document"] = "document",
+        self,
+        user_id: int | None,
+        element_id: str | UUID,
+        file_id: str | None,
+        file_type: Literal["photo", "document"] = "document",
     ) -> None:
         raise NotImplementedError
 
@@ -136,8 +136,8 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
         return [e for (e,) in elements]
 
     async def get_element(self, user_id: int | None, element_id: str | UUID) -> ImageAsset:
-        result = await self.session.execute(select(ImageAsset).where(
-            ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
+        result = await self.session.execute(
+            select(ImageAsset).where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
         )
         asset = result.scalar()
         if asset is None:
@@ -170,16 +170,15 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
         else:
             return True
 
-
     async def save_element(
-            self,
-            element: Image.Image | None,
-            user_id: int | None,
-            element_name: str,
-            target_size: tuple[int, int],
-            file_id_photo: str | None = None,
-            file_id_document: str | None = None,
-            resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
+        self,
+        element: Image.Image | None,
+        user_id: int | None,
+        element_name: str,
+        target_size: tuple[int, int],
+        file_id_photo: str | None = None,
+        file_id_document: str | None = None,
+        resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
     ) -> ImageAsset:
         if element is None and file_id_photo is None and file_id_document is None:
             raise ValueError("Cannot save element without image or file_id to get it")
@@ -213,17 +212,17 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
             headers={
                 SAVE_NAME_HEADER: self._nats_object_name(user_id, element_record.element_id),
                 RESIZE_MODE_HEADER: resize_mode,
-                TARGET_SIZE_HEADER: json.dumps(target_size)
+                TARGET_SIZE_HEADER: json.dumps(target_size),
             },
         )
         return element_record
 
     async def update_element_file_id(
-            self,
-            user_id: int | None,
-            element_id: str | UUID,
-            file_id: str | None,
-            file_type: Literal["photo", "document"] = "document",
+        self,
+        user_id: int | None,
+        element_id: str | UUID,
+        file_id: str | None,
+        file_type: Literal["photo", "document"] = "document",
     ) -> None:
         update_field = f"file_id_{file_type}"
         await self.session.execute(
@@ -295,17 +294,17 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
             update(ImageAsset)
             .where(
                 ImageAsset.user_id == user_id,
-                ImageAsset.display_order > (
+                ImageAsset.display_order
+                > (
                     select(ImageAsset.display_order)
                     .where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
                     .scalar_subquery()
-                )
+                ),
             )
             .values(display_order=ImageAsset.display_order - text("1"))
         )
         await self.session.execute(
-            delete(ImageAsset)
-            .where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
+            delete(ImageAsset).where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
         )
         await self.session.commit()
 

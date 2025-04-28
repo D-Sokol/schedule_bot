@@ -52,9 +52,9 @@ async def on_dialog_start(_: Any, manager: DialogManager):
 
 
 async def handle_image_upload(
-        message: Message,
-        _: MessageInput,
-        manager: DialogManager,
+    message: Message,
+    _: MessageInput,
+    manager: DialogManager,
 ) -> None:
     if (photos := message.photo) is not None:
         logger.debug("Accepted photo object")
@@ -108,11 +108,7 @@ async def handle_image_upload(
         await check_dimensions(message, _, manager)
 
 
-async def check_dimensions(
-        _update: Any,
-        _widget: Any,
-        manager: DialogManager
-) -> None:
+async def check_dimensions(_update: Any, _widget: Any, manager: DialogManager) -> None:
     ignore_shape_mismatch: bool = manager.start_data["global_scope"]
     if ignore_shape_mismatch:
         logging.debug("Ignore checking dimensions")
@@ -134,10 +130,10 @@ async def check_dimensions(
 
 
 async def save_image(
-        update: CallbackQuery | Message,
-        _widget: Any,
-        manager: DialogManager,
-        data: str,
+    update: CallbackQuery | Message,
+    _widget: Any,
+    manager: DialogManager,
+    data: str,
 ):
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
@@ -163,7 +159,8 @@ async def save_image(
 
     try:
         new_element = await registry.save_element(
-            None, user_id,
+            None,
+            user_id,
             element_name=data,
             file_id_document=file_id if file_type == "document" else None,
             file_id_photo=file_id if file_type == "photo" else None,
@@ -183,9 +180,9 @@ async def save_image(
 
 
 async def save_image_auto_name(
-        update: CallbackQuery,
-        _widget: Any,
-        manager: DialogManager,
+    update: CallbackQuery,
+    _widget: Any,
+    manager: DialogManager,
 ):
     auto_name = manager.dialog_data["automatic_name"]
     logger.debug("Confirmed automatic name: %s", auto_name)
@@ -225,9 +222,11 @@ uploaded_bad_dimensions_window = Window(
         FluentFormat("dialog-upload-dim.crop"),
         id="bad_dimensions_crop",
         state=UploadBackgroundStates.UPLOADED_EXPECT_NAME,
-        on_click=save_to_dialog_data("resize_mode", "crop")
+        on_click=save_to_dialog_data("resize_mode", "crop"),
     ),
-    SwitchTo(FluentFormat("dialog-fine"), id="bad_dimensions_ignore", state=UploadBackgroundStates.UPLOADED_EXPECT_NAME),
+    SwitchTo(
+        FluentFormat("dialog-fine"), id="bad_dimensions_ignore", state=UploadBackgroundStates.UPLOADED_EXPECT_NAME
+    ),
     Cancel(FluentFormat("dialog-cancel"), id="cancel_upload_dim"),
     MessageInput(handle_image_upload, content_types=[ContentType.PHOTO, ContentType.DOCUMENT]),
     state=UploadBackgroundStates.UPLOADED_BAD_DIMENSIONS,
