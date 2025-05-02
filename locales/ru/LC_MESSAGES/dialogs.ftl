@@ -129,6 +129,10 @@ dialog-schedule-finish = Спасибо! Расписание готовится
 dialog-wizard-start = Здесь вы можете отредактировать расписание
     .clone = 🆕
     .remove = 🚮️
+    .new = 🆕 Добавить
+    .sort = 🔡 Сортировка
+    .print = 📝 В текст
+    .confirm = ✅ Готово
 
 
 dialog-templates =

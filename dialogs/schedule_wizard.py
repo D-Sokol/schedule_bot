@@ -42,6 +42,12 @@ start_window = Window(
         item_id_getter=lambda item: item["id"],
         items=F["dialog_data"]["entries"],
     ),
+    Row(
+        Button(FluentFormat("dialog-wizard-start.new"), "new"),
+        Button(FluentFormat("dialog-wizard-start.sort"), "sort"),
+        Button(FluentFormat("dialog-wizard-start.print"), "print"),
+        Button(FluentFormat("dialog-wizard-start.confirm"), "confirm"),
+    ),
     Cancel(FluentFormat("dialog-cancel")),
     state=ScheduleWizardStates.START,
 )
