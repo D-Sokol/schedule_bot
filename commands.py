@@ -9,7 +9,12 @@ from fluentogram import TranslatorRunner, TranslatorHub
 
 from database_models import User
 from dialogs.states import (
-    MainMenuStates, BackgroundsStates, TemplatesStates, ScheduleStates, UploadBackgroundStates, AdministrationStates,
+    MainMenuStates,
+    BackgroundsStates,
+    TemplatesStates,
+    ScheduleStates,
+    UploadBackgroundStates,
+    AdministrationStates,
 )
 from fluentogram_utils import clear_fluentogram_message
 
@@ -43,10 +48,10 @@ async def templates_handler(_: Message, dialog_manager: DialogManager) -> None:
 
 @commands_router.message(Command("elements"))
 async def backgrounds_global_handler(
-        message: Message,
-        dialog_manager: DialogManager,
-        i18n: TranslatorRunner,
-        user: User,
+    message: Message,
+    dialog_manager: DialogManager,
+    i18n: TranslatorRunner,
+    user: User,
 ) -> None:
     logger.info("Starting backgrounds (global scope) dialog from command")
     if not user.is_admin:
@@ -62,7 +67,7 @@ async def backgrounds_global_handler(
 
 
 @commands_router.message(Command("upload"))
-async def templates_handler(_: Message, dialog_manager: DialogManager) -> None:
+async def upload_handler(_: Message, dialog_manager: DialogManager) -> None:
     logger.info("Starting templates dialog from command")
     await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(UploadBackgroundStates.START, show_mode=ShowMode.SEND, data={"global_scope": False})
@@ -77,10 +82,10 @@ async def schedule_creation_handler(_: Message, dialog_manager: DialogManager) -
 
 @commands_router.message(Command("help"))
 async def help_handler(
-        message: Message,
-        dialog_manager: DialogManager,
-        i18n: TranslatorRunner,
-        source_code_url: str,
+    message: Message,
+    dialog_manager: DialogManager,
+    i18n: TranslatorRunner,
+    source_code_url: str,
 ) -> None:
     help_text = i18n.get("notify-help", source_code_url=source_code_url)
     help_text = clear_fluentogram_message(help_text)  # Clearing extra symbols is required for links.
@@ -92,11 +97,11 @@ async def help_handler(
 
 @commands_router.message(Command("grant"))
 async def grant_handler(
-        message: Message,
-        dialog_manager: DialogManager,
-        i18n: TranslatorRunner,
-        user: User,
-        command: CommandObject,
+    message: Message,
+    dialog_manager: DialogManager,
+    i18n: TranslatorRunner,
+    user: User,
+    command: CommandObject,
 ) -> None:
     if not user.is_admin:
         logger.info("Refuse to grant someone for user %d", user.tg_id)
@@ -121,11 +126,11 @@ async def grant_handler(
 
 @commands_router.message(Command("revoke"))
 async def revoke_handler(
-        message: Message,
-        dialog_manager: DialogManager,
-        i18n: TranslatorRunner,
-        user: User,
-        command: CommandObject,
+    message: Message,
+    dialog_manager: DialogManager,
+    i18n: TranslatorRunner,
+    user: User,
+    command: CommandObject,
 ) -> None:
     if not user.is_admin:
         logger.info("Refuse to revoke someone for user %d", user.tg_id)
@@ -150,11 +155,11 @@ async def revoke_handler(
 
 @commands_router.message(Command("ban"))
 async def ban_handler(
-        message: Message,
-        dialog_manager: DialogManager,
-        i18n: TranslatorRunner,
-        user: User,
-        command: CommandObject,
+    message: Message,
+    dialog_manager: DialogManager,
+    i18n: TranslatorRunner,
+    user: User,
+    command: CommandObject,
 ) -> None:
     if not user.is_admin:
         logger.info("Refuse to ban someone for user %d", user.tg_id)
@@ -179,11 +184,11 @@ async def ban_handler(
 
 @commands_router.message(Command("unban"))
 async def unban_handler(
-        message: Message,
-        dialog_manager: DialogManager,
-        i18n: TranslatorRunner,
-        user: User,
-        command: CommandObject,
+    message: Message,
+    dialog_manager: DialogManager,
+    i18n: TranslatorRunner,
+    user: User,
+    command: CommandObject,
 ) -> None:
     if not user.is_admin:
         logger.info("Refuse to unban someone for user %d", user.tg_id)
@@ -207,7 +212,17 @@ async def unban_handler(
 
 
 _BOT_COMMANDS = [
-    "start", "backgrounds", "templates", "elements", "upload", "create", "help", "grant", "revoke", "ban", "unban",
+    "start",
+    "backgrounds",
+    "templates",
+    "elements",
+    "upload",
+    "create",
+    "help",
+    "grant",
+    "revoke",
+    "ban",
+    "unban",
 ]
 
 
@@ -217,8 +232,7 @@ async def set_commands(bot: Bot, hub: TranslatorHub, locales: list[str], root_lo
     for locale in locales:
         i18n = hub.get_translator_by_locale(locale)
         commands[locale] = [
-            BotCommand(command=command, description=i18n.get(f"command-{command}"))
-            for command in _BOT_COMMANDS
+            BotCommand(command=command, description=i18n.get(f"command-{command}")) for command in _BOT_COMMANDS
         ]
     await asyncio.gather(
         *(

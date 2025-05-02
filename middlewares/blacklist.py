@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Awaitable, Callable, cast
+from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, CallbackQuery
@@ -14,7 +14,7 @@ class BlacklistMiddleware(BaseMiddleware):
         self,
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: dict[str, Any]
+        data: dict[str, Any],
     ) -> Any:
         user: User = data.get("user")
         if user and user.is_banned:

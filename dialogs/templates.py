@@ -24,7 +24,7 @@ FILE_SIZE_LIMIT = 1 * 1024 * 1024
 
 
 async def send_template(
-        bot: Bot, chat_id: int, template: Template, filename: str, description: str | None = None
+    bot: Bot, chat_id: int, template: Template, filename: str, description: str | None = None
 ) -> None:
     logger.debug("Send template as '%s' to chat %d", filename, chat_id)
     body = template.model_dump_json(by_alias=True, exclude_none=True).encode()
@@ -32,9 +32,9 @@ async def send_template(
 
 
 async def handle_new_template(
-        message: Message,
-        _: MessageInput,
-        manager: DialogManager,
+    message: Message,
+    _: MessageInput,
+    manager: DialogManager,
 ) -> None:
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
     template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
@@ -75,10 +75,10 @@ async def handle_new_template(
 
 
 async def handle_download_template(
-        callback: CallbackQuery,
-        _widget: Button,
-        manager: DialogManager,
-        global_template: bool = True,
+    callback: CallbackQuery,
+    _widget: Button,
+    manager: DialogManager,
+    global_template: bool = True,
 ):
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
     template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
@@ -123,9 +123,7 @@ async def handle_clear_template(callback: CallbackQuery, _widget: Button, manage
 
 
 async def check_current_template_getter(
-        dialog_manager: DialogManager,
-        template_registry: TemplateRegistryAbstract,
-        **_
+    dialog_manager: DialogManager, template_registry: TemplateRegistryAbstract, **_
 ) -> dict[str, bool]:
     user_id = current_user_id(dialog_manager)
     template: Template | None = await template_registry.get_template(user_id)

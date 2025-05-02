@@ -40,10 +40,10 @@ async def on_dialog_start(start_data: Data, manager: DialogManager):
 
 
 async def process_date_selected(
-        _callback: CallbackQuery,
-        _widget: Any,
-        manager: DialogManager,
-        selected_date: date,
+    _callback: CallbackQuery,
+    _widget: Any,
+    manager: DialogManager,
+    selected_date: date,
 ):
     user_id = current_user_id(manager)
     chat_id = current_chat_id(manager)
@@ -59,16 +59,13 @@ async def process_date_selected(
         return
     await asyncio.gather(
         schedule_registry.render_schedule(user_id, chat_id, schedule, element_id, template, result_date),
-        schedule_registry.update_last_schedule(user_id, schedule)
+        schedule_registry.update_last_schedule(user_id, schedule),
     )
     await manager.switch_to(ScheduleStates.FINISH)
 
 
 async def previous_schedule_getter(
-        dialog_manager: DialogManager,
-        schedule_registry: ScheduleRegistryAbstract,
-        i18n: TranslatorRunner,
-        **_
+    dialog_manager: DialogManager, schedule_registry: ScheduleRegistryAbstract, i18n: TranslatorRunner, **_
 ) -> dict[str, Any]:
     user_id = current_user_id(dialog_manager)
 
@@ -87,10 +84,10 @@ async def previous_schedule_getter(
 
 
 async def process_schedule_creation(
-        message: Message,
-        _widget: Any,
-        manager: DialogManager,
-        data: str,
+    message: Message,
+    _widget: Any,
+    manager: DialogManager,
+    data: str,
 ):
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
     schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
@@ -99,9 +96,7 @@ async def process_schedule_creation(
         await message.answer(i18n.get("dialog-schedule-text.warn_empty"))
         return
     elif unparsed:
-        answer = "\n".join(
-            [i18n.get("dialog-schedule-text.warn_unparsed"), *unparsed]
-        )
+        answer = "\n".join([i18n.get("dialog-schedule-text.warn_unparsed"), *unparsed])
         await message.answer(answer)
     manager.dialog_data["schedule"] = schedule.model_dump(mode="json", exclude_defaults=True)
     await manager.switch_to(ScheduleStates.EXPECT_DATE)
@@ -138,6 +133,7 @@ start_window = Window(
     on_process_result=process_upload_new_background,
     getter=partial(saved_backs_getter, _only_count=True),
 )
+
 
 async def process_accept_previous(_callback: CallbackQuery, _widget: Button, manager: DialogManager):
     user_id = current_user_id(manager)

@@ -21,7 +21,7 @@ def create_translator_hub() -> TranslatorHub:
                 translator=FluentBundle.from_files(
                     locale=locale,
                     filenames=list(Path(f"locales/{locale}/LC_MESSAGES/").glob("*.ftl")),
-                )
+                ),
             )
             for locale in all_translator_locales()
         ],
@@ -46,14 +46,13 @@ class TranslatorRunnerMiddleware(BaseMiddleware):
         self,
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: dict[str, Any]
+        data: dict[str, Any],
     ) -> Any:
-
-        user = cast(TgUser | None, data.get('event_from_user'))
+        user = cast(TgUser | None, data.get("event_from_user"))
 
         if user is None:
             return await handler(event, data)
 
-        data['i18n'] = self.hub.get_translator_by_locale(locale=user.language_code)
+        data["i18n"] = self.hub.get_translator_by_locale(locale=user.language_code)
 
         return await handler(event, data)

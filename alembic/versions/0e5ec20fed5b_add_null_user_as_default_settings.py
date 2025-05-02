@@ -5,14 +5,15 @@ Revises: bcebcdbc8804
 Create Date: 2025-01-05 17:21:58.510202
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = '0e5ec20fed5b'
-down_revision: Union[str, None] = 'bcebcdbc8804'
+revision: str = "0e5ec20fed5b"
+down_revision: Union[str, None] = "bcebcdbc8804"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -33,7 +34,7 @@ def upgrade() -> None:
                 sa.column("tg_id"),
                 sa.column("is_admin"),
                 sa.column("last_schedule"),
-                sa.column("user_template")
+                sa.column("user_template"),
             )
         ).values(
             tg_id=0,
@@ -45,7 +46,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute(
-        sa.delete(sa.table("users", sa.column("tg_id")))
-        .where(sa.column("tg_id") == 0)
-    )
+    op.execute(sa.delete(sa.table("users", sa.column("tg_id"))).where(sa.column("tg_id") == 0))

@@ -1,6 +1,7 @@
 """
 This script crops/resizes user images as a separate microservice to avoid lags in bot responses.
 """
+
 import asyncio
 import io
 import json
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 async def convert_image(
-        image: Image.Image, store: ObjectStore, resize_mode: str, save_name: str, target_size: tuple[int, int]
+    image: Image.Image, store: ObjectStore, resize_mode: str, save_name: str, target_size: tuple[int, int]
 ) -> None:
     stream = io.BytesIO()
     target_w, target_h = target_size

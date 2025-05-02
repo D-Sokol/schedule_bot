@@ -1,6 +1,7 @@
 """
 This script renders a final schedule as a separate microservice to avoid lags in bot responses.
 """
+
 import asyncio
 import io
 import logging
@@ -39,11 +40,11 @@ logger = logging.getLogger(__name__)
 
 
 async def render(
-        msg: Msg,
-        js: JetStreamContext,
-        assets_store: ObjectStore,
-        result_store: ObjectStore,
-        session_pool: async_sessionmaker | None = None,
+    msg: Msg,
+    js: JetStreamContext,
+    assets_store: ObjectStore,
+    result_store: ObjectStore,
+    session_pool: async_sessionmaker | None = None,
 ):
     if msg.headers is None:
         logger.error("Got message without headers")
@@ -94,16 +95,17 @@ async def render(
 
 
 async def render_loop(
-        js: JetStreamContext,
-        session_pool: async_sessionmaker | None = None,
-        shutdown_event: asyncio.Event | None = None
+    js: JetStreamContext, session_pool: async_sessionmaker | None = None, shutdown_event: asyncio.Event | None = None
 ):
     assets_store = await js.object_store(ASSETS_BUCKET_NAME)
-    await js.create_object_store("rendered", config=ObjectStoreConfig(
-        description="Stores rendered schedules before sending them to the user",
-        ttl=4 * 3600,
-        storage=StorageType.MEMORY,
-    ))
+    await js.create_object_store(
+        "rendered",
+        config=ObjectStoreConfig(
+            description="Stores rendered schedules before sending them to the user",
+            ttl=4 * 3600,
+            storage=StorageType.MEMORY,
+        ),
+    )
     result_store = await js.object_store(RESULT_BUCKET_NAME)
     await js.subscribe(
         INPUT_SUBJECT_NAME,
