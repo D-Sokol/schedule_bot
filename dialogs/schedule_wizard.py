@@ -94,7 +94,8 @@ async def confirm_handler(
 
 
 entries_filter = F["dialog_data"]["entries"]
-current_entry_filter = entries_filter[F["dialog_data"]["item_id"]]
+# Note: `F["x"][F["y"]]` is equivalent to `d["x"] if d["y"] else None`, not the expected thing.
+current_entry_filter = F["dialog_data"].func(lambda dd: dd["entries"][dd["item_id"]])
 
 
 start_window = Window(
