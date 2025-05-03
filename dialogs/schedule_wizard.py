@@ -2,9 +2,9 @@ import logging
 from typing import Any, TypedDict
 
 from aiogram.types import CallbackQuery
-from aiogram_dialog import Dialog, Window, DialogManager, ShowMode
+from aiogram_dialog import Dialog, Window, DialogManager, ShowMode, SubManager
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Cancel, ListGroup, Button, Row, ScrollingGroup, Select
+from aiogram_dialog.widgets.kbd import Cancel, ListGroup, Button, Row, ScrollingGroup, Select, SwitchTo
 from aiogram_dialog.widgets.text import Format
 from fluentogram import TranslatorRunner
 from magic_filter import F
@@ -93,6 +93,15 @@ async def confirm_handler(
     await manager.done({"entries": entries})
 
 
+async def store_selected_item(
+    _callback: CallbackQuery,
+    _widget: Any,
+    manager: DialogManager,
+) -> None:
+    assert isinstance(manager, SubManager)
+    manager.dialog_data["item_id"] = int(manager.item_id)
+
+
 entries_filter = F["dialog_data"]["entries"]
 # Note: `F["x"][F["y"]]` is equivalent to `d["x"] if d["y"] else None`, not the expected thing.
 current_entry_filter = F["dialog_data"].func(lambda dd: dd["entries"][dd["item_id"]])
@@ -103,12 +112,30 @@ start_window = Window(
     ScrollingGroup(
         ListGroup(
             Row(
-                Button(FluentFormat("weekdays-by_id", day=F["item"]["dow"]), "dow", on_click=None),
-                Button(Format("{item[hour]}:{item[minute]:02d}"), "time", on_click=None),
-                Button(
-                    FluentFormat("dialog-wizard-start.n_tags", n_tags=F["item"]["tags"].len()), "tags", on_click=None
+                SwitchTo(
+                    FluentFormat("weekdays-by_id", day=F["item"]["dow"]),
+                    "dow",
+                    state=ScheduleWizardStates.SELECT_DOW,
+                    on_click=store_selected_item,
                 ),
-                Button(Format("{item[description]}"), "desc", on_click=None),
+                SwitchTo(
+                    Format("{item[hour]}:{item[minute]:02d}"),
+                    "time",
+                    state=ScheduleWizardStates.SELECT_TIME,
+                    on_click=store_selected_item,
+                ),
+                SwitchTo(
+                    FluentFormat("dialog-wizard-start.n_tags", n_tags=F["item"]["tags"].len()),
+                    "tags",
+                    state=ScheduleWizardStates.SELECT_TAGS,
+                    on_click=store_selected_item,
+                ),
+                SwitchTo(
+                    Format("{item[description]}"),
+                    "desc",
+                    state=ScheduleWizardStates.SELECT_DESC,
+                    on_click=store_selected_item,
+                ),
                 Button(FluentFormat("dialog-wizard-start.clone"), "clone", on_click=None),
                 Button(FluentFormat("dialog-wizard-start.remove"), "remove", on_click=None),
             ),
