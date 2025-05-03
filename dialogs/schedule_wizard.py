@@ -3,7 +3,8 @@ from typing import Any, TypedDict
 
 from aiogram.types import CallbackQuery
 from aiogram_dialog import Dialog, Window, DialogManager, ShowMode
-from aiogram_dialog.widgets.kbd import Cancel, ListGroup, Button, Row, ScrollingGroup
+from aiogram_dialog.widgets.input import TextInput
+from aiogram_dialog.widgets.kbd import Cancel, ListGroup, Button, Row, ScrollingGroup, Select
 from aiogram_dialog.widgets.text import Format
 from fluentogram import TranslatorRunner
 from magic_filter import F
@@ -93,6 +94,7 @@ async def confirm_handler(
 
 
 entries_filter = F["dialog_data"]["entries"]
+current_entry_filter = entries_filter[F["dialog_data"]["item_id"]]
 
 
 start_window = Window(
@@ -130,9 +132,55 @@ start_window = Window(
     state=ScheduleWizardStates.START,
 )
 
+dow_window = Window(
+    FluentFormat("dialog-wizard-dow", current_day=current_entry_filter["dow"]),
+    Select(
+        FluentFormat("weekdays-by_id", day=F["item"]),
+        "dow_select",
+        item_id_getter=lambda x: x,
+        items=range(1, 8),
+        on_click=None,
+    ),
+    state=ScheduleWizardStates.SELECT_DOW,
+)
+
+
+def time_type_factory(s: str) -> tuple[int, int]:
+    hour, minute = map(int, s.split(":"))
+    return hour, minute
+
+
+time_window = Window(
+    FluentFormat(
+        "dialog-wizard-time", current_time=current_entry_filter.func(lambda e: f"{e['hour']}:{e['minute']:02d}")
+    ),
+    TextInput("inp_time", type_factory=time_type_factory, on_success=None),
+    state=ScheduleWizardStates.SELECT_TIME,
+)
+
+tags_window = Window(
+    FluentFormat(
+        "dialog-wizard-tags",
+        n_tags=current_entry_filter["tags"].len(),
+        current_tags=current_entry_filter["tags"].func(", ".join),
+    ),
+    TextInput("inp_tags", on_success=None),
+    state=ScheduleWizardStates.SELECT_TAGS,
+)
+
+desc_window = Window(
+    FluentFormat("dialog-wizard-desc", current_desc=current_entry_filter["description"]),
+    TextInput("inp_desc", on_success=None),
+    state=ScheduleWizardStates.SELECT_DESC,
+)
+
 
 dialog = Dialog(
     start_window,
+    dow_window,
+    time_window,
+    tags_window,
+    desc_window,
     name=__file__,
     on_start=on_dialog_start,
 )
