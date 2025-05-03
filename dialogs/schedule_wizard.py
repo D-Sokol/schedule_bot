@@ -3,7 +3,7 @@ from typing import Any, TypedDict
 
 from aiogram.types import CallbackQuery
 from aiogram_dialog import Dialog, Window, DialogManager, ShowMode
-from aiogram_dialog.widgets.kbd import Cancel, ListGroup, Button, Row
+from aiogram_dialog.widgets.kbd import Cancel, ListGroup, Button, Row, ScrollingGroup
 from aiogram_dialog.widgets.text import Format
 from fluentogram import TranslatorRunner
 from magic_filter import F
@@ -97,18 +97,26 @@ entries_filter = F["dialog_data"]["entries"]
 
 start_window = Window(
     FluentFormat("dialog-wizard-start"),
-    ListGroup(
-        Row(
-            Button(FluentFormat("weekdays-by_id", day=F["item"]["dow"]), "dow", on_click=None),
-            Button(Format("{item[hour]}:{item[minute]:02d}"), "time", on_click=None),
-            Button(FluentFormat("dialog-wizard-start.n_tags", n_tags=F["item"]["tags"].len()), "tags", on_click=None),
-            Button(Format("{item[description]}"), "desc", on_click=None),
-            Button(FluentFormat("dialog-wizard-start.clone"), "clone", on_click=None),
-            Button(FluentFormat("dialog-wizard-start.remove"), "remove", on_click=None),
+    ScrollingGroup(
+        ListGroup(
+            Row(
+                Button(FluentFormat("weekdays-by_id", day=F["item"]["dow"]), "dow", on_click=None),
+                Button(Format("{item[hour]}:{item[minute]:02d}"), "time", on_click=None),
+                Button(
+                    FluentFormat("dialog-wizard-start.n_tags", n_tags=F["item"]["tags"].len()), "tags", on_click=None
+                ),
+                Button(Format("{item[description]}"), "desc", on_click=None),
+                Button(FluentFormat("dialog-wizard-start.clone"), "clone", on_click=None),
+                Button(FluentFormat("dialog-wizard-start.remove"), "remove", on_click=None),
+            ),
+            id="entries",
+            item_id_getter=lambda item: item["id"],
+            items=entries_filter,
         ),
-        id="entries",
-        item_id_getter=lambda item: item["id"],
-        items=entries_filter,
+        id="entries_sg",
+        height=7,
+        when=entries_filter,
+        hide_on_single_page=True,
     ),
     Row(
         Button(FluentFormat("dialog-wizard-start.new"), "new", on_click=new_entry_handler),
