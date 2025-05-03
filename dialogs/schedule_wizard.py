@@ -26,6 +26,9 @@ class EntryRepresentation(TypedDict):
     tags: list[str]
 
 
+TEMPLATE_ENTITY: EntryRepresentation = {"id": 0, "dow": 1, "hour": 9, "minute": 0, "description": "...", "tags": []}
+
+
 def _save_entries(manager: DialogManager, entries: list[EntryRepresentation], update_ids: bool = True):
     if update_ids:
         for i, entry in enumerate(entries):
@@ -47,7 +50,7 @@ async def new_entry_handler(
     manager: DialogManager,
 ) -> None:
     entries: list[EntryRepresentation] = manager.dialog_data["entries"]
-    last_entry = entries[-1].copy() if entries else {"id": 0, "dow": 1, "hour": 9, "minute": 0, "description": "..."}
+    last_entry = entries[-1].copy() if entries else TEMPLATE_ENTITY.copy()
     entries.append(last_entry)
     _save_entries(manager, entries)
 
@@ -102,6 +105,31 @@ async def store_selected_item(
     manager.dialog_data["item_id"] = int(manager.item_id)
 
 
+async def clone_selected_item_handler(
+    _callback: CallbackQuery,
+    _widget: Any,
+    manager: DialogManager,
+) -> None:
+    assert isinstance(manager, SubManager)
+    index = int(manager.item_id)
+    entries: list[EntryRepresentation] = manager.dialog_data["entries"]
+    cloned_entry = entries[index].copy()
+    entries.insert(index, cloned_entry)
+    _save_entries(manager, entries)
+
+
+async def remove_selected_item_handler(
+    _callback: CallbackQuery,
+    _widget: Any,
+    manager: DialogManager,
+) -> None:
+    assert isinstance(manager, SubManager)
+    index = int(manager.item_id)
+    entries: list[EntryRepresentation] = manager.dialog_data["entries"]
+    del entries[index]
+    _save_entries(manager, entries)
+
+
 entries_filter = F["dialog_data"]["entries"]
 # Note: `F["x"][F["y"]]` is equivalent to `d["x"] if d["y"] else None`, not the expected thing.
 current_entry_filter = F["dialog_data"].func(lambda dd: dd["entries"][dd["item_id"]])
@@ -136,8 +164,8 @@ start_window = Window(
                     state=ScheduleWizardStates.SELECT_DESC,
                     on_click=store_selected_item,
                 ),
-                Button(FluentFormat("dialog-wizard-start.clone"), "clone", on_click=None),
-                Button(FluentFormat("dialog-wizard-start.remove"), "remove", on_click=None),
+                Button(FluentFormat("dialog-wizard-start.clone"), "clone", on_click=clone_selected_item_handler),
+                Button(FluentFormat("dialog-wizard-start.remove"), "remove", on_click=remove_selected_item_handler),
             ),
             id="entries",
             item_id_getter=lambda item: item["id"],
