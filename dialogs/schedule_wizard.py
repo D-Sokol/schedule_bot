@@ -169,6 +169,7 @@ dow_window = Window(
         items=range(1, 8),
         on_click=None,
     ),
+    SwitchTo(FluentFormat("dialog-wizard-dow.back"), "back", ScheduleWizardStates.START),
     state=ScheduleWizardStates.SELECT_DOW,
 )
 
@@ -182,6 +183,7 @@ time_window = Window(
     FluentFormat(
         "dialog-wizard-time", current_time=current_entry_filter.func(lambda e: f"{e['hour']}:{e['minute']:02d}")
     ),
+    SwitchTo(FluentFormat("dialog-wizard-time.back"), "back", ScheduleWizardStates.START),
     TextInput("inp_time", type_factory=time_type_factory, on_success=None),
     state=ScheduleWizardStates.SELECT_TIME,
 )
@@ -192,12 +194,14 @@ tags_window = Window(
         n_tags=current_entry_filter["tags"].len(),
         current_tags=current_entry_filter["tags"].func(", ".join),
     ),
+    SwitchTo(FluentFormat("dialog-wizard-tags.back"), "back", ScheduleWizardStates.START),
     TextInput("inp_tags", on_success=None),
     state=ScheduleWizardStates.SELECT_TAGS,
 )
 
 desc_window = Window(
     FluentFormat("dialog-wizard-desc", current_desc=current_entry_filter["description"]),
+    SwitchTo(FluentFormat("dialog-wizard-desc.back"), "back", ScheduleWizardStates.START),
     TextInput("inp_desc", on_success=None),
     state=ScheduleWizardStates.SELECT_DESC,
 )

@@ -155,10 +155,14 @@ dialog-wizard-dow =
     [7] { weekdays-d7 }
     }</i>
 
+    .back = { dialog-back }
+
 
 dialog-wizard-time =
     На какое время поставить запись?
     Сейчас: <i>{ $current_time }</i>
+
+    .back = { dialog-back }
 
 
 dialog-wizard-tags =
@@ -169,10 +173,14 @@ dialog-wizard-tags =
         *[other] <i>{ $current_tags }</i>
     }
 
+    .back = { dialog-back }
+
 
 dialog-wizard-desc =
     Какое описание должно быть у записи?
     Сейчас: <i>{ $current_desc }</i>
+
+    .back = { dialog-back }
 
 
 dialog-templates =
