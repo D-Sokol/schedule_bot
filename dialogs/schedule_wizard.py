@@ -1,7 +1,7 @@
 import logging
 from typing import Any, TypedDict
 
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import Dialog, Window, DialogManager, ShowMode, SubManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Cancel, ListGroup, Button, Row, ScrollingGroup, Select, SwitchTo
@@ -188,6 +188,21 @@ start_window = Window(
     state=ScheduleWizardStates.START,
 )
 
+
+async def update_item_dow_handler(
+    _callback: CallbackQuery,
+    _widget: Any,
+    manager: DialogManager,
+    dow_id: str,
+) -> None:
+    entries: list[EntryRepresentation] = manager.dialog_data["entries"]
+    index: int = manager.dialog_data["item_id"]
+    dow_value = int(dow_id)
+    assert dow_value in range(1, 8)
+    entries[index]["dow"] = dow_value
+    _save_entries(manager, entries, update_ids=False)
+
+
 dow_window = Window(
     FluentFormat("dialog-wizard-dow", current_day=current_entry_filter["dow"]),
     Select(
@@ -195,7 +210,7 @@ dow_window = Window(
         "dow_select",
         item_id_getter=lambda x: x,
         items=range(1, 8),
-        on_click=None,
+        on_click=update_item_dow_handler,
     ),
     SwitchTo(FluentFormat("dialog-wizard-dow.back"), "back", ScheduleWizardStates.START),
     state=ScheduleWizardStates.SELECT_DOW,
@@ -207,14 +222,43 @@ def time_type_factory(s: str) -> tuple[int, int]:
     return hour, minute
 
 
+async def update_item_time_handler(
+    _message: Message,
+    _widget: Any,
+    manager: DialogManager,
+    time: tuple[int, int],
+) -> None:
+    entries: list[EntryRepresentation] = manager.dialog_data["entries"]
+    index: int = manager.dialog_data["item_id"]
+    hour, minute = time
+    entries[index]["hour"] = hour
+    entries[index]["minute"] = minute
+    _save_entries(manager, entries, update_ids=False)
+
+
 time_window = Window(
     FluentFormat(
         "dialog-wizard-time", current_time=current_entry_filter.func(lambda e: f"{e['hour']}:{e['minute']:02d}")
     ),
     SwitchTo(FluentFormat("dialog-wizard-time.back"), "back", ScheduleWizardStates.START),
-    TextInput("inp_time", type_factory=time_type_factory, on_success=None),
+    TextInput("inp_time", type_factory=time_type_factory, on_success=update_item_time_handler),
     state=ScheduleWizardStates.SELECT_TIME,
 )
+
+
+async def update_item_tags_handler(
+    _message: Message,
+    _widget: Any,
+    manager: DialogManager,
+    tags_str: str,
+) -> None:
+    entries: list[EntryRepresentation] = manager.dialog_data["entries"]
+    index: int = manager.dialog_data["item_id"]
+    tags = tags_str.split(",")
+    tags = [tag.strip() for tag in tags]
+    entries[index]["tags"] = tags
+    _save_entries(manager, entries, update_ids=False)
+
 
 tags_window = Window(
     FluentFormat(
@@ -223,14 +267,27 @@ tags_window = Window(
         current_tags=current_entry_filter["tags"].func(", ".join),
     ),
     SwitchTo(FluentFormat("dialog-wizard-tags.back"), "back", ScheduleWizardStates.START),
-    TextInput("inp_tags", on_success=None),
+    TextInput("inp_tags", on_success=update_item_tags_handler),
     state=ScheduleWizardStates.SELECT_TAGS,
 )
+
+
+async def update_item_desc_handler(
+    _message: Message,
+    _widget: Any,
+    manager: DialogManager,
+    description: str,
+) -> None:
+    entries: list[EntryRepresentation] = manager.dialog_data["entries"]
+    index: int = manager.dialog_data["item_id"]
+    entries[index]["description"] = description
+    _save_entries(manager, entries, update_ids=False)
+
 
 desc_window = Window(
     FluentFormat("dialog-wizard-desc", current_desc=current_entry_filter["description"]),
     SwitchTo(FluentFormat("dialog-wizard-desc.back"), "back", ScheduleWizardStates.START),
-    TextInput("inp_desc", on_success=None),
+    TextInput("inp_desc", on_success=update_item_desc_handler),
     state=ScheduleWizardStates.SELECT_DESC,
 )
 
