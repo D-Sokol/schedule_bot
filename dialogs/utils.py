@@ -23,7 +23,7 @@ from database_models import User
 from fluentogram_utils import clear_fluentogram_message
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def current_user_id(dialog_manager: DialogManager) -> int:
@@ -54,6 +54,7 @@ def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery | Mess
     async def callback(_update: CallbackQuery | Message, _widget: Any, manager: DialogManager) -> None:
         logger.debug("Saving %s = %s", key, value)
         manager.dialog_data[key] = value
+
     return callback
 
 
@@ -69,12 +70,13 @@ class BotAwareMessageManager(MessageManager):
         self.js = js
 
     async def get_media_source(
-            self, media: MediaAttachment, bot: Bot,
+        self,
+        media: MediaAttachment,
+        bot: Bot,
     ) -> Union[InputFile, str]:
         file_id: str = ""
-        if (
-                not media.file_id
-                or not (file_id := media.file_id.file_id).startswith(ElementsRegistryAbstract.BOT_URI_PREFIX)
+        if not media.file_id or not (file_id := media.file_id.file_id).startswith(
+            ElementsRegistryAbstract.BOT_URI_PREFIX
         ):
             return await super().get_media_source(media, bot)
 
@@ -118,18 +120,19 @@ class StartWithData(Start):
     If data keys are provided, only given keys are copied. If static data is provided,
     it takes priority over values from current context.
     """
+
     def __init__(
-            self,
-            text: Text,
-            id: str,  # noqa
-            state: State,
-            data: dict | None = None,
-            on_click: Optional[OnClick] = None,
-            show_mode: Optional[ShowMode] = None,
-            mode: StartMode = StartMode.NORMAL,
-            when: WhenCondition = None,
-            data_keys: list[str] | None = None,
-            dialog_data_keys: list[str] | None = None,
+        self,
+        text: Text,
+        id: str,  # noqa
+        state: State,
+        data: dict | None = None,
+        on_click: Optional[OnClick] = None,
+        show_mode: Optional[ShowMode] = None,
+        mode: StartMode = StartMode.NORMAL,
+        when: WhenCondition = None,
+        data_keys: list[str] | None = None,
+        dialog_data_keys: list[str] | None = None,
     ):
         super().__init__(
             text=text,
@@ -145,10 +148,10 @@ class StartWithData(Start):
         self.dialog_data_keys = dialog_data_keys
 
     async def _on_click(
-            self,
-            callback: CallbackQuery,
-            button: Button,
-            manager: DialogManager,
+        self,
+        callback: CallbackQuery,
+        button: Button,
+        manager: DialogManager,
     ):
         if self.user_on_click:
             await self.user_on_click(callback, self, manager)
@@ -181,10 +184,12 @@ class StartWithData(Start):
 
 class FluentFormat(Text):
     MIDDLEWARE_KEY: ClassVar[str] = "i18n"
+
     def __init__(
-            self, key: str,
-            when: WhenCondition = None,
-            **kwargs: MagicFilter,
+        self,
+        key: str,
+        when: WhenCondition = None,
+        **kwargs: MagicFilter,
     ):
         super().__init__(when)
         self.key = key

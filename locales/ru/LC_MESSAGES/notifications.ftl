@@ -46,3 +46,8 @@ notify-admin = Unused
     .revoke = Администратор { $user_id } удален
     .ban = Пользователь { $user_id } забанен
     .unban = Пользователь { $user_id } амнистирован
+
+
+notify-wizard-print =
+    Вот так выглядит введенное расписание в виде текста:
+    <i>{ $schedule }</i>

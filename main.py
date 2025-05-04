@@ -67,7 +67,9 @@ async def setup_db(db_url: str, admin_id: int = -1, log_level: str = "WARNING") 
     return session_pool
 
 
-async def setup_middlewares(dp: Dispatcher, session_pool: async_sessionmaker, js: JetStreamContext, hub: TranslatorHub) -> None:
+async def setup_middlewares(
+    dp: Dispatcher, session_pool: async_sessionmaker, js: JetStreamContext, hub: TranslatorHub
+) -> None:
     db_middleware = DbSessionMiddleware(session_pool, js)
     message_manager = BotAwareMessageManager(session_pool, js)
 
@@ -91,12 +93,12 @@ async def setup_middlewares(dp: Dispatcher, session_pool: async_sessionmaker, js
 
 
 async def main(
-        token: str,
-        db_url: str,
-        nats_servers: str,
-        source_code_url: str,
-        log_level: str = "WARNING",
-        admin_id: int = -1,
+    token: str,
+    db_url: str,
+    nats_servers: str,
+    source_code_url: str,
+    log_level: str = "WARNING",
+    admin_id: int = -1,
 ) -> None:
     session_pool = await setup_db(db_url, admin_id, log_level)
     logging.info("Connected to DB")
@@ -128,7 +130,7 @@ async def main(
     await dp.start_polling(bot)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     bot_token = os.getenv("TOKEN")
     database_url = os.getenv("DB_URL")
     admin_tg_id = int(os.getenv("ADMIN_ID") or -1)
@@ -152,11 +154,13 @@ if __name__ == '__main__':
         format="{filename}:{lineno} #{levelname:8} [{asctime}] - {name} - {message}",
         style="{",
     )
-    asyncio.run(main(
-        bot_token,
-        database_url,
-        nats_servers_,
-        log_level=log_level_,
-        admin_id=admin_tg_id,
-        source_code_url=source_code_url_,
-    ))
+    asyncio.run(
+        main(
+            bot_token,
+            database_url,
+            nats_servers_,
+            log_level=log_level_,
+            admin_id=admin_tg_id,
+            source_code_url=source_code_url_,
+        )
+    )

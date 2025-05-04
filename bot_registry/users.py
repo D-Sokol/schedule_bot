@@ -50,8 +50,7 @@ class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
 
     async def grant_admin(self, tg_id: int) -> None:
         statement = (
-            insert(User).values((tg_id, True))
-            .on_conflict_do_update(index_elements=("tg_id",), set_={"is_admin": True})
+            insert(User).values((tg_id, True)).on_conflict_do_update(index_elements=("tg_id",), set_={"is_admin": True})
         )
         await self.session.execute(statement)
         await self.session.commit()
@@ -65,7 +64,8 @@ class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
 
     async def ban_user(self, tg_id: int) -> None:
         statement = (
-            insert(User).values((tg_id, False, True))
+            insert(User)
+            .values((tg_id, False, True))
             .on_conflict_do_update(index_elements=("tg_id",), set_={"is_admin": False, "is_banned": True})
         )
         await self.session.execute(statement)
@@ -77,4 +77,3 @@ class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
 
         await self.session.execute(statement)
         await self.session.commit()
-

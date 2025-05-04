@@ -1,6 +1,7 @@
 import asyncio
 import html
 import logging
+from collections import defaultdict
 from datetime import date, timedelta
 from functools import partial
 from typing import Any
@@ -14,11 +15,12 @@ from magic_filter import F
 
 from bot_registry import TemplateRegistryAbstract
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
+from services.renderer.weekdays import WeekDay, Entry, Time
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
-from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates
-from .utils import current_user_id, current_chat_id, FluentFormat, handler_not_implemented_button
+from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates, ScheduleWizardStates
+from .utils import current_user_id, current_chat_id, FluentFormat
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 has_preselected_background_condition = F["start_data"]["element_id"]
@@ -40,10 +42,10 @@ async def on_dialog_start(start_data: Data, manager: DialogManager):
 
 
 async def process_date_selected(
-        _callback: CallbackQuery,
-        _widget: Any,
-        manager: DialogManager,
-        selected_date: date,
+    _callback: CallbackQuery,
+    _widget: Any,
+    manager: DialogManager,
+    selected_date: date,
 ):
     user_id = current_user_id(manager)
     chat_id = current_chat_id(manager)
@@ -59,16 +61,13 @@ async def process_date_selected(
         return
     await asyncio.gather(
         schedule_registry.render_schedule(user_id, chat_id, schedule, element_id, template, result_date),
-        schedule_registry.update_last_schedule(user_id, schedule)
+        schedule_registry.update_last_schedule(user_id, schedule),
     )
     await manager.switch_to(ScheduleStates.FINISH)
 
 
 async def previous_schedule_getter(
-        dialog_manager: DialogManager,
-        schedule_registry: ScheduleRegistryAbstract,
-        i18n: TranslatorRunner,
-        **_
+    dialog_manager: DialogManager, schedule_registry: ScheduleRegistryAbstract, i18n: TranslatorRunner, **_
 ) -> dict[str, Any]:
     user_id = current_user_id(dialog_manager)
 
@@ -87,10 +86,10 @@ async def previous_schedule_getter(
 
 
 async def process_schedule_creation(
-        message: Message,
-        _widget: Any,
-        manager: DialogManager,
-        data: str,
+    message: Message,
+    _widget: Any,
+    manager: DialogManager,
+    data: str,
 ):
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
     schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
@@ -99,9 +98,7 @@ async def process_schedule_creation(
         await message.answer(i18n.get("dialog-schedule-text.warn_empty"))
         return
     elif unparsed:
-        answer = "\n".join(
-            [i18n.get("dialog-schedule-text.warn_unparsed"), *unparsed]
-        )
+        answer = "\n".join([i18n.get("dialog-schedule-text.warn_unparsed"), *unparsed])
         await message.answer(answer)
     manager.dialog_data["schedule"] = schedule.model_dump(mode="json", exclude_defaults=True)
     await manager.switch_to(ScheduleStates.EXPECT_DATE)
@@ -139,6 +136,7 @@ start_window = Window(
     getter=partial(saved_backs_getter, _only_count=True),
 )
 
+
 async def process_accept_previous(_callback: CallbackQuery, _widget: Button, manager: DialogManager):
     user_id = current_user_id(manager)
     schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
@@ -146,6 +144,48 @@ async def process_accept_previous(_callback: CallbackQuery, _widget: Button, man
     schedule = await schedule_registry.get_last_schedule(user_id)
     assert schedule is not None and not schedule.is_empty(), "Displaying button error"
     manager.dialog_data["schedule"] = schedule.model_dump(mode="json", exclude_defaults=True)
+
+
+async def start_wizard_handler(_callback: CallbackQuery, _widget: Button, manager: DialogManager) -> None:
+    user_id = current_user_id(manager)
+    schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
+    schedule = await schedule_registry.get_last_schedule(user_id)
+    entries = []
+    if schedule is not None:
+        for dow, daily_schedule in schedule.records.items():
+            for e in daily_schedule:
+                entry = {
+                    "id": len(entries),
+                    "dow": dow.value,
+                    "hour": e.time.hour,
+                    "minute": e.time.minute,
+                    "description": e.description,
+                    "tags": list(e.tags),
+                }
+                entries.append(entry)
+    await manager.start(ScheduleWizardStates.START, data={"entries": entries})
+
+
+async def process_wizard_result(_start_data: Data, result: Data, manager: DialogManager):
+    if result is None:
+        # User cancelled upload, nothing is changed
+        return
+    assert isinstance(result, dict), f"Wrong type {type(result)} returned from child dialog"
+
+    schedule: dict[WeekDay, list[Entry]] = defaultdict(list)
+    entities: list[dict] = result["entries"]
+    for e in entities:
+        dow = WeekDay(e["dow"])
+        time = Time(hour=e["hour"], minute=e["minute"])
+        entry = Entry(time=time, description=e["description"], tags=e["tags"])
+        schedule[dow].append(entry)
+
+    for entries in schedule.values():
+        entries.sort(key=lambda ent: (ent.time.hour, ent.time.minute))
+
+    schedule_obj = Schedule(records=dict(schedule))
+    manager.dialog_data["schedule"] = schedule_obj.model_dump(mode="json", exclude_defaults=True)
+    await manager.switch_to(ScheduleStates.EXPECT_DATE)
 
 
 expect_input_window = Window(
@@ -161,13 +201,14 @@ expect_input_window = Window(
     Button(
         FluentFormat("dialog-schedule-text.wizard"),
         id="enter_wizard",
-        on_click=handler_not_implemented_button,
+        on_click=start_wizard_handler,
     ),
     SwitchTo(FluentFormat("dialog-schedule-text.back"), id="back", state=ScheduleStates.START),
     Cancel(FluentFormat("dialog-cancel")),
     TextInput(id="schedule_text", on_success=process_schedule_creation),
     getter=previous_schedule_getter,
     state=ScheduleStates.EXPECT_TEXT,
+    on_process_result=process_wizard_result,
 )
 
 
@@ -213,5 +254,5 @@ dialog = Dialog(
     expect_date_calendar_window,
     finish_window,
     on_start=on_dialog_start,
-    name=__file__,
+    name=__name__,
 )

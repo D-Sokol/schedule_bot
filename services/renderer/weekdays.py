@@ -3,6 +3,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 _DEFAULT_NAMES = ["нл", "пн", "вт", "ср", "чт", "пт", "сб", "вс"]
+
+
 class WeekDay(IntEnum):
     MONDAY = 1
     TUESDAY = 2

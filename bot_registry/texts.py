@@ -19,7 +19,7 @@ from services.renderer.weekdays import WeekDay, Time, Entry, Schedule
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class ScheduleRegistryAbstract(ABC):
@@ -47,13 +47,13 @@ class ScheduleRegistryAbstract(ABC):
 
     @abstractmethod
     async def render_schedule(
-            self,
-            user_id: int,
-            chat_id: int,
-            schedule: Schedule,
-            background_id: str | UUID,
-            template: Template,
-            start: date,
+        self,
+        user_id: int,
+        chat_id: int,
+        schedule: Schedule,
+        background_id: str | UUID,
+        template: Template,
+        start: date,
     ) -> None:
         raise NotImplementedError
 
@@ -145,18 +145,20 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
         await self.session.commit()
 
     async def render_schedule(
-            self,
-            user_id: int,
-            chat_id: int,
-            schedule: Schedule,
-            background_id: str | UUID,
-            template: Template,
-            start: date,
+        self,
+        user_id: int,
+        chat_id: int,
+        schedule: Schedule,
+        background_id: str | UUID,
+        template: Template,
+        start: date,
     ) -> None:
-        payload: bytes = msgpack.packb([
-            template.model_dump(by_alias=True, exclude_none=True, mode="json"),
-            schedule.model_dump(by_alias=True, exclude_none=True, mode="json"),
-        ])
+        payload: bytes = msgpack.packb(
+            [
+                template.model_dump(by_alias=True, exclude_none=True, mode="json"),
+                schedule.model_dump(by_alias=True, exclude_none=True, mode="json"),
+            ]
+        )
 
         await self.js.publish(
             subject=INPUT_SUBJECT_NAME,

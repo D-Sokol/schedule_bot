@@ -18,11 +18,14 @@ from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
 from .utils import StartWithData, FluentFormat, active_user_id, current_user_id, has_admin_privileges
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 async def saved_backs_getter(
-        dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, _only_count: bool = False, **_,
+    dialog_manager: DialogManager,
+    element_registry: ElementsRegistryAbstract,
+    _only_count: bool = False,
+    **_,
 ) -> dict[str, Any]:
     user_id = active_user_id(dialog_manager)
     if _only_count:
@@ -41,7 +44,7 @@ async def saved_backs_getter(
 
 
 async def selected_image_getter(
-        dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, **_
+    dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, **_
 ) -> dict[str, Any]:
     element_id: str = dialog_manager.dialog_data["element_id"]
     user_id = active_user_id(dialog_manager)
@@ -58,7 +61,7 @@ async def selected_image_getter(
 
 
 async def selected_image_name_getter(
-        dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, **_
+    dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, **_
 ) -> dict[str, str]:
     element_id: str = dialog_manager.dialog_data["element_id"]
     user_id = active_user_id(dialog_manager)
@@ -69,10 +72,10 @@ async def selected_image_name_getter(
 
 
 async def select_image_handler(
-        _callback: CallbackQuery,
-        _widget: Any,
-        manager: DialogManager,
-        item_id: str,
+    _callback: CallbackQuery,
+    _widget: Any,
+    manager: DialogManager,
+    item_id: str,
 ):
     user_id = active_user_id(manager)
     manager.dialog_data["element_id"] = item_id
@@ -162,10 +165,10 @@ async def make_old_handler(callback: CallbackQuery, _widget: Button, manager: Di
 
 
 async def rename_image(
-        message: Message,
-        _widget: Any,
-        manager: DialogManager,
-        data: str,
+    message: Message,
+    _widget: Any,
+    manager: DialogManager,
+    data: str,
 ):
     registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
     user_id = active_user_id(manager)
@@ -243,8 +246,7 @@ selected_image_window = Window(
 rename_image_window = Window(
     FluentFormat("dialog-backgrounds-rename"),
     SwitchTo(
-        FluentFormat("dialog-backgrounds-rename.cancel"),
-        id="cancel_rename", state=BackgroundsStates.SELECTED_IMAGE
+        FluentFormat("dialog-backgrounds-rename.cancel"), id="cancel_rename", state=BackgroundsStates.SELECTED_IMAGE
     ),
     TextInput(id="rename", type_factory=ElementsRegistryAbstract.validate_name, on_success=rename_image),
     state=BackgroundsStates.RENAME,
@@ -257,11 +259,12 @@ confirm_delete_window = Window(
     ),
     SwitchTo(
         FluentFormat("dialog-backgrounds-delete.confirm"),
-        id="confirm_delete", state=BackgroundsStates.START, on_click=delete_image_handler
+        id="confirm_delete",
+        state=BackgroundsStates.START,
+        on_click=delete_image_handler,
     ),
     SwitchTo(
-        FluentFormat("dialog-backgrounds-delete.cancel"),
-        id="cancel_delete", state=BackgroundsStates.SELECTED_IMAGE
+        FluentFormat("dialog-backgrounds-delete.cancel"), id="cancel_delete", state=BackgroundsStates.SELECTED_IMAGE
     ),
     state=BackgroundsStates.CONFIRM_DELETE,
     getter=selected_image_name_getter,
@@ -273,5 +276,5 @@ dialog = Dialog(
     selected_image_window,
     confirm_delete_window,
     rename_image_window,
-    name=__file__,
+    name=__name__,
 )

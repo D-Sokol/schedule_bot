@@ -58,6 +58,7 @@ async def send_from_store(msg: Msg, bot: Bot, store: ObjectStore, filename="Sche
     except TelegramRetryAfter as e:
         await msg.nak(e.retry_after)
 
+
 async def response_error(msg: Msg, bot: Bot) -> None:
     if msg.headers is None:
         logger.error("Got message without headers")
@@ -75,11 +76,14 @@ async def response_error(msg: Msg, bot: Bot) -> None:
 
 
 async def sender_loop(js: JetStreamContext, bot: Bot, shutdown_event: asyncio.Event | None = None):
-    await js.create_object_store("rendered", config=ObjectStoreConfig(
-        description="Stores rendered schedules before sending them to the user",
-        ttl=4 * 3600,
-        storage=StorageType.MEMORY,
-    ))
+    await js.create_object_store(
+        "rendered",
+        config=ObjectStoreConfig(
+            description="Stores rendered schedules before sending them to the user",
+            ttl=4 * 3600,
+            storage=StorageType.MEMORY,
+        ),
+    )
     store = await js.object_store(RESULT_BUCKET_NAME)
     await js.subscribe(INPUT_RAW_SUBJECT_NAME, cb=partial(send_raw, bot=bot), durable="sender", manual_ack=True)
     await js.subscribe(

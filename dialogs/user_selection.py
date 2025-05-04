@@ -12,31 +12,31 @@ from .states import UserSelectionStates
 from .utils import FluentFormat
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 async def accept_forwarded(
-        message: Message,
-        _: MessageInput,
-        manager: DialogManager,
+    message: Message,
+    _: MessageInput,
+    manager: DialogManager,
 ) -> None:
     tg_id = cast(MessageOriginUser, message.forward_origin).sender_user.id
     await manager.done({"user_id": tg_id})
 
 
 async def accept_forwarded_unavailable(
-        _message: Message,
-        _: MessageInput,
-        manager: DialogManager,
+    _message: Message,
+    _: MessageInput,
+    manager: DialogManager,
 ) -> None:
     manager.dialog_data["help"] = "hidden_user"
 
 
 async def accept_typed_id(
-        _message: Message,
-        _widget: Any,
-        manager: DialogManager,
-        data: int,
+    _message: Message,
+    _widget: Any,
+    manager: DialogManager,
+    data: int,
 ):
     if data <= 0:
         manager.dialog_data["help"] = "unparseable"
@@ -45,10 +45,10 @@ async def accept_typed_id(
 
 
 async def incorrect_typed_id(
-        _message: Message,
-        _widget: Any,
-        manager: DialogManager,
-        _error: ValueError,
+    _message: Message,
+    _widget: Any,
+    manager: DialogManager,
+    _error: ValueError,
 ):
     manager.dialog_data["help"] = "unparseable"
 
@@ -67,5 +67,5 @@ start_window = Window(
 
 dialog = Dialog(
     start_window,
-    name=__file__,
+    name=__name__,
 )
