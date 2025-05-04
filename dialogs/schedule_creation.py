@@ -1,6 +1,7 @@
 import asyncio
 import html
 import logging
+from collections import defaultdict
 from datetime import date, timedelta
 from functools import partial
 from typing import Any
@@ -14,6 +15,7 @@ from magic_filter import F
 
 from bot_registry import TemplateRegistryAbstract
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
+from services.renderer.weekdays import WeekDay, Entry, Time
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
 from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates, ScheduleWizardStates
 from .utils import current_user_id, current_chat_id, FluentFormat
@@ -164,6 +166,28 @@ async def start_wizard_handler(_callback: CallbackQuery, _widget: Button, manage
     await manager.start(ScheduleWizardStates.START, data={"entries": entries})
 
 
+async def process_wizard_result(_start_data: Data, result: Data, manager: DialogManager):
+    if result is None:
+        # User cancelled upload, nothing is changed
+        return
+    assert isinstance(result, dict), f"Wrong type {type(result)} returned from child dialog"
+
+    schedule: dict[WeekDay, list[Entry]] = defaultdict(list)
+    entities: list[dict] = result["entities"]
+    for e in entities:
+        dow = WeekDay(e["dow"] + 1)
+        time = Time(hour=e["hour"], minute=e["minute"])
+        entry = Entry(time=time, description=e["description"], tags=e["tags"])
+        schedule[dow].append(entry)
+
+    for entries in schedule.values():
+        entries.sort(key=lambda ent: (ent.time.hour, ent.time.minute))
+
+    schedule_obj = Schedule(records=dict(schedule))
+    manager.dialog_data["schedule"] = schedule_obj.model_dump(mode="json", exclude_defaults=True)
+    await manager.switch_to(ScheduleStates.EXPECT_DATE)
+
+
 expect_input_window = Window(
     FluentFormat("dialog-schedule-text.presented", when=F["user_has_schedule"]),
     FluentFormat("dialog-schedule-text.missing", when=~F["user_has_schedule"]),
@@ -178,12 +202,13 @@ expect_input_window = Window(
         FluentFormat("dialog-schedule-text.wizard"),
         id="enter_wizard",
         on_click=start_wizard_handler,
-    ),  # TODO: process result
+    ),
     SwitchTo(FluentFormat("dialog-schedule-text.back"), id="back", state=ScheduleStates.START),
     Cancel(FluentFormat("dialog-cancel")),
     TextInput(id="schedule_text", on_success=process_schedule_creation),
     getter=previous_schedule_getter,
     state=ScheduleStates.EXPECT_TEXT,
+    on_process_result=process_wizard_result,
 )
 
 
