@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any, TypedDict
 
 from aiogram.types import CallbackQuery, Message
@@ -218,8 +219,14 @@ dow_window = Window(
 )
 
 
+_time_regex = re.compile(r"(\d+)[\s:.](\d+)")
+
+
 def time_type_factory(s: str) -> tuple[int, int]:
-    hour, minute = map(int, s.split(":"))
+    match = _time_regex.fullmatch(s)
+    if match is None:
+        raise ValueError
+    hour, minute = match.groups()
     return hour, minute
 
 
