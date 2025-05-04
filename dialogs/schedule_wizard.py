@@ -20,7 +20,7 @@ logger = logging.getLogger(__file__)
 
 class EntryRepresentation(TypedDict):
     id: int
-    dow: int
+    dow: int  # 1-based
     hour: int
     minute: int
     description: str
@@ -227,7 +227,7 @@ def time_type_factory(s: str) -> tuple[int, int]:
     if match is None:
         raise ValueError
     hour, minute = match.groups()
-    return hour, minute
+    return int(hour), int(minute)
 
 
 async def update_item_time_handler(

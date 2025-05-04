@@ -156,7 +156,7 @@ async def start_wizard_handler(_callback: CallbackQuery, _widget: Button, manage
             for e in daily_schedule:
                 entry = {
                     "id": len(entries),
-                    "dow": dow.value - 1,
+                    "dow": dow.value,
                     "hour": e.time.hour,
                     "minute": e.time.minute,
                     "description": e.description,
@@ -173,9 +173,9 @@ async def process_wizard_result(_start_data: Data, result: Data, manager: Dialog
     assert isinstance(result, dict), f"Wrong type {type(result)} returned from child dialog"
 
     schedule: dict[WeekDay, list[Entry]] = defaultdict(list)
-    entities: list[dict] = result["entities"]
+    entities: list[dict] = result["entries"]
     for e in entities:
-        dow = WeekDay(e["dow"] + 1)
+        dow = WeekDay(e["dow"])
         time = Time(hour=e["hour"], minute=e["minute"])
         entry = Entry(time=time, description=e["description"], tags=e["tags"])
         schedule[dow].append(entry)
