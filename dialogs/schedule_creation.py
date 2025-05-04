@@ -15,8 +15,8 @@ from magic_filter import F
 from bot_registry import TemplateRegistryAbstract
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
-from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates
-from .utils import current_user_id, current_chat_id, FluentFormat, handler_not_implemented_button
+from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates, ScheduleWizardStates
+from .utils import current_user_id, current_chat_id, FluentFormat
 
 logger = logging.getLogger(__file__)
 
@@ -144,6 +144,26 @@ async def process_accept_previous(_callback: CallbackQuery, _widget: Button, man
     manager.dialog_data["schedule"] = schedule.model_dump(mode="json", exclude_defaults=True)
 
 
+async def start_wizard_handler(_callback: CallbackQuery, _widget: Button, manager: DialogManager) -> None:
+    user_id = current_user_id(manager)
+    schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
+    schedule = await schedule_registry.get_last_schedule(user_id)
+    entries = []
+    if schedule is not None:
+        for dow, daily_schedule in schedule.records.items():
+            for e in daily_schedule:
+                entry = {
+                    "id": len(entries),
+                    "dow": dow.value - 1,
+                    "hour": e.time.hour,
+                    "minute": e.time.minute,
+                    "description": e.description,
+                    "tags": list(e.tags),
+                }
+                entries.append(entry)
+    await manager.start(ScheduleWizardStates.START, data={"entries": entries})
+
+
 expect_input_window = Window(
     FluentFormat("dialog-schedule-text.presented", when=F["user_has_schedule"]),
     FluentFormat("dialog-schedule-text.missing", when=~F["user_has_schedule"]),
@@ -157,8 +177,8 @@ expect_input_window = Window(
     Button(
         FluentFormat("dialog-schedule-text.wizard"),
         id="enter_wizard",
-        on_click=handler_not_implemented_button,
-    ),
+        on_click=start_wizard_handler,
+    ),  # TODO: process result
     SwitchTo(FluentFormat("dialog-schedule-text.back"), id="back", state=ScheduleStates.START),
     Cancel(FluentFormat("dialog-cancel")),
     TextInput(id="schedule_text", on_success=process_schedule_creation),
