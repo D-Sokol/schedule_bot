@@ -201,6 +201,7 @@ async def update_item_dow_handler(
     assert dow_value in range(1, 8)
     entries[index]["dow"] = dow_value
     _save_entries(manager, entries, update_ids=False)
+    await manager.switch_to(ScheduleWizardStates.START)
 
 
 dow_window = Window(
@@ -234,6 +235,7 @@ async def update_item_time_handler(
     entries[index]["hour"] = hour
     entries[index]["minute"] = minute
     _save_entries(manager, entries, update_ids=False)
+    await manager.switch_to(ScheduleWizardStates.START)
 
 
 time_window = Window(
@@ -258,6 +260,7 @@ async def update_item_tags_handler(
     tags = [tag.strip() for tag in tags]
     entries[index]["tags"] = tags
     _save_entries(manager, entries, update_ids=False)
+    await manager.switch_to(ScheduleWizardStates.START)
 
 
 async def update_item_clear_tags_handler(
@@ -269,6 +272,7 @@ async def update_item_clear_tags_handler(
     index: int = manager.dialog_data["item_id"]
     entries[index]["tags"] = []
     _save_entries(manager, entries, update_ids=False)
+    await manager.switch_to(ScheduleWizardStates.START)
 
 
 tags_window = Window(
@@ -294,6 +298,7 @@ async def update_item_desc_handler(
     index: int = manager.dialog_data["item_id"]
     entries[index]["description"] = description
     _save_entries(manager, entries, update_ids=False)
+    await manager.switch_to(ScheduleWizardStates.START)
 
 
 desc_window = Window(
