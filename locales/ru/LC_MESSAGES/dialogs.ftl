@@ -173,6 +173,7 @@ dialog-wizard-tags =
         *[other] <i>{ $current_tags }</i>
     }
 
+    .clear = 🧹 Удалить все теги
     .back = { dialog-back }
 
 

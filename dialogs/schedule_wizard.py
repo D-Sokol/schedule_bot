@@ -260,12 +260,24 @@ async def update_item_tags_handler(
     _save_entries(manager, entries, update_ids=False)
 
 
+async def update_item_clear_tags_handler(
+    _callback: CallbackQuery,
+    _widget: Any,
+    manager: DialogManager,
+) -> None:
+    entries: list[EntryRepresentation] = manager.dialog_data["entries"]
+    index: int = manager.dialog_data["item_id"]
+    entries[index]["tags"] = []
+    _save_entries(manager, entries, update_ids=False)
+
+
 tags_window = Window(
     FluentFormat(
         "dialog-wizard-tags",
         n_tags=current_entry_filter["tags"].len(),
         current_tags=current_entry_filter["tags"].func(", ".join),
     ),
+    Button(FluentFormat("dialog-wizard-tags.clear"), "no_tags", on_click=update_item_clear_tags_handler),
     SwitchTo(FluentFormat("dialog-wizard-tags.back"), "back", ScheduleWizardStates.START),
     TextInput("inp_tags", on_success=update_item_tags_handler),
     state=ScheduleWizardStates.SELECT_TAGS,
