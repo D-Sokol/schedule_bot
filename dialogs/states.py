@@ -20,6 +20,14 @@ class ScheduleStates(StatesGroup):
     FINISH = State()
 
 
+class ScheduleWizardStates(StatesGroup):
+    START = State()
+    SELECT_DOW = State()
+    SELECT_TIME = State()
+    SELECT_TAGS = State()
+    SELECT_DESC = State()
+
+
 class UploadBackgroundStates(StatesGroup):
     START = State()
     UPLOADED_NOT_DOCUMENT = State()

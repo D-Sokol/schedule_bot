@@ -19,3 +19,15 @@ weekdays-d6 = сб
 
 weekdays-d7 = вс
     .alias1 = воскресенье
+
+
+weekdays-by_id = {
+    $day ->
+    *[1] { weekdays-d1 }
+    [2] { weekdays-d2 }
+    [3] { weekdays-d3 }
+    [4] { weekdays-d4 }
+    [5] { weekdays-d5 }
+    [6] { weekdays-d6 }
+    [7] { weekdays-d7 }
+}
