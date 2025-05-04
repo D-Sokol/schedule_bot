@@ -37,10 +37,10 @@ def _save_entries(manager: DialogManager, entries: list[EntryRepresentation], up
 
 
 async def on_dialog_start(start_data: dict[str, Any] | None, manager: DialogManager):
-    entries: list[EntryRepresentation] = [
-        {"id": 0, "dow": 1, "hour": 17, "minute": 0, "description": "d1", "tags": []},
-        {"id": 1, "dow": 1, "hour": 18, "minute": 0, "description": "d2", "tags": ["a"]},
-    ]
+    if not start_data:
+        entries: list[EntryRepresentation] = []
+    else:
+        entries = start_data.get("entries", [])
     _save_entries(manager, entries, update_ids=False)
 
 
