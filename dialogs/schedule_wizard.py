@@ -15,7 +15,7 @@ from .states import ScheduleWizardStates
 from .utils import FluentFormat
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class EntryRepresentation(TypedDict):
@@ -322,6 +322,6 @@ dialog = Dialog(
     time_window,
     tags_window,
     desc_window,
-    name=__file__,
+    name=__name__,
     on_start=on_dialog_start,
 )

@@ -14,7 +14,7 @@ from .states import AdministrationStates, UserSelectionStates
 from .utils import FluentFormat, current_user_id, has_admin_privileges
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class ActionWithUser(StrEnum):
@@ -161,5 +161,5 @@ dialog = Dialog(
     start_window,
     on_start=on_dialog_start,
     on_process_result=on_process_result,
-    name=__file__,
+    name=__name__,
 )

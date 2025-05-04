@@ -8,7 +8,7 @@ from services.renderer.templates import Template
 from .database_mixin import DatabaseRegistryMixin
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class TemplateRegistryAbstract(ABC):

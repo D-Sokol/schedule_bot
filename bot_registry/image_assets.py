@@ -19,7 +19,7 @@ from exceptions import ImageNotProcessedException, DuplicateNameException, Image
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 LOCAL_SCOPE_ELEMENTS_LIMIT = 10

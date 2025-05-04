@@ -18,7 +18,7 @@ from .states import UploadBackgroundStates
 from .utils import save_to_dialog_data, active_user_id, FluentFormat, has_admin_privileges
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 FILE_SIZE_LIMIT = 10 * 1024 * 1024
@@ -255,5 +255,5 @@ dialog = Dialog(
     uploaded_expect_name_window,
     upload_failed_window,
     on_start=on_dialog_start,
-    name=__file__,
+    name=__name__,
 )

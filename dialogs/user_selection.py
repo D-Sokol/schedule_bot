@@ -12,7 +12,7 @@ from .states import UserSelectionStates
 from .utils import FluentFormat
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 async def accept_forwarded(
@@ -67,5 +67,5 @@ start_window = Window(
 
 dialog = Dialog(
     start_window,
-    name=__file__,
+    name=__name__,
 )

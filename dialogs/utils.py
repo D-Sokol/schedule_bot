@@ -23,7 +23,7 @@ from database_models import User
 from fluentogram_utils import clear_fluentogram_message
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def current_user_id(dialog_manager: DialogManager) -> int:

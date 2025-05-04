@@ -20,7 +20,7 @@ from .backgrounds import has_backgrounds_condition, can_upload_background_condit
 from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates, ScheduleWizardStates
 from .utils import current_user_id, current_chat_id, FluentFormat
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 has_preselected_background_condition = F["start_data"]["element_id"]
@@ -254,5 +254,5 @@ dialog = Dialog(
     expect_date_calendar_window,
     finish_window,
     on_start=on_dialog_start,
-    name=__file__,
+    name=__name__,
 )

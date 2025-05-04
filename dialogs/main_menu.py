@@ -6,7 +6,7 @@ from aiogram_dialog.widgets.kbd import Button, Start
 from .states import MainMenuStates, BackgroundsStates, ScheduleStates, TemplatesStates, AdministrationStates
 from .utils import FluentFormat, handler_not_implemented_button, has_admin_privileges_filter
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 start_window = Window(
@@ -44,4 +44,4 @@ start_window = Window(
     state=MainMenuStates.START,
 )
 
-dialog = Dialog(start_window, name=__file__, launch_mode=LaunchMode.ROOT)
+dialog = Dialog(start_window, name=__name__, launch_mode=LaunchMode.ROOT)

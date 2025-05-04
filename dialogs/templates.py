@@ -17,7 +17,7 @@ from services.renderer.templates import Template
 from .states import TemplatesStates
 from .utils import FluentFormat, current_user_id
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 FILE_SIZE_LIMIT = 1 * 1024 * 1024
@@ -162,5 +162,5 @@ start_window = Window(
 
 dialog = Dialog(
     start_window,
-    name=__file__,
+    name=__name__,
 )

@@ -18,7 +18,7 @@ from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
 from .utils import StartWithData, FluentFormat, active_user_id, current_user_id, has_admin_privileges
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 async def saved_backs_getter(
@@ -276,5 +276,5 @@ dialog = Dialog(
     selected_image_window,
     confirm_delete_window,
     rename_image_window,
-    name=__file__,
+    name=__name__,
 )
