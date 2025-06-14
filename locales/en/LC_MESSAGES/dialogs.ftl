@@ -1,4 +1,4 @@
-dialog-cancel = ❌ Leave me alone!
+dialog-cancel = ❌ Changed my mind
 dialog-fine = Good enough
 dialog-back = ⬅️ Back
 
