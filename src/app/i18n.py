@@ -7,20 +7,24 @@ from fluentogram import TranslatorHub, FluentTranslator
 logger = logging.getLogger(__name__)
 
 
+_LOCALES_ROOT = Path("locales")
+assert _LOCALES_ROOT.is_dir(), "localized messages directory is missing"
+_MESSAGES_SUBDIR_NAME = "LC_MESSAGES"
+
+
 def create_translator_hub() -> TranslatorHub:
+    all_locales = all_translator_locales()
     translator_hub = TranslatorHub(
-        {
-            "ru": ("ru",),
-        },
+        {locale: (locale,) for locale in all_locales},
         [
             FluentTranslator(
                 locale=locale,
                 translator=FluentBundle.from_files(
                     locale=locale,
-                    filenames=list(Path(f"locales/{locale}/LC_MESSAGES/").glob("*.ftl")),
+                    filenames=list(_LOCALES_ROOT.joinpath(locale, _MESSAGES_SUBDIR_NAME).glob("*.ftl")),
                 ),
             )
-            for locale in all_translator_locales()
+            for locale in all_locales
         ],
         root_locale="ru",
     )
@@ -28,8 +32,10 @@ def create_translator_hub() -> TranslatorHub:
 
 
 def all_translator_locales() -> list[str]:
-    return ["ru"]
+    return [d.name for d in _LOCALES_ROOT.glob("*")]
 
 
 def root_locale() -> str:
-    return all_translator_locales()[0]
+    root_loc = "ru"
+    assert root_loc in all_translator_locales(), "No files for the root locale found!"
+    return root_loc
