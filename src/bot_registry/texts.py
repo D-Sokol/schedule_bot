@@ -10,8 +10,8 @@ from uuid import UUID
 import msgpack
 from fluentogram import TranslatorRunner
 
-from database_models import User
-from fluentogram_utils import clear_fluentogram_message
+from core.database_models import User
+from core.fluentogram_utils import clear_fluentogram_message
 from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER, START_DATE_HEADER, CHAT_ID_HEADER
 from services.renderer.templates import Template
 from services.renderer.weekdays import WeekDay, Time, Entry, Schedule

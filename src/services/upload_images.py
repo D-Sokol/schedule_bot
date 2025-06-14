@@ -11,7 +11,7 @@ from nats.js.object_store import ObjectStore
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
-from database_models import ImageAsset
+from core.database_models import ImageAsset
 
 
 BUCKET_NAME = "assets"
@@ -78,7 +78,7 @@ async def main(
             await ensure_loaded(image, store, session)
 
 
-if __name__ == "__main__":
+def entry():
     database_url = os.getenv("DB_URL")
     nats_servers_ = os.getenv("NATS_SERVERS")
     if database_url is None:
@@ -105,3 +105,7 @@ if __name__ == "__main__":
             nats_servers_,
         )
     )
+
+
+if __name__ == "__main__":
+    entry()

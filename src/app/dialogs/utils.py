@@ -17,10 +17,9 @@ from magic_filter import MagicFilter
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from bot_registry import ElementsRegistryAbstract
-from bot_registry.image_assets import DbElementRegistry
-from database_models import User
-from fluentogram_utils import clear_fluentogram_message
+from bot_registry.image_assets import ElementsRegistryAbstract, DbElementRegistry
+from core.database_models import User
+from core.fluentogram_utils import clear_fluentogram_message
 
 
 logger = logging.getLogger(__name__)

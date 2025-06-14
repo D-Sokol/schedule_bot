@@ -13,7 +13,7 @@ from aiogram_dialog.widgets.kbd import Cancel, Start, Button, SwitchTo, Calendar
 from fluentogram import TranslatorRunner
 from magic_filter import F
 
-from bot_registry import TemplateRegistryAbstract
+from bot_registry.templates import TemplateRegistryAbstract
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
 from services.renderer.weekdays import WeekDay, Entry, Time
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter

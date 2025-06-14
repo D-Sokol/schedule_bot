@@ -2,8 +2,8 @@ import json
 import logging
 from abc import ABC, abstractmethod
 
-from database_models import User
-from services.renderer.templates import Template
+from core.database_models import User
+from services.renderer import Template
 
 from .database_mixin import DatabaseRegistryMixin
 

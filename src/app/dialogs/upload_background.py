@@ -13,7 +13,7 @@ from fluentogram import TranslatorRunner
 from magic_filter import F
 
 from bot_registry import ElementsRegistryAbstract, TemplateRegistryAbstract
-from exceptions import DuplicateNameException
+from core.exceptions import DuplicateNameException
 from .states import UploadBackgroundStates
 from .utils import save_to_dialog_data, active_user_id, FluentFormat, has_admin_privileges
 

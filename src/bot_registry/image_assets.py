@@ -13,8 +13,8 @@ from nats.js.object_store import ObjectStore
 from sqlalchemy import func, select, update, delete, text
 
 from services.converter import IMAGE_FORMAT, SAVE_NAME_HEADER, RESIZE_MODE_HEADER, TARGET_SIZE_HEADER
-from database_models import ImageAsset
-from exceptions import ImageNotProcessedException, DuplicateNameException, ImageContentEmpty, ImageNotExist
+from core.database_models import ImageAsset
+from core.exceptions import ImageNotProcessedException, DuplicateNameException, ImageContentEmpty, ImageNotExist
 
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin

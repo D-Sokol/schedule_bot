@@ -19,13 +19,13 @@ from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from bot_registry.users import DbUserRegistry
-from commands import commands_router, set_commands
-from dialogs import all_dialogs
-from dialogs.states import MainMenuStates
-from dialogs.utils import BotAwareMessageManager
-from middlewares.registry import DbSessionMiddleware
-from middlewares.i18n import TranslatorRunnerMiddleware, create_translator_hub, all_translator_locales, root_locale
-from middlewares.blacklist import BlacklistMiddleware
+from app.commands import commands_router, set_commands
+from app.dialogs import all_dialogs
+from app.dialogs.states import MainMenuStates
+from app.dialogs.utils import BotAwareMessageManager
+from app.middlewares.registry import DbSessionMiddleware
+from app.middlewares.i18n import TranslatorRunnerMiddleware, create_translator_hub, all_translator_locales, root_locale
+from app.middlewares.blacklist import BlacklistMiddleware
 
 
 # This handler must be registered via DP instead of `dialogs_router`
@@ -130,7 +130,7 @@ async def main(
     await dp.start_polling(bot)
 
 
-if __name__ == "__main__":
+def entry():
     bot_token = os.getenv("TOKEN")
     database_url = os.getenv("DB_URL")
     admin_tg_id = int(os.getenv("ADMIN_ID") or -1)
@@ -164,3 +164,7 @@ if __name__ == "__main__":
             source_code_url=source_code_url_,
         )
     )
+
+
+if __name__ == "__main__":
+    entry()

@@ -7,8 +7,9 @@ from aiogram.types import BotCommand, Message
 from aiogram_dialog import DialogManager, ShowMode
 from fluentogram import TranslatorRunner, TranslatorHub
 
-from database_models import User
-from dialogs.states import (
+from core.database_models import User
+from core.fluentogram_utils import clear_fluentogram_message
+from app.dialogs.states import (
     MainMenuStates,
     BackgroundsStates,
     TemplatesStates,
@@ -16,7 +17,6 @@ from dialogs.states import (
     UploadBackgroundStates,
     AdministrationStates,
 )
-from fluentogram_utils import clear_fluentogram_message
 
 
 logger = logging.getLogger(__name__)

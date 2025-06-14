@@ -4,7 +4,7 @@ from typing import Any, Awaitable, Callable
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, CallbackQuery
 
-from database_models import User
+from core.database_models import User
 
 logger = logging.getLogger(__name__)
 

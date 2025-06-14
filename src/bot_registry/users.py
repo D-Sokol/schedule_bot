@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
-from database_models import User
+from core.database_models import User
 
 from .database_mixin import DatabaseRegistryMixin
 

@@ -16,6 +16,11 @@ dependencies = [
     "pydantic==2.9.2",
     "sqlalchemy[postgresql-asyncpg]==2.0.36",
 ]
+authors = [
+    {name = "Sokol Dmitrii", email = "sokol.dmitry.f@gmail.com"}
+]
+license-files = ["LICENSE"]
+
 
 [dependency-groups]
 dev = [
@@ -25,3 +30,18 @@ dev = [
     "pre-commit>=4.2.0",
     "ruff>=0.11.13",
 ]
+
+[build-system]
+requires = ["setuptools>=65.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+schedule-bot = "services.main:entry"
+upload-images = "services.upload_images:entry"
+service-converter = "services.converter:entry"
+service-renderer = "services.renderer:entry"
+service-sender = "services.sender:entry"
+
+[tool.setuptools]
+packages = {}
+package-dir = {"" = "src"}

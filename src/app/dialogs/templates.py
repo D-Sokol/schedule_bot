@@ -12,7 +12,7 @@ from fluentogram import TranslatorRunner
 from magic_filter import F
 from pydantic import ValidationError
 
-from bot_registry import TemplateRegistryAbstract
+from bot_registry.templates import TemplateRegistryAbstract
 from services.renderer.templates import Template
 from .states import TemplatesStates
 from .utils import FluentFormat, current_user_id
