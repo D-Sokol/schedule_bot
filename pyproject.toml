@@ -1,0 +1,27 @@
+[project]
+name = "schedule-bot"
+version = "1.1.1"
+description = "Telegram-бот, который помогает создавать изображения с расписанием на неделю в единообразном стиле без использования специальных программ"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "aiogram==3.13.1",
+    "aiogram-dialog==2.2.0",
+    "alembic==1.14.0",
+    "fluentogram==1.1.9",
+    "magic-filter==1.0.12",
+    "msgpack==1.1.0",
+    "nats-py>=2.10.0",
+    "pillow==11.0.0",
+    "pydantic==2.9.2",
+    "sqlalchemy[postgresql-asyncpg]==2.0.36",
+]
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "ipdb>=0.13.13",
+    "ipython>=9.3.0",
+    "pre-commit>=4.2.0",
+    "ruff>=0.11.13",
+]

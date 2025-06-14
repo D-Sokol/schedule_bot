@@ -1,5 +1,0 @@
-ipython
-ipdb
-pre-commit
-black
-ruff
