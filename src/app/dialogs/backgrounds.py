@@ -14,8 +14,9 @@ from fluentogram import TranslatorRunner
 from magic_filter import F, MagicFilter
 
 from bot_registry import ElementsRegistryAbstract
+from .custom_widgets import FluentFormat, StartWithData
 from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
-from .utils import StartWithData, FluentFormat, active_user_id, current_user_id, has_admin_privileges
+from .utils import active_user_id, current_user_id, has_admin_privileges
 
 
 logger = logging.getLogger(__name__)

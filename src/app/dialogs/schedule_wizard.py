@@ -12,7 +12,7 @@ from magic_filter import F
 
 from services.renderer.weekdays import Schedule, Entry, Time, WeekDay
 from .states import ScheduleWizardStates
-from .utils import FluentFormat
+from .custom_widgets import FluentFormat
 
 
 logger = logging.getLogger(__name__)

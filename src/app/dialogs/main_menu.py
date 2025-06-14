@@ -4,7 +4,8 @@ from aiogram_dialog import Dialog, Window
 from aiogram_dialog.api.entities import LaunchMode
 from aiogram_dialog.widgets.kbd import Button, Start
 from .states import MainMenuStates, BackgroundsStates, ScheduleStates, TemplatesStates, AdministrationStates
-from .utils import FluentFormat, handler_not_implemented_button, has_admin_privileges_filter
+from .utils import handler_not_implemented_button, has_admin_privileges_filter
+from .custom_widgets import FluentFormat
 
 logger = logging.getLogger(__name__)
 

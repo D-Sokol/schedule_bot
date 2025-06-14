@@ -1,25 +1,19 @@
 import logging
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Optional, Union, cast, ClassVar
+from typing import Any, Awaitable, Callable, Union, cast
 
 from aiogram import Bot, F
-from aiogram.fsm.state import State
 from aiogram.types import BufferedInputFile, CallbackQuery, Chat, Message, InputFile
 from aiogram_dialog import DialogManager, Data
-from aiogram_dialog.api.entities import MediaAttachment, NewMessage, StartMode, ShowMode
+from aiogram_dialog.api.entities import MediaAttachment, NewMessage
 from aiogram_dialog.manager.message_manager import MessageManager
-from aiogram_dialog.widgets.common import WhenCondition
-from aiogram_dialog.widgets.text import Text
-from aiogram_dialog.widgets.kbd import Button, Start
-from aiogram_dialog.widgets.kbd.button import OnClick
+from aiogram_dialog.widgets.kbd import Button
 from fluentogram import TranslatorRunner
-from magic_filter import MagicFilter
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from bot_registry.image_assets import ElementsRegistryAbstract, DbElementRegistry
 from core.database_models import User
-from core.fluentogram_utils import clear_fluentogram_message
 
 
 logger = logging.getLogger(__name__)
@@ -73,7 +67,6 @@ class BotAwareMessageManager(MessageManager):
         media: MediaAttachment,
         bot: Bot,
     ) -> Union[InputFile, str]:
-        file_id: str = ""
         if not media.file_id or not (file_id := media.file_id.file_id).startswith(
             ElementsRegistryAbstract.BOT_URI_PREFIX
         ):
@@ -110,99 +103,3 @@ class BotAwareMessageManager(MessageManager):
         async with self.session_pool() as session:
             registry = DbElementRegistry(session=session, js=self.js)
             await registry.update_element_file_id(user_id, element_id, file_id, file_type="photo")
-
-
-class StartWithData(Start):
-    """
-    This widget is similar to :class:`from aiogram_dialog.widgets.kbd.state.Start`,
-    but re-uses start data from the current dialog instead of static data.
-    If data keys are provided, only given keys are copied. If static data is provided,
-    it takes priority over values from current context.
-    """
-
-    def __init__(
-        self,
-        text: Text,
-        id: str,  # noqa
-        state: State,
-        data: dict | None = None,
-        on_click: Optional[OnClick] = None,
-        show_mode: Optional[ShowMode] = None,
-        mode: StartMode = StartMode.NORMAL,
-        when: WhenCondition = None,
-        data_keys: list[str] | None = None,
-        dialog_data_keys: list[str] | None = None,
-    ):
-        super().__init__(
-            text=text,
-            id=id,
-            state=state,
-            data=data,
-            on_click=on_click,
-            show_mode=show_mode,
-            mode=mode,
-            when=when,
-        )
-        self.data_keys = data_keys
-        self.dialog_data_keys = dialog_data_keys
-
-    async def _on_click(
-        self,
-        callback: CallbackQuery,
-        button: Button,
-        manager: DialogManager,
-    ):
-        if self.user_on_click:
-            await self.user_on_click(callback, self, manager)
-
-        data = {}
-
-        if isinstance(manager.start_data, dict):
-            if self.data_keys is None:
-                data.update(manager.start_data)
-            else:
-                data.update({key: manager.start_data.get(key) for key in self.data_keys})
-
-        if isinstance(manager.dialog_data, dict):
-            if self.dialog_data_keys is None:
-                # Dialog data is usually large unlike start data, so default behaviour for them is different.
-                pass
-            else:
-                data.update({key: manager.dialog_data.get(key) for key in self.dialog_data_keys})
-
-        if self.start_data:
-            data.update(self.start_data)
-
-        await manager.start(
-            state=self.state,
-            data=data,
-            mode=self.mode,
-            show_mode=self.show_mode,
-        )
-
-
-class FluentFormat(Text):
-    MIDDLEWARE_KEY: ClassVar[str] = "i18n"
-
-    def __init__(
-        self,
-        key: str,
-        when: WhenCondition = None,
-        **kwargs: MagicFilter,
-    ):
-        super().__init__(when)
-        self.key = key
-        self.kwargs = kwargs
-
-    async def _render_text(self, data: dict, manager: DialogManager) -> str:
-        i18n: TranslatorRunner = manager.middleware_data[self.MIDDLEWARE_KEY]
-        for key, value in self.kwargs.items():
-            if isinstance(value, MagicFilter):
-                data[key] = value.resolve(data)
-            else:
-                data[key] = value
-
-        text_value: str | None = i18n.get(self.key, **data)
-        if text_value is None:
-            raise ValueError(f"Missing key {self.key}")
-        return clear_fluentogram_message(text_value)

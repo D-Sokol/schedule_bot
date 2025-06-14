@@ -10,8 +10,9 @@ from aiogram_dialog.widgets.kbd import Button, Cancel, Row
 from fluentogram import TranslatorRunner
 
 from bot_registry import UserRegistryAbstract
+from .custom_widgets import FluentFormat
 from .states import AdministrationStates, UserSelectionStates
-from .utils import FluentFormat, current_user_id, has_admin_privileges
+from .utils import current_user_id, has_admin_privileges
 
 
 logger = logging.getLogger(__name__)

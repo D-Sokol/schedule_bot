@@ -17,8 +17,9 @@ from bot_registry.templates import TemplateRegistryAbstract
 from bot_registry.texts import ScheduleRegistryAbstract, Schedule
 from services.renderer.weekdays import WeekDay, Entry, Time
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
+from .custom_widgets import FluentFormat
 from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates, ScheduleWizardStates
-from .utils import current_user_id, current_chat_id, FluentFormat
+from .utils import current_user_id, current_chat_id
 
 logger = logging.getLogger(__name__)
 

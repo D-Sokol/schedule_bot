@@ -19,12 +19,13 @@ from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from bot_registry.users import DbUserRegistry
-from app.commands import commands_router, set_commands
+from app.handlers.commands import commands_router, set_commands
 from app.dialogs import all_dialogs
 from app.dialogs.states import MainMenuStates
 from app.dialogs.utils import BotAwareMessageManager
+from app.i18n import create_translator_hub, all_translator_locales, root_locale
 from app.middlewares.registry import DbSessionMiddleware
-from app.middlewares.i18n import TranslatorRunnerMiddleware, create_translator_hub, all_translator_locales, root_locale
+from app.middlewares.i18n import TranslatorRunnerMiddleware
 from app.middlewares.blacklist import BlacklistMiddleware
 
 

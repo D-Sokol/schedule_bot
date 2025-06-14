@@ -8,8 +8,8 @@ from aiogram.enums import MessageOriginType
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram_dialog.widgets.kbd import Cancel
+from .custom_widgets import FluentFormat
 from .states import UserSelectionStates
-from .utils import FluentFormat
 
 
 logger = logging.getLogger(__name__)

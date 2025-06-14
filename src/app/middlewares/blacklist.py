@@ -22,6 +22,6 @@ class BlacklistMiddleware(BaseMiddleware):
             if isinstance(event, CallbackQuery):
                 # CallbackQuery should be answered to avoid lagging animation on user side.
                 await event.answer()
-            return
+            return None
 
         return await handler(event, data)

@@ -14,8 +14,9 @@ from magic_filter import F
 
 from bot_registry import ElementsRegistryAbstract, TemplateRegistryAbstract
 from core.exceptions import DuplicateNameException
+from .custom_widgets import FluentFormat
 from .states import UploadBackgroundStates
-from .utils import save_to_dialog_data, active_user_id, FluentFormat, has_admin_privileges
+from .utils import save_to_dialog_data, active_user_id, has_admin_privileges
 
 
 logger = logging.getLogger(__name__)

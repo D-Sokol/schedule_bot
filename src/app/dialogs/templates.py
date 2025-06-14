@@ -14,8 +14,9 @@ from pydantic import ValidationError
 
 from bot_registry.templates import TemplateRegistryAbstract
 from services.renderer.templates import Template
+from .custom_widgets import FluentFormat
 from .states import TemplatesStates
-from .utils import FluentFormat, current_user_id
+from .utils import current_user_id
 
 logger = logging.getLogger(__name__)
 
