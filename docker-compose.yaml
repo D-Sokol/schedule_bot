@@ -41,7 +41,7 @@ services:
       options:
         max-size: "5m"
         max-file: "3"
-    entrypoint: ["python3", "-m", "services.sender"]
+    entrypoint: [".venv/bin/python3", "-m", "services.sender"]
     depends_on:
       - nats
 
@@ -58,7 +58,7 @@ services:
       options:
         max-size: "5m"
         max-file: "3"
-    entrypoint: ["python3", "-m", "services.renderer"]
+    entrypoint: [".venv/bin/python3", "-m", "services.renderer"]
     depends_on:
       - db
       - nats
@@ -75,7 +75,7 @@ services:
       options:
         max-size: "5m"
         max-file: "3"
-    entrypoint: ["python3", "-m", "services.converter"]
+    entrypoint: [".venv/bin/python3", "-m", "services.converter"]
     depends_on:
       - nats
 
