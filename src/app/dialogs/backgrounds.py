@@ -30,16 +30,16 @@ async def saved_backs_getter(
 ) -> dict[str, Any]:
     user_id = active_user_id(dialog_manager)
     if _only_count:
-        items = []
-        n_items = await element_registry.get_elements_count(user_id)
+        elements = []
+        n_elements = await element_registry.get_elements_count(user_id)
     else:
-        items = await element_registry.get_elements(user_id)
-        n_items = len(items)
+        elements = await element_registry.get_elements(user_id)
+        n_elements = len(elements)
     backgrounds_limit = await element_registry.get_elements_limit(user_id)
-    logger.debug("Getter: %d images found with limit %d", len(items), backgrounds_limit)
+    logger.debug("Getter: %d images found with limit %d", len(elements), backgrounds_limit)
     return {
-        "items": items,
-        "n_backgrounds": n_items,
+        "items": elements,
+        "n_backgrounds": n_elements,
         "limit": backgrounds_limit,
     }
 

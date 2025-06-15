@@ -212,7 +212,7 @@ dow_window = Window(
         FluentFormat("weekdays-by_id", day=F["item"]),
         "dow_select",
         item_id_getter=lambda x: x,
-        items=range(1, 8),
+        items=range(1, len(WeekDay) + 1),
         on_click=update_entry_dow_handler,
     ),
     SwitchTo(FluentFormat("dialog-wizard-dow.back"), "back", ScheduleWizardStates.START),
