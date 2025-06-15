@@ -1,4 +1,4 @@
-from .image_assets import ElementsRegistryAbstract, DbElementRegistry
+from .image_elements import ElementsRegistryAbstract, DbElementRegistry
 from .templates import TemplateRegistryAbstract, DbTemplateRegistry
 from .texts import ScheduleRegistryAbstract, DbScheduleRegistry
 from .users import UserRegistryAbstract, DbUserRegistry

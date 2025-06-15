@@ -96,7 +96,7 @@ async def delete_image_handler(callback: CallbackQuery, _widget: Button, manager
     element = await registry.get_element(user_id, element_id)
 
     if user_id is None and not has_admin_privileges(manager):
-        logger.info("Removing global assets is blocked for user %d", current_user_id(manager))
+        logger.info("Removing global element is blocked for user %d", current_user_id(manager))
         await callback.answer(i18n.get("notify-forbidden"))
         return
     await registry.delete_element(user_id, element_id)
@@ -139,7 +139,7 @@ async def make_new_handler(callback: CallbackQuery, _widget: Button, manager: Di
     element = await registry.get_element(user_id, element_id)
 
     if user_id is None and not has_admin_privileges(manager):
-        logger.info("Reordering global assets is blocked for user %d", current_user_id(manager))
+        logger.info("Reordering global elements is blocked for user %d", current_user_id(manager))
         await callback.answer(i18n.get("notify-forbidden"))
         return
     await registry.reorder_make_first(user_id, element_id)
@@ -156,7 +156,7 @@ async def make_old_handler(callback: CallbackQuery, _widget: Button, manager: Di
     element = await registry.get_element(user_id, element_id)
 
     if user_id is None and not has_admin_privileges(manager):
-        logger.info("Reordering global assets is blocked for user %d", current_user_id(manager))
+        logger.info("Reordering global elements is blocked for user %d", current_user_id(manager))
         await callback.answer(i18n.get("notify-forbidden"))
         return
     await registry.reorder_make_last(user_id, element_id)
@@ -176,7 +176,7 @@ async def rename_image(
     element_id: str = manager.dialog_data["element_id"]
 
     if user_id is None and not has_admin_privileges(manager):
-        logger.info("Renaming global assets is blocked for user %d", current_user_id(manager))
+        logger.info("Renaming global element is blocked for user %d", current_user_id(manager))
         i18n: TranslatorRunner = manager.middleware_data["i18n"]
         await message.answer(i18n.get("notify-forbidden"))
         return

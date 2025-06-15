@@ -55,11 +55,11 @@ async def backgrounds_global_handler(
 ) -> None:
     logger.info("Starting backgrounds (global scope) dialog from command")
     if not user.is_admin:
-        logger.info("Editing global scope assets is blocked for user %d", user.telegram_id)
+        logger.info("Editing global scope elements is blocked for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 
-    logger.debug("Editing global scope assets is allowed for user %d", user.telegram_id)
+    logger.debug("Editing global scope elements is allowed for user %d", user.telegram_id)
     await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(
         BackgroundsStates.START, data={"global_scope": True, "select_only": False}, show_mode=ShowMode.SEND

@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 async def render(
     msg: Msg,
     js: JetStreamContext,
-    assets_store: ObjectStore,
+    elements_store: ObjectStore,
     result_store: ObjectStore,
     session_pool: async_sessionmaker | None = None,
 ):
@@ -64,7 +64,7 @@ async def render(
     logger.debug("Template and schedule successfully parsed")
 
     logger.info("Converting %s for %s", element_name, user_id)
-    background_data = await assets_store.get(element_name)
+    background_data = await elements_store.get(element_name)
     if background_data.data is None:
         logger.error("No content in image %s.%s", user_id, element_name)
         raise ValueError("No content in image")
@@ -79,7 +79,7 @@ async def render(
     }
     try:
         async with (session_pool or nullcontext)() as session:
-            await template.apply(background, draw, start_date, schedule, store=assets_store, session=session)
+            await template.apply(background, draw, start_date, schedule, store=elements_store, session=session)
 
         stream = io.BytesIO()
         background.save(stream, format=IMAGE_FORMAT)
@@ -99,7 +99,7 @@ async def render(
 async def render_loop(
     js: JetStreamContext, session_pool: async_sessionmaker | None = None, shutdown_event: asyncio.Event | None = None
 ):
-    assets_store = await js.object_store(ASSETS_BUCKET_NAME)
+    elements_store = await js.object_store(ASSETS_BUCKET_NAME)
     await js.create_object_store(
         "rendered",
         config=ObjectStoreConfig(
@@ -111,7 +111,7 @@ async def render_loop(
     result_store = await js.object_store(RESULT_BUCKET_NAME)
     await js.subscribe(
         INPUT_SUBJECT_NAME,
-        cb=partial(render, js=js, assets_store=assets_store, result_store=result_store, session_pool=session_pool),
+        cb=partial(render, js=js, elements_store=elements_store, result_store=result_store, session_pool=session_pool),
         durable="renderer",
         manual_ack=True,
     )

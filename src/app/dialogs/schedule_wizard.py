@@ -27,7 +27,7 @@ class EntryRepresentation(TypedDict):
     tags: list[str]
 
 
-TEMPLATE_ENTITY: EntryRepresentation = {"id": 0, "dow": 1, "hour": 9, "minute": 0, "description": "...", "tags": []}
+TEMPLATE_ENTRY: EntryRepresentation = {"id": 0, "dow": 1, "hour": 9, "minute": 0, "description": "...", "tags": []}
 
 
 def _save_entries(manager: DialogManager, entries: list[EntryRepresentation], update_ids: bool = True):
@@ -51,7 +51,7 @@ async def new_entry_handler(
     manager: DialogManager,
 ) -> None:
     entries: list[EntryRepresentation] = manager.dialog_data["entries"]
-    last_entry = entries[-1].copy() if entries else TEMPLATE_ENTITY.copy()
+    last_entry = entries[-1].copy() if entries else TEMPLATE_ENTRY.copy()
     entries.append(last_entry)
     _save_entries(manager, entries)
 

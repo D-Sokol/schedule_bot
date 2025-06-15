@@ -10,7 +10,7 @@ from uuid import UUID
 import msgpack
 from fluentogram import TranslatorRunner
 
-from bot_registry.database_models import User
+from bot_registry.database_models import UserModel
 from core.entities import TemplateEntity, ScheduleEntity
 from core.fluentogram_utils import clear_fluentogram_message
 from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER, START_DATE_HEADER, CHAT_ID_HEADER
@@ -126,7 +126,7 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
         return result
 
     async def get_last_schedule(self, user_id: int | None) -> ScheduleEntity | None:
-        user: User | None = await self.session.get(User, user_id or 0)
+        user: UserModel | None = await self.session.get(UserModel, user_id or 0)
         if user is None or (last_schedule := user.last_schedule) is None:
             return None
         schedule, unparsed = self.parse_schedule_text(last_schedule)
@@ -135,7 +135,7 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
 
     async def update_last_schedule(self, user_id: int | None, schedule: ScheduleEntity) -> None:
         logger.info("Saving schedule for user %s", user_id)
-        user: User | None = await self.session.get(User, user_id or 0)
+        user: UserModel | None = await self.session.get(UserModel, user_id or 0)
         if user is None:
             logger.error("Cannot save schedule for unknown user id %d", user_id)
             return

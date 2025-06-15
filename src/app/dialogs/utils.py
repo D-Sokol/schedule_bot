@@ -12,7 +12,7 @@ from fluentogram import TranslatorRunner
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from bot_registry.image_assets import ElementsRegistryAbstract, DbElementRegistry
+from bot_registry.image_elements import ElementsRegistryAbstract, DbElementRegistry
 from core.entities import UserEntity
 
 

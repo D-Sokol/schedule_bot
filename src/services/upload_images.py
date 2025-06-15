@@ -11,7 +11,7 @@ from nats.js.object_store import ObjectStore
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
-from bot_registry.database_models import ImageAsset
+from bot_registry.database_models import ImageElementModel
 
 
 BUCKET_NAME = "assets"
@@ -28,7 +28,7 @@ async def ensure_loaded(file_path: Path, store: ObjectStore, session: AsyncSessi
     element_uuid: UUID | None = result.scalar()
     has_record = element_uuid is not None
     if not has_record:
-        element_record = ImageAsset(
+        element_record = ImageElementModel(
             user_id=None,
             name=file_path.stem,
             file_id_photo=None,
