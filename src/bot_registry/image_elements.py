@@ -199,13 +199,13 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
             raise ValueError("Cannot save element without image or file_id to get it")
 
         try:
-            element_record = ImageElementModel(
+            element_model = ImageElementModel(
                 user_id=user_id,
                 name=element_name,
                 file_id_photo=file_id_photo if resize_mode == "ignore" else None,
                 file_id_document=file_id_document if resize_mode == "ignore" else None,
             )
-            self.session.add(element_record)
+            self.session.add(element_model)
             await self.session.commit()  # sqlalchemy.exc.IntegrityError
         except sqlalchemy.exc.IntegrityError as e:
             raise DuplicateNameException(element_name) from e
@@ -225,12 +225,12 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
             subject=subject,
             payload=payload,
             headers={
-                SAVE_NAME_HEADER: self._nats_object_name(user_id, element_record.element_id),
+                SAVE_NAME_HEADER: self._nats_object_name(user_id, element_model.element_id),
                 RESIZE_MODE_HEADER: resize_mode,
                 TARGET_SIZE_HEADER: json.dumps(target_size),
             },
         )
-        return self._convert_to_entity(element_record)
+        return self._convert_to_entity(element_model)
 
     async def update_element_file_id(
         self,

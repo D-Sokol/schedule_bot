@@ -4,6 +4,7 @@ This script renders a final schedule as a separate microservice to avoid lags in
 
 import asyncio
 import io
+import locale
 import logging
 import uuid
 from asyncio import Event
@@ -148,4 +149,5 @@ def entry():
         exit(1)
     if database_url is None:
         logger.warning("Loading images via name is not possible")
+    locale.setlocale(locale.LC_TIME, "")  # Use value given by environment variables.
     asyncio.run(main(nats_servers_, database_url))

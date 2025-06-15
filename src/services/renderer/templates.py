@@ -1,5 +1,4 @@
 import io
-import locale
 from abc import ABC, abstractmethod
 from datetime import date, timedelta
 from functools import lru_cache, cached_property
@@ -16,7 +15,6 @@ from uuid import UUID
 from .weekdays import WeekDay, Entry, Schedule
 
 WEEK_LENGTH = len(WeekDay)
-locale.setlocale(locale.LC_TIME, "")  # Use value given by environment variables.
 
 
 @lru_cache(maxsize=64)

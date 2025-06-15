@@ -26,17 +26,17 @@ async def ensure_loaded(file_path: Path, store: ObjectStore, session: AsyncSessi
         {"name": file_path.stem},
     )
     element_uuid: UUID | None = result.scalar()
-    has_record = element_uuid is not None
-    if not has_record:
-        element_record = ImageElementModel(
+    has_element = element_uuid is not None
+    if not has_element:
+        element_model = ImageElementModel(
             user_id=None,
             name=file_path.stem,
             file_id_photo=None,
             file_id_document=None,
         )
-        session.add(element_record)
+        session.add(element_model)
         await session.commit()
-        element_uuid = element_record.element_id
+        element_uuid = element_model.element_id
         logging.info("Image %s saved to db as a %s", file_path.name, element_uuid)
 
     try:
@@ -50,7 +50,7 @@ async def ensure_loaded(file_path: Path, store: ObjectStore, session: AsyncSessi
         await store.put(f"0.{element_uuid}", file_path.read_bytes())
         logging.info("Image %s saved to object store", file_path.name)
 
-    if has_content and has_record:
+    if has_content and has_element:
         logging.info("Image %s already uploaded", file_path.name)
 
 
