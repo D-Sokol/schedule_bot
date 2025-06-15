@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from services.renderer.templates import Template
 from services.renderer.weekdays import Schedule
 
-ASSETS_BUCKET_NAME = "assets"
+ELEMENTS_BUCKET_NAME = "assets"
 RESULT_BUCKET_NAME = "rendered"
 
 INPUT_SUBJECT_NAME = "schedules.request"
@@ -99,7 +99,7 @@ async def render(
 async def render_loop(
     js: JetStreamContext, session_pool: async_sessionmaker | None = None, shutdown_event: asyncio.Event | None = None
 ):
-    elements_store = await js.object_store(ASSETS_BUCKET_NAME)
+    elements_store = await js.object_store(ELEMENTS_BUCKET_NAME)
     await js.create_object_store(
         "rendered",
         config=ObjectStoreConfig(
