@@ -11,7 +11,7 @@ from nats.js.object_store import ObjectStore
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
-from core.database_models import ImageAsset
+from bot_registry.database_models import ImageAsset
 
 
 BUCKET_NAME = "assets"

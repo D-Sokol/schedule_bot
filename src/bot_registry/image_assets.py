@@ -13,9 +13,9 @@ from nats.js.object_store import ObjectStore
 from sqlalchemy import func, select, update, delete, text
 
 from services.converter import IMAGE_FORMAT, SAVE_NAME_HEADER, RESIZE_MODE_HEADER, TARGET_SIZE_HEADER
-from core.database_models import ImageAsset
+from bot_registry.database_models import ImageAsset
+from core.entities import ImageEntity
 from core.exceptions import ImageNotProcessedException, DuplicateNameException, ImageContentEmpty, ImageNotExist
-from core.models import ImageModel
 
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin
@@ -29,7 +29,7 @@ GLOBAL_SCOPE_ELEMENTS_LIMIT = 1_000
 
 class ElementsRegistryAbstract(ABC):
     @abstractmethod
-    async def get_elements(self, user_id: int | None) -> list[ImageModel]:
+    async def get_elements(self, user_id: int | None) -> list[ImageEntity]:
         raise NotImplementedError
 
     async def get_elements_count(self, user_id: int | None) -> int:
@@ -37,7 +37,7 @@ class ElementsRegistryAbstract(ABC):
         return len(items)
 
     @abstractmethod
-    async def get_element(self, user_id: int | None, element_id: str | UUID) -> ImageModel:
+    async def get_element(self, user_id: int | None, element_id: str | UUID) -> ImageEntity:
         raise NotImplementedError
 
     async def is_element_content_ready(self, user_id: int | None, element_id: str | UUID) -> bool:
@@ -62,7 +62,7 @@ class ElementsRegistryAbstract(ABC):
         file_id_photo: str | None = None,
         file_id_document: str | None = None,
         resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
-    ) -> ImageModel:
+    ) -> ImageEntity:
         raise NotImplementedError
 
     @abstractmethod
@@ -102,8 +102,8 @@ class ElementsRegistryAbstract(ABC):
 
     @classmethod
     @final
-    def _convert_to_model(cls, element_db: ImageAsset) -> ImageModel:
-        return ImageModel(
+    def _convert_to_entity(cls, element_db: ImageAsset) -> ImageEntity:
+        return ImageEntity(
             element_id=element_db.element_id,
             name=element_db.name,
             file_id_photo=element_db.file_id_photo,
@@ -139,21 +139,21 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
     CONVERT_RAW_SUBJECT_NAME: ClassVar[str] = "assets.convert.raw"
     CONVERT_FILE_ID_SUBJECT_NAME: ClassVar[str] = "assets.convert.file_id"
 
-    async def get_elements(self, user_id: int | None) -> list[ImageModel]:
+    async def get_elements(self, user_id: int | None) -> list[ImageEntity]:
         result = await self.session.execute(
             select(ImageAsset).where(ImageAsset.user_id == user_id).order_by(ImageAsset.display_order.asc())
         )
         elements = result.fetchall()
-        return [self._convert_to_model(e) for (e,) in elements]
+        return [self._convert_to_entity(e) for (e,) in elements]
 
-    async def get_element(self, user_id: int | None, element_id: str | UUID) -> ImageModel:
+    async def get_element(self, user_id: int | None, element_id: str | UUID) -> ImageEntity:
         result = await self.session.execute(
             select(ImageAsset).where(ImageAsset.user_id == user_id, ImageAsset.element_id == element_id)
         )
         asset = result.scalar()
         if asset is None:
             raise ImageNotExist(user_id, element_id)
-        return self._convert_to_model(asset)
+        return self._convert_to_entity(asset)
 
     async def get_elements_count(self, user_id: int | None) -> int:
         result = await self.session.execute(
@@ -190,7 +190,7 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
         file_id_photo: str | None = None,
         file_id_document: str | None = None,
         resize_mode: Literal["resize", "crop", "ignore"] = "ignore",
-    ) -> ImageModel:
+    ) -> ImageEntity:
         if element is None and file_id_photo is None and file_id_document is None:
             raise ValueError("Cannot save element without image or file_id to get it")
 
@@ -226,7 +226,7 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
                 TARGET_SIZE_HEADER: json.dumps(target_size),
             },
         )
-        return self._convert_to_model(element_record)
+        return self._convert_to_entity(element_record)
 
     async def update_element_file_id(
         self,

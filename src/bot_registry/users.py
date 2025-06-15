@@ -4,19 +4,19 @@ from typing import final
 from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
-from core.database_models import User
-from core.models import UserModel
+from bot_registry.database_models import User
+from core.entities import UserEntity
 
 from .database_mixin import DatabaseRegistryMixin
 
 
 class UserRegistryAbstract(ABC):
     @abstractmethod
-    async def get_or_create_user(self, tg_id: int) -> UserModel:
+    async def get_or_create_user(self, tg_id: int) -> UserEntity:
         raise NotImplementedError
 
     @abstractmethod
-    async def get_user(self, tg_id: int) -> UserModel | None:
+    async def get_user(self, tg_id: int) -> UserEntity | None:
         raise NotImplementedError
 
     @abstractmethod
@@ -37,8 +37,8 @@ class UserRegistryAbstract(ABC):
 
     @classmethod
     @final
-    def _convert_to_model(cls, user_db: User) -> UserModel:
-        return UserModel(
+    def _convert_to_entity(cls, user_db: User) -> UserEntity:
+        return UserEntity(
             telegram_id=user_db.tg_id,
             is_admin=user_db.is_admin,
             is_banned=user_db.is_banned,
@@ -46,7 +46,7 @@ class UserRegistryAbstract(ABC):
 
 
 class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
-    async def get_or_create_user(self, tg_id: int) -> UserModel:
+    async def get_or_create_user(self, tg_id: int) -> UserEntity:
         statement = insert(User).values((tg_id, False)).on_conflict_do_nothing()
         await self.session.execute(statement)
         await self.session.commit()
@@ -55,9 +55,9 @@ class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
         assert user is not None
         return user
 
-    async def get_user(self, tg_id: int) -> UserModel | None:
+    async def get_user(self, tg_id: int) -> UserEntity | None:
         user: User | None = await self.session.get(User, tg_id)
-        return self._convert_to_model(user) if user else None
+        return self._convert_to_entity(user) if user else None
 
     async def grant_admin(self, tg_id: int) -> None:
         statement = (

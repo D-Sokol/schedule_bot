@@ -2,18 +2,18 @@ from dataclasses import dataclass
 from uuid import UUID
 
 # Should be exactly the same, also app uses a pydantic validation.
-from services.renderer import Template as TemplateModel, Schedule as ScheduleModel
+from services.renderer import Template as TemplateEntity, Schedule as ScheduleEntity
 
 
 @dataclass
-class UserModel:
+class UserEntity:
     telegram_id: int
     is_admin: bool
     is_banned: bool
 
 
 @dataclass
-class ImageModel:
+class ImageEntity:
     element_id: UUID
     name: str
     file_id_photo: str | None
@@ -21,8 +21,8 @@ class ImageModel:
 
 
 __all__ = [
-    "UserModel",
-    "ImageModel",
-    "TemplateModel",
-    "ScheduleModel",
+    "UserEntity",
+    "ImageEntity",
+    "TemplateEntity",
+    "ScheduleEntity",
 ]

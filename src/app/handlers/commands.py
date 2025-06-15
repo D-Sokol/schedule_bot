@@ -7,7 +7,7 @@ from aiogram.types import BotCommand, Message
 from aiogram_dialog import DialogManager, ShowMode
 from fluentogram import TranslatorRunner, TranslatorHub
 
-from core.models import UserModel
+from core.entities import UserEntity
 from core.fluentogram_utils import clear_fluentogram_message
 from app.dialogs.states import (
     MainMenuStates,
@@ -51,7 +51,7 @@ async def backgrounds_global_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: UserModel,
+    user: UserEntity,
 ) -> None:
     logger.info("Starting backgrounds (global scope) dialog from command")
     if not user.is_admin:
@@ -100,7 +100,7 @@ async def grant_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: UserModel,
+    user: UserEntity,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
@@ -129,7 +129,7 @@ async def revoke_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: UserModel,
+    user: UserEntity,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
@@ -158,7 +158,7 @@ async def ban_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: UserModel,
+    user: UserEntity,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
@@ -187,7 +187,7 @@ async def unban_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: UserModel,
+    user: UserEntity,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
