@@ -13,15 +13,15 @@ from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from bot_registry.image_assets import ElementsRegistryAbstract, DbElementRegistry
-from core.database_models import User
+from core.models import UserModel
 
 
 logger = logging.getLogger(__name__)
 
 
 def current_user_id(dialog_manager: DialogManager) -> int:
-    user = cast(User, dialog_manager.middleware_data["user"])
-    return user.tg_id
+    user = cast(UserModel, dialog_manager.middleware_data["user"])
+    return user.telegram_id
 
 
 def active_user_id(dialog_manager: DialogManager) -> int | None:
@@ -31,7 +31,7 @@ def active_user_id(dialog_manager: DialogManager) -> int | None:
 
 
 def has_admin_privileges(dialog_manager: DialogManager) -> bool:
-    user = cast(User, dialog_manager.middleware_data["user"])
+    user = cast(UserModel, dialog_manager.middleware_data["user"])
     return user.is_admin
 
 

@@ -12,9 +12,9 @@ from fluentogram import TranslatorRunner
 
 from core.database_models import User
 from core.fluentogram_utils import clear_fluentogram_message
+from core.models import TemplateModel, ScheduleModel
 from services.renderer import INPUT_SUBJECT_NAME, USER_ID_HEADER, ELEMENT_NAME_HEADER, START_DATE_HEADER, CHAT_ID_HEADER
-from services.renderer.templates import Template
-from services.renderer.weekdays import WeekDay, Time, Entry, Schedule
+from services.renderer.weekdays import WeekDay, Time, Entry
 
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin
@@ -34,15 +34,15 @@ class ScheduleRegistryAbstract(ABC):
     )
 
     @abstractmethod
-    def load_weekdays(self) -> dict[str, WeekDay]:
+    def _load_weekdays(self) -> dict[str, WeekDay]:
         raise NotImplementedError
 
     @abstractmethod
-    async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
+    async def get_last_schedule(self, user_id: int | None) -> ScheduleModel | None:
         raise NotImplementedError
 
     @abstractmethod
-    async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
+    async def update_last_schedule(self, user_id: int | None, schedule: ScheduleModel) -> None:
         raise NotImplementedError
 
     @abstractmethod
@@ -50,16 +50,16 @@ class ScheduleRegistryAbstract(ABC):
         self,
         user_id: int,
         chat_id: int,
-        schedule: Schedule,
+        schedule: ScheduleModel,
         background_id: str | UUID,
-        template: Template,
+        template: TemplateModel,
         start: date,
     ) -> None:
         raise NotImplementedError
 
-    def parse_schedule_text(self, text: str) -> tuple[Schedule, list[str]]:
+    def parse_schedule_text(self, text: str) -> tuple[ScheduleModel, list[str]]:
         schedule: dict[WeekDay, list[Entry]] = defaultdict(list)
-        weekdays = self.load_weekdays()
+        weekdays = self._load_weekdays()
         unparsed = []
         for line in text.splitlines():
             line = clear_fluentogram_message(line.strip())
@@ -92,10 +92,10 @@ class ScheduleRegistryAbstract(ABC):
 
         for entries in schedule.values():
             entries.sort(key=lambda e: (e.time.hour, e.time.minute))
-        return Schedule(records=dict(schedule)), unparsed
+        return ScheduleModel(records=dict(schedule)), unparsed
 
     @classmethod
-    def dump_schedule_text(cls, schedule: Schedule) -> str:
+    def dump_schedule_text(cls, schedule: ScheduleModel) -> str:
         lines = []
         for weekday in WeekDay:
             entries = schedule.records.get(weekday)
@@ -113,7 +113,7 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
         super().__init__(**kwargs)
         self.i18n = i18n
 
-    def load_weekdays(self) -> dict[str, WeekDay]:
+    def _load_weekdays(self) -> dict[str, WeekDay]:
         result: dict[str, WeekDay] = {}
         for wd in WeekDay:
             key = self.i18n.get(f"weekdays-d{wd.value}").lower()
@@ -125,7 +125,7 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
                 result[key.lower()] = wd
         return result
 
-    async def get_last_schedule(self, user_id: int | None) -> Schedule | None:
+    async def get_last_schedule(self, user_id: int | None) -> ScheduleModel | None:
         user: User | None = await self.session.get(User, user_id or 0)
         if user is None or (last_schedule := user.last_schedule) is None:
             return None
@@ -133,7 +133,7 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
         assert not unparsed, "Mismatch between last schedule saving and parsing"
         return schedule
 
-    async def update_last_schedule(self, user_id: int | None, schedule: Schedule) -> None:
+    async def update_last_schedule(self, user_id: int | None, schedule: ScheduleModel) -> None:
         logger.info("Saving schedule for user %s", user_id)
         user: User | None = await self.session.get(User, user_id or 0)
         if user is None:
@@ -148,9 +148,9 @@ class DbScheduleRegistry(ScheduleRegistryAbstract, DatabaseRegistryMixin, NATSRe
         self,
         user_id: int,
         chat_id: int,
-        schedule: Schedule,
+        schedule: ScheduleModel,
         background_id: str | UUID,
-        template: Template,
+        template: TemplateModel,
         start: date,
     ) -> None:
         payload: bytes = msgpack.packb(

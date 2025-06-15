@@ -7,7 +7,7 @@ from aiogram.types import BotCommand, Message
 from aiogram_dialog import DialogManager, ShowMode
 from fluentogram import TranslatorRunner, TranslatorHub
 
-from core.database_models import User
+from core.models import UserModel
 from core.fluentogram_utils import clear_fluentogram_message
 from app.dialogs.states import (
     MainMenuStates,
@@ -51,15 +51,15 @@ async def backgrounds_global_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: User,
+    user: UserModel,
 ) -> None:
     logger.info("Starting backgrounds (global scope) dialog from command")
     if not user.is_admin:
-        logger.info("Editing global scope assets is blocked for user %d", user.tg_id)
+        logger.info("Editing global scope assets is blocked for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 
-    logger.debug("Editing global scope assets is allowed for user %d", user.tg_id)
+    logger.debug("Editing global scope assets is allowed for user %d", user.telegram_id)
     await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(
         BackgroundsStates.START, data={"global_scope": True, "select_only": False}, show_mode=ShowMode.SEND
@@ -100,11 +100,11 @@ async def grant_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: User,
+    user: UserModel,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
-        logger.info("Refuse to grant someone for user %d", user.tg_id)
+        logger.info("Refuse to grant someone for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 
@@ -129,11 +129,11 @@ async def revoke_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: User,
+    user: UserModel,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
-        logger.info("Refuse to revoke someone for user %d", user.tg_id)
+        logger.info("Refuse to revoke someone for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 
@@ -158,11 +158,11 @@ async def ban_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: User,
+    user: UserModel,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
-        logger.info("Refuse to ban someone for user %d", user.tg_id)
+        logger.info("Refuse to ban someone for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 
@@ -187,11 +187,11 @@ async def unban_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: User,
+    user: UserModel,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
-        logger.info("Refuse to unban someone for user %d", user.tg_id)
+        logger.info("Refuse to unban someone for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 

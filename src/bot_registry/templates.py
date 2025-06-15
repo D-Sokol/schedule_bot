@@ -3,7 +3,7 @@ import logging
 from abc import ABC, abstractmethod
 
 from core.database_models import User
-from services.renderer import Template
+from core.models import TemplateModel
 
 from .database_mixin import DatabaseRegistryMixin
 
@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 class TemplateRegistryAbstract(ABC):
     @abstractmethod
-    async def get_template(self, user_id: int | None) -> Template:
+    async def get_template(self, user_id: int | None) -> TemplateModel:
         raise NotImplementedError
 
     @abstractmethod
-    async def update_template(self, user_id: int | None, template: Template | None) -> None:
+    async def update_template(self, user_id: int | None, template: TemplateModel | None) -> None:
         raise NotImplementedError
 
     async def clear_template(self, user_id: int | None) -> None:
@@ -25,16 +25,16 @@ class TemplateRegistryAbstract(ABC):
 
 
 class DbTemplateRegistry(TemplateRegistryAbstract, DatabaseRegistryMixin):
-    async def get_template(self, user_id: int | None) -> Template | None:
+    async def get_template(self, user_id: int | None) -> TemplateModel | None:
         user: User | None = await self.session.get(User, user_id or 0)
         if user is None or (template_data := user.user_template) is None:
             return None
 
         template_dict = json.loads(template_data)
-        template = Template.model_validate(template_dict)
+        template = TemplateModel.model_validate(template_dict)
         return template
 
-    async def update_template(self, user_id: int | None, template: Template | None) -> None:
+    async def update_template(self, user_id: int | None, template: TemplateModel | None) -> None:
         logger.info("Saving template for user %d", user_id)
         user: User | None = await self.session.get(User, user_id or 0)
         if user is None:
