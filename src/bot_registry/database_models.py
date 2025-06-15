@@ -1,11 +1,13 @@
 import uuid
-from typing import Sequence, cast
+from typing import Sequence, cast, Optional
 
-from sqlalchemy import ForeignKey, UniqueConstraint, select, text, func
+from sqlalchemy import ForeignKey, UniqueConstraint, Enum as ORMEnum, select, text, func
 from sqlalchemy.engine.default import DefaultExecutionContext
 from sqlalchemy.dialects.postgresql import TEXT, BIGINT, UUID, VARCHAR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs
+
+from core.entities import PreferredLanguage
 
 
 class Base(DeclarativeBase, AsyncAttrs):
@@ -19,9 +21,22 @@ class UserModel(Base):
     is_banned: Mapped[bool] = mapped_column(default=False, server_default="false")
     last_schedule: Mapped[str | None] = mapped_column(TEXT(), nullable=True)
     user_template: Mapped[str | None] = mapped_column(TEXT(), nullable=True)
+
     elements: Mapped[list["ImageElementModel"]] = relationship(
         "ImageElementModel", back_populates="owner", cascade="all, delete-orphan", lazy="raise"
     )
+    settings: Mapped[Optional["UserSettingsModel"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", lazy="joined"
+    )
+
+
+class UserSettingsModel(Base):
+    __tablename__ = "settings"
+    tg_id: Mapped[int] = mapped_column(BIGINT(), ForeignKey("users.tg_id", ondelete="CASCADE"), primary_key=True)
+    preferred_lang: Mapped[PreferredLanguage | None] = mapped_column(ORMEnum(PreferredLanguage), nullable=True)
+    accept_compressed: Mapped[bool] = mapped_column(default=False, server_default="false")
+
+    user: Mapped[UserModel] = relationship(back_populates="settings", single_parent=True)
 
 
 def _next_display_order(context: DefaultExecutionContext) -> int:
