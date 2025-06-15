@@ -16,6 +16,8 @@ class UserEntity:
     telegram_id: int
     is_admin: bool
     is_banned: bool
+    preferred_language: PreferredLanguage | None
+    accept_compressed: bool
 
 
 @dataclass

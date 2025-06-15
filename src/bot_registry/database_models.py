@@ -36,7 +36,7 @@ class UserSettingsModel(Base):
     preferred_lang: Mapped[PreferredLanguage | None] = mapped_column(ORMEnum(PreferredLanguage), nullable=True)
     accept_compressed: Mapped[bool] = mapped_column(default=False, server_default="false")
 
-    user: Mapped[UserModel] = relationship(back_populates="settings", single_parent=True)
+    user: Mapped[UserModel] = relationship(back_populates="settings", single_parent=True, lazy="raise")
 
 
 def _next_display_order(context: DefaultExecutionContext) -> int:

@@ -4,8 +4,8 @@ from typing import final
 from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
-from bot_registry.database_models import UserModel
-from core.entities import UserEntity
+from bot_registry.database_models import UserModel, UserSettingsModel
+from core.entities import UserEntity, PreferredLanguage
 
 from .database_mixin import DatabaseRegistryMixin
 
@@ -35,6 +35,14 @@ class UserRegistryAbstract(ABC):
     async def unban_user(self, tg_id: int) -> None:
         pass
 
+    @abstractmethod
+    async def set_user_language(self, tg_id: int, lang: PreferredLanguage) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def set_user_compressed_warning(self, tg_id: int, allow_uncompressed: bool) -> None:
+        raise NotImplementedError
+
     @classmethod
     @final
     def _convert_to_entity(cls, user_db: UserModel) -> UserEntity:
@@ -42,6 +50,8 @@ class UserRegistryAbstract(ABC):
             telegram_id=user_db.tg_id,
             is_admin=user_db.is_admin,
             is_banned=user_db.is_banned,
+            accept_compressed=user_db.settings.accept_compressed if user_db.settings else False,
+            preferred_language=user_db.settings.preferred_lang if user_db.settings else None,
         )
 
 
@@ -89,4 +99,23 @@ class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
         statement = update(UserModel).where(UserModel.tg_id == tg_id).values(is_admin=False, is_banned=False)
 
         await self.session.execute(statement)
+        await self.session.commit()
+
+    async def _ensure_settings_obj(self, tg_id: int) -> UserSettingsModel:
+        statement = insert(UserSettingsModel).values((tg_id,)).on_conflict_do_nothing()
+        await self.session.execute(statement)
+        settings: UserSettingsModel | None = await self.session.get(UserSettingsModel, tg_id)
+        assert settings is not None, "Incorrect settings creation process!"
+        return settings
+
+    async def set_user_language(self, tg_id: int, lang: PreferredLanguage) -> None:
+        settings = await self._ensure_settings_obj(tg_id)
+        settings.preferred_lang = lang
+        self.session.add(settings)
+        await self.session.commit()
+
+    async def set_user_compressed_warning(self, tg_id: int, allow_uncompressed: bool) -> None:
+        settings = await self._ensure_settings_obj(tg_id)
+        settings.accept_compressed = allow_uncompressed
+        self.session.add(settings)
         await self.session.commit()
