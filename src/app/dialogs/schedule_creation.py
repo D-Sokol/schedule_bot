@@ -14,7 +14,8 @@ from fluentogram import TranslatorRunner
 from magic_filter import F
 
 from bot_registry.templates import TemplateRegistryAbstract
-from bot_registry.texts import ScheduleRegistryAbstract, Schedule
+from bot_registry.texts import ScheduleRegistryAbstract
+from core.entities import ScheduleEntity
 from services.renderer.weekdays import WeekDay, Entry, Time
 from .backgrounds import has_backgrounds_condition, can_upload_background_condition, saved_backs_getter
 from .custom_widgets import FluentFormat
@@ -54,7 +55,7 @@ async def process_date_selected(
     template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
     result_date = selected_date - timedelta(days=selected_date.weekday())  # First day of selected week (always Monday)
     logger.info("Selected date: %s, start of week: %s", selected_date.isoformat(), result_date.isoformat())
-    schedule = Schedule.model_validate(manager.dialog_data["schedule"])
+    schedule = ScheduleEntity.model_validate(manager.dialog_data["schedule"])
     element_id: str = manager.dialog_data["element_id"]
     template = (await template_registry.get_template(user_id)) or (await template_registry.get_template(None))
     if template is None:
@@ -94,6 +95,7 @@ async def process_schedule_creation(
 ):
     i18n: TranslatorRunner = manager.middleware_data["i18n"]
     schedule_registry: ScheduleRegistryAbstract = manager.middleware_data["schedule_registry"]
+    schedule: ScheduleEntity
     schedule, unparsed = schedule_registry.parse_schedule_text(data)
     if schedule.is_empty():
         await message.answer(i18n.get("dialog-schedule-text.warn_empty"))
@@ -184,7 +186,7 @@ async def process_wizard_result(_start_data: Data, result: Data, manager: Dialog
     for entries in schedule.values():
         entries.sort(key=lambda ent: (ent.time.hour, ent.time.minute))
 
-    schedule_obj = Schedule(records=dict(schedule))
+    schedule_obj = ScheduleEntity(records=dict(schedule))
     manager.dialog_data["schedule"] = schedule_obj.model_dump(mode="json", exclude_defaults=True)
     await manager.switch_to(ScheduleStates.EXPECT_DATE)
 
