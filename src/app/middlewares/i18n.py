@@ -5,6 +5,8 @@ from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, User as TgUser
 from fluentogram import TranslatorHub
 
+from core.entities import UserEntity
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,11 +20,18 @@ class TranslatorRunnerMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        user = cast(TgUser | None, data.get("event_from_user"))
-
-        if user is None:
+        tg_user = cast(TgUser | None, data.get("event_from_user"))
+        if tg_user is None:
             return await handler(event, data)
 
-        data["i18n"] = self.hub.get_translator_by_locale(locale=user.language_code)
+        db_user = cast(UserEntity, data.get("user"))
+        if db_user is None:
+            logger.error("Wrong middleware setting: no user entity provided!")
+            locale_from_db = None
+        else:
+            locale_from_db = db_user.preferred_language
+
+        target_locale = locale_from_db or tg_user.language_code
+        data["i18n"] = self.hub.get_translator_by_locale(locale=target_locale)
 
         return await handler(event, data)

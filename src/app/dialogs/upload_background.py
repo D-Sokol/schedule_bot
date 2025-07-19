@@ -13,6 +13,7 @@ from fluentogram import TranslatorRunner
 from magic_filter import F
 
 from bot_registry import ElementsRegistryAbstract, TemplateRegistryAbstract
+from core.entities import UserEntity
 from core.exceptions import DuplicateNameException
 from .custom_widgets import FluentFormat
 from .states import UploadBackgroundStates
@@ -103,7 +104,8 @@ async def handle_image_upload(
     manager.dialog_data["real_height"] = height
     manager.dialog_data["resize_mode"] = "ignore"
 
-    if not is_document:
+    user = cast(UserEntity, manager.middleware_data["user"])
+    if not user.accept_compressed and not is_document:
         await manager.switch_to(UploadBackgroundStates.UPLOADED_NOT_DOCUMENT)
     else:
         await check_dimensions(message, _, manager)
