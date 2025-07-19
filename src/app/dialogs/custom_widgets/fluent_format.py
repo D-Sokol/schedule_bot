@@ -16,7 +16,7 @@ class FluentFormat(Text):
         self,
         key: str,
         when: WhenCondition = None,
-        **kwargs: MagicFilter,
+        **kwargs: MagicFilter | str | int,
     ):
         super().__init__(when)
         self.key = key
