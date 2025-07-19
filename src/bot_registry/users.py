@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import final
 
@@ -8,6 +9,9 @@ from bot_registry.database_models import UserModel, UserSettingsModel
 from core.entities import UserEntity, PreferredLanguage
 
 from .database_mixin import DatabaseRegistryMixin
+
+
+logger = logging.getLogger(__name__)
 
 
 class UserRegistryAbstract(ABC):
@@ -110,12 +114,18 @@ class DbUserRegistry(UserRegistryAbstract, DatabaseRegistryMixin):
 
     async def set_user_language(self, tg_id: int, lang: PreferredLanguage) -> None:
         settings = await self._ensure_settings_obj(tg_id)
+        if settings.preferred_lang == lang:
+            logger.debug("Skipping update of user %d language, already set to %s", tg_id, lang)
+            return
         settings.preferred_lang = lang
         self.session.add(settings)
         await self.session.commit()
 
     async def set_user_compressed_warning(self, tg_id: int, allow_uncompressed: bool) -> None:
         settings = await self._ensure_settings_obj(tg_id)
+        if settings.accept_compressed == allow_uncompressed:
+            logger.debug("Skipping update of user %d compressed settings, already set to %s", tg_id, allow_uncompressed)
+            return
         settings.accept_compressed = allow_uncompressed
         self.session.add(settings)
         await self.session.commit()
