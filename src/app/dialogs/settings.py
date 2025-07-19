@@ -3,9 +3,11 @@ from typing import cast
 
 from aiogram import F
 from aiogram.types import CallbackQuery
-from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog import Dialog, DialogManager, Window, ShowMode
 from aiogram_dialog.widgets.kbd import Cancel, Radio, Button, Checkbox, ManagedCheckbox, ManagedRadio
+from fluentogram import TranslatorHub
 
+from app.middlewares.i18n import USED_LOCALE_KEY, TRANSLATOR_HUB_KEY, I18N_KEY
 from bot_registry.users import UserRegistryAbstract
 from core.entities import PreferredLanguage, UserEntity
 from .custom_widgets import FluentFormat
@@ -28,8 +30,17 @@ async def confirm_save(_callback: CallbackQuery, _widget: Button, manager: Dialo
     )
 
     await user_registry.set_user_compressed_warning(user_id, allow_uncompressed)
+    used_language = manager.middleware_data[USED_LOCALE_KEY]
     if preferred_language is not None:
         await user_registry.set_user_language(user_id, preferred_language)
+        if preferred_language != used_language:
+            # We need to manually update the translator in the middleware data
+            # since edited message will be rendered with previous one
+            # as it is a part of handling the same Telegram update.
+            hub = cast(TranslatorHub, manager.middleware_data[TRANSLATOR_HUB_KEY])
+            new_i18n = hub.get_translator_by_locale(preferred_language)
+            manager.middleware_data[I18N_KEY] = new_i18n
+            await manager.show(show_mode=ShowMode.EDIT)
 
 
 start_window = Window(

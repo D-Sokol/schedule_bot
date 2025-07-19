@@ -10,6 +10,11 @@ from core.entities import UserEntity
 logger = logging.getLogger(__name__)
 
 
+I18N_KEY = "i18n"
+TRANSLATOR_HUB_KEY = "i18n_hub"
+USED_LOCALE_KEY = "i18n_locale"
+
+
 class TranslatorRunnerMiddleware(BaseMiddleware):
     def __init__(self, translator_hub: TranslatorHub):
         self.hub = translator_hub
@@ -32,6 +37,8 @@ class TranslatorRunnerMiddleware(BaseMiddleware):
             locale_from_db = db_user.preferred_language
 
         target_locale = locale_from_db or tg_user.language_code
-        data["i18n"] = self.hub.get_translator_by_locale(locale=target_locale)
+        data[TRANSLATOR_HUB_KEY] = self.hub
+        data[I18N_KEY] = self.hub.get_translator_by_locale(locale=target_locale)
+        data[USED_LOCALE_KEY] = target_locale
 
         return await handler(event, data)
