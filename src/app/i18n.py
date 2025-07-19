@@ -21,7 +21,7 @@ def create_translator_hub() -> TranslatorHub:
                 locale=locale,
                 translator=FluentBundle.from_files(
                     locale=locale,
-                    filenames=list(_LOCALES_ROOT.joinpath(locale, _MESSAGES_SUBDIR_NAME).glob("*.ftl")),
+                    filenames=list(_LOCALES_ROOT.joinpath(locale, _MESSAGES_SUBDIR_NAME).rglob("*.ftl")),
                 ),
             )
             for locale in all_locales
