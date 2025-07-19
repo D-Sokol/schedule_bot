@@ -7,8 +7,8 @@ from aiogram_dialog import Dialog, DialogManager, Window, ShowMode
 from aiogram_dialog.widgets.kbd import Cancel, Radio, Button, Checkbox, ManagedCheckbox, ManagedRadio
 from fluentogram import TranslatorHub
 
+from app.middlewares.db_session import USER_REGISTRY_KEY, USER_ENTITY_KEY
 from app.middlewares.i18n import USED_LOCALE_KEY, TRANSLATOR_HUB_KEY, I18N_KEY
-from app.middlewares.registry import USER_REGISTRY_KEY, USER_ENTITY_KEY
 from bot_registry.users import UserRegistryAbstract
 from core.entities import PreferredLanguage, UserEntity
 from .custom_widgets import FluentFormat

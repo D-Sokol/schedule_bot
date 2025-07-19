@@ -13,8 +13,9 @@ from fluentogram import TranslatorRunner
 from magic_filter import F
 from PIL import UnidentifiedImageError, Image
 
+from app.middlewares.db_session import USER_ENTITY_KEY
 from app.middlewares.i18n import I18N_KEY
-from app.middlewares.registry import USER_ENTITY_KEY, ELEMENT_REGISTRY_KEY, TEMPLATE_REGISTRY_KEY
+from app.middlewares.registry import ELEMENT_REGISTRY_KEY, TEMPLATE_REGISTRY_KEY
 from bot_registry import ElementsRegistryAbstract, TemplateRegistryAbstract
 from core.entities import UserEntity
 from core.exceptions import DuplicateNameException

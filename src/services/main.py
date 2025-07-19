@@ -24,8 +24,9 @@ from app.dialogs import all_dialogs
 from app.dialogs.states import MainMenuStates
 from app.dialogs.utils import BotAwareMessageManager
 from app.i18n import create_translator_hub, all_translator_locales, root_locale
-from app.middlewares.registry import DbSessionMiddleware, RegistryMiddleware
+from app.middlewares.db_session import DbSessionMiddleware
 from app.middlewares.i18n import TranslatorRunnerMiddleware
+from app.middlewares.registry import RegistryMiddleware
 from app.middlewares.blacklist import BlacklistMiddleware
 
 

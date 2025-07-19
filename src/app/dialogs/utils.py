@@ -13,7 +13,7 @@ from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.middlewares.i18n import I18N_KEY
-from app.middlewares.registry import USER_ENTITY_KEY
+from app.middlewares.db_session import USER_ENTITY_KEY
 from bot_registry.image_elements import ElementsRegistryAbstract, DbElementRegistry
 from core.entities import UserEntity
 
