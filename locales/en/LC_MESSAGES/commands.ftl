@@ -10,6 +10,8 @@ command-upload = Upload a new background
 
 command-create = Create a schedule
 
+command-settings = Bot settings
+
 command-help = About the bot
 
 command-grant = Assign administrator (for administrators)

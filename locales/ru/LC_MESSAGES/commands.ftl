@@ -10,6 +10,8 @@ command-upload = Загрузить новый фон
 
 command-create = Создать расписание
 
+command-settings = Настройки бота
+
 command-help = О боте
 
 command-grant = Назначить администратора (для администраторов)

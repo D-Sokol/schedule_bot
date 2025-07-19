@@ -46,3 +46,7 @@ class AdministrationStates(StatesGroup):
 
 class UserSelectionStates(StatesGroup):
     START = State()
+
+
+class SettingsStates(StatesGroup):
+    START = State()

@@ -16,6 +16,7 @@ from app.dialogs.states import (
     ScheduleStates,
     UploadBackgroundStates,
     AdministrationStates,
+    SettingsStates,
 )
 
 
@@ -78,6 +79,13 @@ async def schedule_creation_handler(_: Message, dialog_manager: DialogManager) -
     logger.info("Starting creating schedule dialog from command")
     await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(ScheduleStates.START, show_mode=ShowMode.SEND)
+
+
+@commands_router.message(Command("settings"))
+async def settings_handler(_: Message, dialog_manager: DialogManager) -> None:
+    logger.info("Starting settings dialog from command")
+    await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
+    await dialog_manager.start(SettingsStates.START, show_mode=ShowMode.SEND)
 
 
 @commands_router.message(Command("help"))
@@ -218,6 +226,7 @@ _BOT_COMMANDS = [
     "elements",
     "upload",
     "create",
+    "settings",
     "help",
     "grant",
     "revoke",

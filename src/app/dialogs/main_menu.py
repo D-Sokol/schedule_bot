@@ -2,9 +2,16 @@ import logging
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.api.entities import LaunchMode
-from aiogram_dialog.widgets.kbd import Button, Start
-from .states import MainMenuStates, BackgroundsStates, ScheduleStates, TemplatesStates, AdministrationStates
-from .utils import handler_not_implemented_button, has_admin_privileges_filter
+from aiogram_dialog.widgets.kbd import Start
+from .states import (
+    MainMenuStates,
+    BackgroundsStates,
+    ScheduleStates,
+    TemplatesStates,
+    AdministrationStates,
+    SettingsStates,
+)
+from .utils import has_admin_privileges_filter
 from .custom_widgets import FluentFormat
 
 logger = logging.getLogger(__name__)
@@ -37,10 +44,10 @@ start_window = Window(
         state=AdministrationStates.START,
         when=has_admin_privileges_filter,
     ),
-    Button(
+    Start(
         FluentFormat("dialog-main.settings"),
         id="user_settings",
-        on_click=handler_not_implemented_button,
+        state=SettingsStates.START,
     ),
     state=MainMenuStates.START,
 )
