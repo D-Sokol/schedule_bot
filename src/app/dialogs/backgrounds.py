@@ -13,6 +13,8 @@ from aiogram_dialog.widgets.media import DynamicMedia
 from fluentogram import TranslatorRunner
 from magic_filter import F, MagicFilter
 
+from app.middlewares.i18n import I18N_KEY
+from app.middlewares.registry import ELEMENT_REGISTRY_KEY
 from bot_registry import ElementsRegistryAbstract
 from .custom_widgets import FluentFormat, StartWithData
 from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
@@ -20,6 +22,17 @@ from .utils import active_user_id, current_user_id, has_admin_privileges
 
 
 logger = logging.getLogger(__name__)
+
+DIALOG_ELEMENT_ID_KEY = "element_id"
+DIALOG_ITEMS_KEY = "items"
+DIALOG_N_BACKGROUNDS_KEY = "n_backgrounds"
+DIALOG_LIMIT_KEY = "limit"
+DIALOG_BACKGROUND_KEY = "background"
+DIALOG_ESCAPED_NAME_KEY = "escaped_name"
+DIALOG_IS_ELEMENT_READY_KEY = "ready"
+DIALOG_ELEMENT_NAME_KEY = "element_name"
+START_DATA_SELECT_ONLY_KEY = "select_only"
+START_DATA_GLOBAL_SCOPE_KEY = "global_scope"
 
 
 async def saved_backs_getter(
@@ -38,16 +51,16 @@ async def saved_backs_getter(
     backgrounds_limit = await element_registry.get_elements_limit(user_id)
     logger.debug("Getter: %d images found with limit %d", len(elements), backgrounds_limit)
     return {
-        "items": elements,
-        "n_backgrounds": n_elements,
-        "limit": backgrounds_limit,
+        DIALOG_ITEMS_KEY: elements,
+        DIALOG_N_BACKGROUNDS_KEY: n_elements,
+        DIALOG_LIMIT_KEY: backgrounds_limit,
     }
 
 
 async def selected_image_getter(
     dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, **_
 ) -> dict[str, Any]:
-    element_id: str = dialog_manager.dialog_data["element_id"]
+    element_id: str = dialog_manager.dialog_data[DIALOG_ELEMENT_ID_KEY]
     user_id = active_user_id(dialog_manager)
     element = await element_registry.get_element(user_id, element_id)
     file_id: str = element.file_id_photo
@@ -55,20 +68,20 @@ async def selected_image_getter(
     if file_id is None:
         file_id = element_registry.format_bot_uri(user_id, element_id)
     return {
-        "background": MediaAttachment(ContentType.PHOTO, file_id=MediaId(file_id)),
-        "escaped_name": html.escape(element.name),
-        "ready": await element_registry.is_element_content_ready(user_id, element_id),
+        DIALOG_BACKGROUND_KEY: MediaAttachment(ContentType.PHOTO, file_id=MediaId(file_id)),
+        DIALOG_ESCAPED_NAME_KEY: html.escape(element.name),
+        DIALOG_IS_ELEMENT_READY_KEY: await element_registry.is_element_content_ready(user_id, element_id),
     }
 
 
 async def selected_image_name_getter(
     dialog_manager: DialogManager, element_registry: ElementsRegistryAbstract, **_
 ) -> dict[str, str]:
-    element_id: str = dialog_manager.dialog_data["element_id"]
+    element_id: str = dialog_manager.dialog_data[DIALOG_ELEMENT_ID_KEY]
     user_id = active_user_id(dialog_manager)
     element = await element_registry.get_element(user_id, element_id)
     return {
-        "element_name": element.name,
+        DIALOG_ELEMENT_NAME_KEY: element.name,
     }
 
 
@@ -79,19 +92,19 @@ async def select_image_handler(
     item_id: str,
 ):
     user_id = active_user_id(manager)
-    manager.dialog_data["element_id"] = item_id
+    manager.dialog_data[DIALOG_ELEMENT_ID_KEY] = item_id
     logger.debug("Getter: selected image %s/%s", user_id, item_id)
-    if cast(dict[str, Any], manager.start_data)["select_only"]:
+    if cast(dict[str, Any], manager.start_data)[START_DATA_SELECT_ONLY_KEY]:
         logging.debug("Finishing dialog since select only mode requested")
-        await manager.done(result={"element_id": item_id})
+        await manager.done(result={DIALOG_ELEMENT_ID_KEY: item_id})
     else:
         await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
 async def delete_image_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
-    i18n: TranslatorRunner = manager.middleware_data["i18n"]
-    element_id: str = manager.dialog_data["element_id"]
-    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
+    i18n: TranslatorRunner = manager.middleware_data[I18N_KEY]
+    element_id: str = manager.dialog_data[DIALOG_ELEMENT_ID_KEY]
+    registry: ElementsRegistryAbstract = manager.middleware_data[ELEMENT_REGISTRY_KEY]
     user_id = active_user_id(manager)
     element = await registry.get_element(user_id, element_id)
 
@@ -105,8 +118,8 @@ async def delete_image_handler(callback: CallbackQuery, _widget: Button, manager
 
 async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
     user_id = active_user_id(manager)
-    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
-    element_id: str = manager.dialog_data["element_id"]
+    registry: ElementsRegistryAbstract = manager.middleware_data[ELEMENT_REGISTRY_KEY]
+    element_id: str = manager.dialog_data[DIALOG_ELEMENT_ID_KEY]
     element = await registry.get_element(user_id, element_id)
     file_name: str = element.name
     file_id: str | None = element.file_id_document
@@ -132,10 +145,10 @@ async def send_full_handler(callback: CallbackQuery, _widget: Button, manager: D
 
 
 async def make_new_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
-    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
-    i18n: TranslatorRunner = manager.middleware_data["i18n"]
+    registry: ElementsRegistryAbstract = manager.middleware_data[ELEMENT_REGISTRY_KEY]
+    i18n: TranslatorRunner = manager.middleware_data[I18N_KEY]
     user_id = active_user_id(manager)
-    element_id: str = manager.dialog_data["element_id"]
+    element_id: str = manager.dialog_data[DIALOG_ELEMENT_ID_KEY]
     element = await registry.get_element(user_id, element_id)
 
     if user_id is None and not has_admin_privileges(manager):
@@ -149,10 +162,10 @@ async def make_new_handler(callback: CallbackQuery, _widget: Button, manager: Di
 
 
 async def make_old_handler(callback: CallbackQuery, _widget: Button, manager: DialogManager):
-    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
-    i18n: TranslatorRunner = manager.middleware_data["i18n"]
+    registry: ElementsRegistryAbstract = manager.middleware_data[ELEMENT_REGISTRY_KEY]
+    i18n: TranslatorRunner = manager.middleware_data[I18N_KEY]
     user_id = active_user_id(manager)
-    element_id: str = manager.dialog_data["element_id"]
+    element_id: str = manager.dialog_data[DIALOG_ELEMENT_ID_KEY]
     element = await registry.get_element(user_id, element_id)
 
     if user_id is None and not has_admin_privileges(manager):
@@ -171,36 +184,36 @@ async def rename_image(
     manager: DialogManager,
     data: str,
 ):
-    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
+    registry: ElementsRegistryAbstract = manager.middleware_data[ELEMENT_REGISTRY_KEY]
     user_id = active_user_id(manager)
-    element_id: str = manager.dialog_data["element_id"]
+    element_id: str = manager.dialog_data[DIALOG_ELEMENT_ID_KEY]
 
     if user_id is None and not has_admin_privileges(manager):
         logger.info("Renaming global element is blocked for user %d", current_user_id(manager))
-        i18n: TranslatorRunner = manager.middleware_data["i18n"]
+        i18n: TranslatorRunner = manager.middleware_data[I18N_KEY]
         await message.answer(i18n.get("notify-forbidden"))
         return
     await registry.update_element_name(user_id, element_id, name=data)
     await manager.switch_to(BackgroundsStates.SELECTED_IMAGE)
 
 
-has_backgrounds_condition = 0 < F["n_backgrounds"]
-can_upload_background_condition = cast(MagicFilter, F["n_backgrounds"] < F["limit"])
+has_backgrounds_condition = 0 < F[DIALOG_N_BACKGROUNDS_KEY]
+can_upload_background_condition = cast(MagicFilter, F[DIALOG_N_BACKGROUNDS_KEY] < F[DIALOG_LIMIT_KEY])
 
 
 start_window = Window(
-    FluentFormat("dialog-backgrounds-main.number", n_backgrounds=F["n_backgrounds"]),
+    FluentFormat("dialog-backgrounds-main.number", n_backgrounds=F[DIALOG_N_BACKGROUNDS_KEY]),
     FluentFormat(
         "dialog-backgrounds-main.limit",
         when=cast(MagicFilter, ~can_upload_background_condition),
-        limit=F["limit"],
+        limit=F[DIALOG_LIMIT_KEY],
     ),
     ScrollingGroup(
         Select(
             FluentFormat("dialog-backgrounds-main.item", item_name=F["item"].name),
             id="select_background",
             item_id_getter=F.element_id.cast(str).resolve,
-            items="items",
+            items=DIALOG_ITEMS_KEY,
             when=has_backgrounds_condition,
             on_click=select_image_handler,
         ),
@@ -213,8 +226,8 @@ start_window = Window(
         FluentFormat("dialog-backgrounds-main.upload"),
         id="upload_background",
         state=UploadBackgroundStates.START,
-        when=can_upload_background_condition & ~F["start_data"]["select_only"],
-        data_keys=["global_scope"],
+        when=can_upload_background_condition & ~F["start_data"][START_DATA_SELECT_ONLY_KEY],
+        data_keys=[START_DATA_GLOBAL_SCOPE_KEY],
     ),
     Cancel(FluentFormat("dialog-cancel")),
     state=BackgroundsStates.START,
@@ -223,17 +236,22 @@ start_window = Window(
 
 
 selected_image_window = Window(
-    DynamicMedia("background", when="ready"),
-    FluentFormat("dialog-backgrounds-selected.not_ready", when=~F["ready"]),
+    DynamicMedia(selector=DIALOG_BACKGROUND_KEY, when=DIALOG_IS_ELEMENT_READY_KEY),
+    FluentFormat("dialog-backgrounds-selected.not_ready", when=~F[DIALOG_IS_ELEMENT_READY_KEY]),
     FluentFormat("dialog-backgrounds-selected"),
     StartWithData(
         FluentFormat("dialog-backgrounds-selected.create"),
         id="schedule_from_selected",
         state=ScheduleStates.EXPECT_TEXT,
-        dialog_data_keys=["element_id"],
+        dialog_data_keys=[DIALOG_ELEMENT_ID_KEY],
     ),
     SwitchTo(FluentFormat("dialog-backgrounds-selected.rename"), id="rename_selected", state=BackgroundsStates.RENAME),
-    Button(FluentFormat("dialog-backgrounds-selected.full"), id="send_full", on_click=send_full_handler, when="ready"),
+    Button(
+        FluentFormat("dialog-backgrounds-selected.full"),
+        id="send_full",
+        on_click=send_full_handler,
+        when=DIALOG_IS_ELEMENT_READY_KEY,
+    ),
     SwitchTo(
         FluentFormat("dialog-backgrounds-selected.delete"), id="delete_selected", state=BackgroundsStates.CONFIRM_DELETE
     ),
@@ -256,7 +274,7 @@ rename_image_window = Window(
 confirm_delete_window = Window(
     FluentFormat(
         "dialog-backgrounds-delete",
-        escaped_name=F["element_name"].func(html.escape),
+        escaped_name=F[DIALOG_ELEMENT_NAME_KEY].func(html.escape),
     ),
     SwitchTo(
         FluentFormat("dialog-backgrounds-delete.confirm"),

@@ -8,6 +8,7 @@ from aiogram_dialog.widgets.kbd import Cancel, Radio, Button, Checkbox, ManagedC
 from fluentogram import TranslatorHub
 
 from app.middlewares.i18n import USED_LOCALE_KEY, TRANSLATOR_HUB_KEY, I18N_KEY
+from app.middlewares.registry import USER_REGISTRY_KEY, USER_ENTITY_KEY
 from bot_registry.users import UserRegistryAbstract
 from core.entities import PreferredLanguage, UserEntity
 from .custom_widgets import FluentFormat
@@ -16,12 +17,15 @@ from .utils import current_user_id
 
 logger = logging.getLogger(__name__)
 
+WIDGET_ACCEPT_UNCOMPRESSED = "accept_uncompressed"
+WIDGET_LANGUAGE_SELECT = "language"
+
 
 async def confirm_save(_callback: CallbackQuery, _widget: Button, manager: DialogManager):
-    user_registry: UserRegistryAbstract = manager.middleware_data["user_registry"]
+    user_registry: UserRegistryAbstract = manager.middleware_data[USER_REGISTRY_KEY]
     user_id = current_user_id(manager)
-    allow_uncompressed = cast(ManagedCheckbox, manager.find("accept_uncompressed")).is_checked()
-    preferred_language = cast(ManagedRadio[PreferredLanguage], manager.find("language")).get_checked()
+    allow_uncompressed = cast(ManagedCheckbox, manager.find(WIDGET_ACCEPT_UNCOMPRESSED)).is_checked()
+    preferred_language = cast(ManagedRadio[PreferredLanguage], manager.find(WIDGET_LANGUAGE_SELECT)).get_checked()
     logger.info(
         "Saving settings for user %d: allow_uncompressed=%s, preferred_language=%s",
         user_id,
@@ -48,7 +52,7 @@ start_window = Window(
     Radio(
         FluentFormat("dialog-settings.language", checked=1, language=F["item"]),
         FluentFormat("dialog-settings.language", checked=0, language=F["item"]),
-        id="language",
+        id=WIDGET_LANGUAGE_SELECT,
         items=list(PreferredLanguage),
         item_id_getter=str,
         type_factory=PreferredLanguage,
@@ -57,7 +61,7 @@ start_window = Window(
     Checkbox(
         FluentFormat("dialog-settings.accept_uncompressed_checked"),
         FluentFormat("dialog-settings.accept_uncompressed_unchecked"),
-        id="accept_uncompressed",
+        id=WIDGET_ACCEPT_UNCOMPRESSED,
         # Dynamic default value is not supported, see `set_defaults`
     ),
     Button(
@@ -76,10 +80,10 @@ start_window = Window(
 
 
 async def set_defaults(_, dialog_manager: DialogManager) -> None:
-    user = cast(UserEntity, dialog_manager.middleware_data["user"])
-    await cast(ManagedCheckbox, dialog_manager.find("accept_uncompressed")).set_checked(user.accept_compressed)
+    user = cast(UserEntity, dialog_manager.middleware_data[USER_ENTITY_KEY])
+    await cast(ManagedCheckbox, dialog_manager.find(WIDGET_ACCEPT_UNCOMPRESSED)).set_checked(user.accept_compressed)
     if user.preferred_language is not None:
-        await cast(ManagedRadio[PreferredLanguage], dialog_manager.find("language")).set_checked(
+        await cast(ManagedRadio[PreferredLanguage], dialog_manager.find(WIDGET_LANGUAGE_SELECT)).set_checked(
             user.preferred_language
         )
 

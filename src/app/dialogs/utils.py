@@ -12,6 +12,8 @@ from fluentogram import TranslatorRunner
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app.middlewares.i18n import I18N_KEY
+from app.middlewares.registry import USER_ENTITY_KEY
 from bot_registry.image_elements import ElementsRegistryAbstract, DbElementRegistry
 from core.entities import UserEntity
 
@@ -20,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def current_user_id(dialog_manager: DialogManager) -> int:
-    user = cast(UserEntity, dialog_manager.middleware_data["user"])
+    user = cast(UserEntity, dialog_manager.middleware_data[USER_ENTITY_KEY])
     return user.telegram_id
 
 
@@ -31,11 +33,11 @@ def active_user_id(dialog_manager: DialogManager) -> int | None:
 
 
 def has_admin_privileges(dialog_manager: DialogManager) -> bool:
-    user = cast(UserEntity, dialog_manager.middleware_data["user"])
+    user = cast(UserEntity, dialog_manager.middleware_data[USER_ENTITY_KEY])
     return user.is_admin
 
 
-has_admin_privileges_filter = F["middleware_data"]["user"].is_admin
+has_admin_privileges_filter = F["middleware_data"][USER_ENTITY_KEY].is_admin
 
 
 def current_chat_id(dialog_manager: DialogManager) -> int:
@@ -52,7 +54,7 @@ def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery | Mess
 
 
 async def handler_not_implemented_button(callback: CallbackQuery, button: Button, manager: DialogManager):
-    i18n: TranslatorRunner = manager.middleware_data["i18n"]
+    i18n: TranslatorRunner = manager.middleware_data[I18N_KEY]
     logging.warning("Called button [%s] which is not implemented!", button.widget_id)
     await callback.answer(i18n.get("notify-not_implemented"))
 

@@ -3,6 +3,7 @@ import logging
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.api.entities import LaunchMode
 from aiogram_dialog.widgets.kbd import Start
+from .backgrounds import START_DATA_GLOBAL_SCOPE_KEY, START_DATA_SELECT_ONLY_KEY
 from .states import (
     MainMenuStates,
     BackgroundsStates,
@@ -23,7 +24,7 @@ start_window = Window(
         FluentFormat("dialog-main.backgrounds-local"),
         id="manage_backgrounds",
         state=BackgroundsStates.START,
-        data={"global_scope": False, "select_only": False},
+        data={START_DATA_GLOBAL_SCOPE_KEY: False, START_DATA_SELECT_ONLY_KEY: False},
     ),
     Start(FluentFormat("dialog-main.create"), id="create_schedule", state=ScheduleStates.START),
     Start(
@@ -35,7 +36,7 @@ start_window = Window(
         FluentFormat("dialog-main.backgrounds-global"),
         id="manage_elements",
         state=BackgroundsStates.START,
-        data={"global_scope": True, "select_only": False},
+        data={START_DATA_GLOBAL_SCOPE_KEY: True, START_DATA_SELECT_ONLY_KEY: False},
         when=has_admin_privileges_filter,
     ),
     Start(

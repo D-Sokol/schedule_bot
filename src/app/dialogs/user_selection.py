@@ -1,4 +1,5 @@
 import logging
+from enum import StrEnum
 from typing import cast, Any
 
 from aiogram import F
@@ -14,6 +15,14 @@ from .states import UserSelectionStates
 
 logger = logging.getLogger(__name__)
 
+DIALOG_HELP_TYPE_KEY = "help"
+DIALOG_USER_ID_KEY = "user_id"
+
+
+class _HelpType(StrEnum):
+    HIDDEN_USER = "hidden_user"
+    UNPARSEABLE = "unparseable"
+
 
 async def accept_forwarded(
     message: Message,
@@ -21,7 +30,7 @@ async def accept_forwarded(
     manager: DialogManager,
 ) -> None:
     tg_id = cast(MessageOriginUser, message.forward_origin).sender_user.id
-    await manager.done({"user_id": tg_id})
+    await manager.done({DIALOG_USER_ID_KEY: tg_id})
 
 
 async def accept_forwarded_unavailable(
@@ -29,7 +38,7 @@ async def accept_forwarded_unavailable(
     _: MessageInput,
     manager: DialogManager,
 ) -> None:
-    manager.dialog_data["help"] = "hidden_user"
+    manager.dialog_data[DIALOG_HELP_TYPE_KEY] = _HelpType.HIDDEN_USER
 
 
 async def accept_typed_id(
@@ -39,9 +48,9 @@ async def accept_typed_id(
     data: int,
 ):
     if data <= 0:
-        manager.dialog_data["help"] = "unparseable"
+        manager.dialog_data[DIALOG_HELP_TYPE_KEY] = _HelpType.UNPARSEABLE
         return
-    await manager.done({"user_id": data})
+    await manager.done({DIALOG_USER_ID_KEY: data})
 
 
 async def incorrect_typed_id(
@@ -50,13 +59,19 @@ async def incorrect_typed_id(
     manager: DialogManager,
     _error: ValueError,
 ):
-    manager.dialog_data["help"] = "unparseable"
+    manager.dialog_data[DIALOG_HELP_TYPE_KEY] = _HelpType.UNPARSEABLE
 
 
 start_window = Window(
     FluentFormat("dialog-users"),
-    FluentFormat("dialog-users.hidden_user", when=cast(MagicFilter, F["dialog_data"]["help"] == "hidden_user")),
-    FluentFormat("dialog-users.unparseable_text", when=cast(MagicFilter, F["dialog_data"]["help"] == "unparseable")),
+    FluentFormat(
+        "dialog-users.hidden_user",
+        when=cast(MagicFilter, F["dialog_data"][DIALOG_HELP_TYPE_KEY] == _HelpType.HIDDEN_USER),
+    ),
+    FluentFormat(
+        "dialog-users.unparseable_text",
+        when=cast(MagicFilter, F["dialog_data"][DIALOG_HELP_TYPE_KEY] == _HelpType.UNPARSEABLE),
+    ),
     Cancel(FluentFormat("dialog-cancel")),
     MessageInput(func=accept_forwarded, filter=cast(MagicFilter, F.forward_origin.type == MessageOriginType.USER)),
     MessageInput(func=accept_forwarded_unavailable, filter=cast(MagicFilter, F.forward_origin)),
