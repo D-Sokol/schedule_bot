@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from fluent_compiler.bundle import FluentBundle
-from fluentogram import TranslatorHub, FluentTranslator
+from fluentogram import FluentTranslator, TranslatorHub
 
 logger = logging.getLogger(__name__)
 

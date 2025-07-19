@@ -7,7 +7,6 @@ from core.entities import TemplateEntity
 
 from .database_mixin import DatabaseRegistryMixin
 
-
 logger = logging.getLogger(__name__)
 
 

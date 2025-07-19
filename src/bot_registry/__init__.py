@@ -1,8 +1,7 @@
-from .image_elements import ElementsRegistryAbstract, DbElementRegistry
-from .templates import TemplateRegistryAbstract, DbTemplateRegistry
-from .texts import ScheduleRegistryAbstract, DbScheduleRegistry
-from .users import UserRegistryAbstract, DbUserRegistry
-
+from .image_elements import DbElementRegistry, ElementsRegistryAbstract
+from .templates import DbTemplateRegistry, TemplateRegistryAbstract
+from .texts import DbScheduleRegistry, ScheduleRegistryAbstract
+from .users import DbUserRegistry, UserRegistryAbstract
 
 __all__ = [
     "ElementsRegistryAbstract",

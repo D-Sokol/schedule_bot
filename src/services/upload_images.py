@@ -9,10 +9,9 @@ import nats
 from nats.js.errors import ObjectNotFoundError
 from nats.js.object_store import ObjectStore
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from bot_registry.database_models import ImageElementModel
-
 
 BUCKET_NAME = "assets"
 

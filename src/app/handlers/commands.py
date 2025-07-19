@@ -2,23 +2,22 @@ import asyncio
 import logging
 
 from aiogram import Bot, Router
-from aiogram.filters import CommandStart, Command, CommandObject
+from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import BotCommand, Message
 from aiogram_dialog import DialogManager, ShowMode
-from fluentogram import TranslatorRunner, TranslatorHub
+from fluentogram import TranslatorHub, TranslatorRunner
 
+from app.dialogs.states import (
+    AdministrationStates,
+    BackgroundsStates,
+    MainMenuStates,
+    ScheduleStates,
+    SettingsStates,
+    TemplatesStates,
+    UploadBackgroundStates,
+)
 from core.entities import UserEntity
 from core.fluentogram_utils import clear_fluentogram_message
-from app.dialogs.states import (
-    MainMenuStates,
-    BackgroundsStates,
-    TemplatesStates,
-    ScheduleStates,
-    UploadBackgroundStates,
-    AdministrationStates,
-    SettingsStates,
-)
-
 
 logger = logging.getLogger(__name__)
 

@@ -4,18 +4,17 @@ from functools import partial
 from typing import Any
 
 from aiogram.types import CallbackQuery
-
-from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import Button, Cancel, Row
 from fluentogram import TranslatorRunner
 
 from app.middlewares.db_session import USER_REGISTRY_KEY
 from app.middlewares.i18n import I18N_KEY
 from bot_registry import UserRegistryAbstract
+
 from .custom_widgets import FluentFormat
 from .states import AdministrationStates, UserSelectionStates
 from .utils import current_user_id, has_admin_privileges
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,11 +1,12 @@
 import uuid
-from typing import Sequence, cast, Optional
+from typing import Optional, Sequence, cast
 
-from sqlalchemy import ForeignKey, UniqueConstraint, Enum as ORMEnum, select, text, func
+from sqlalchemy import Enum as ORMEnum
+from sqlalchemy import ForeignKey, UniqueConstraint, func, select, text
+from sqlalchemy.dialects.postgresql import BIGINT, TEXT, UUID, VARCHAR
 from sqlalchemy.engine.default import DefaultExecutionContext
-from sqlalchemy.dialects.postgresql import TEXT, BIGINT, UUID, VARCHAR
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from core.entities import PreferredLanguage
 

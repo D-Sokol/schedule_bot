@@ -1,11 +1,11 @@
 import asyncio
 import logging
-import nats
 import os
-import sqlalchemy
 from contextlib import suppress
 from typing import cast
 
+import nats
+import sqlalchemy
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.exceptions import TelegramBadRequest
@@ -13,21 +13,21 @@ from aiogram.filters import ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent
 from aiogram_dialog import DialogManager, setup_dialogs
-from aiogram_dialog.api.exceptions import UnknownIntent, OutdatedIntent
-from fluentogram import TranslatorRunner, TranslatorHub
+from aiogram_dialog.api.exceptions import OutdatedIntent, UnknownIntent
+from fluentogram import TranslatorHub, TranslatorRunner
 from nats.js import JetStreamContext
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from bot_registry.users import DbUserRegistry
-from app.handlers.commands import commands_router, set_commands
 from app.dialogs import all_dialogs
 from app.dialogs.states import MainMenuStates
 from app.dialogs.utils import BotAwareMessageManager
-from app.i18n import create_translator_hub, all_translator_locales, root_locale
+from app.handlers.commands import commands_router, set_commands
+from app.i18n import all_translator_locales, create_translator_hub, root_locale
+from app.middlewares.blacklist import BlacklistMiddleware
 from app.middlewares.db_session import DbSessionMiddleware
 from app.middlewares.i18n import TranslatorRunnerMiddleware
 from app.middlewares.registry import RegistryMiddleware
-from app.middlewares.blacklist import BlacklistMiddleware
+from bot_registry.users import DbUserRegistry
 
 
 # This handler must be registered via DP instead of `dialogs_router`

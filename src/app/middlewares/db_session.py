@@ -1,11 +1,10 @@
-from typing import Callable, Awaitable, Dict, Any
+from typing import Any, Awaitable, Callable, Dict
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, Message, CallbackQuery, ErrorEvent
+from aiogram.types import CallbackQuery, ErrorEvent, Message, TelegramObject
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from bot_registry import DbUserRegistry
-
 
 SESSION_KEY = "session"
 USER_REGISTRY_KEY = "user_registry"

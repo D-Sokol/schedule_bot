@@ -2,7 +2,8 @@ import logging
 from typing import Any, Awaitable, Callable, cast
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, User as TgUser
+from aiogram.types import TelegramObject
+from aiogram.types import User as TgUser
 from fluentogram import TranslatorHub
 
 from app.middlewares.db_session import USER_ENTITY_KEY

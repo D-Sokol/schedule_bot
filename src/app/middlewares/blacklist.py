@@ -2,7 +2,7 @@ import logging
 from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, CallbackQuery
+from aiogram.types import CallbackQuery, TelegramObject
 
 from app.middlewares.db_session import USER_ENTITY_KEY
 from core.entities import UserEntity

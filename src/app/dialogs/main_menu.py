@@ -3,17 +3,18 @@ import logging
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.api.entities import LaunchMode
 from aiogram_dialog.widgets.kbd import Start
+
 from .backgrounds import START_DATA_GLOBAL_SCOPE_KEY, START_DATA_SELECT_ONLY_KEY
+from .custom_widgets import FluentFormat
 from .states import (
-    MainMenuStates,
-    BackgroundsStates,
-    ScheduleStates,
-    TemplatesStates,
     AdministrationStates,
+    BackgroundsStates,
+    MainMenuStates,
+    ScheduleStates,
     SettingsStates,
+    TemplatesStates,
 )
 from .utils import has_admin_privileges_filter
-from .custom_widgets import FluentFormat
 
 logger = logging.getLogger(__name__)
 

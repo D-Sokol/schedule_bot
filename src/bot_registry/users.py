@@ -6,10 +6,9 @@ from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
 from bot_registry.database_models import UserModel, UserSettingsModel
-from core.entities import UserEntity, PreferredLanguage
+from core.entities import PreferredLanguage, UserEntity
 
 from .database_mixin import DatabaseRegistryMixin
-
 
 logger = logging.getLogger(__name__)
 

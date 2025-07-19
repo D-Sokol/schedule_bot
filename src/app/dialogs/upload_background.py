@@ -3,15 +3,14 @@ import logging
 from enum import StrEnum
 from typing import Any, cast
 
-from aiogram.types import ContentType, Message, CallbackQuery
-
-from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram.types import CallbackQuery, ContentType, Message
+from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram_dialog.widgets.kbd import Button, Cancel, SwitchTo
 from fluentogram import TranslatorRunner
 from magic_filter import F
-from PIL import UnidentifiedImageError, Image
+from PIL import Image, UnidentifiedImageError
 
 from app.middlewares.db_session import USER_ENTITY_KEY
 from app.middlewares.i18n import I18N_KEY
@@ -19,9 +18,10 @@ from app.middlewares.registry import ELEMENT_REGISTRY_KEY, TEMPLATE_REGISTRY_KEY
 from bot_registry import ElementsRegistryAbstract, TemplateRegistryAbstract
 from core.entities import UserEntity
 from core.exceptions import DuplicateNameException
+
 from .custom_widgets import FluentFormat
 from .states import UploadBackgroundStates
-from .utils import save_to_dialog_data, active_user_id, has_admin_privileges
+from .utils import active_user_id, has_admin_privileges, save_to_dialog_data
 
 logger = logging.getLogger(__name__)
 

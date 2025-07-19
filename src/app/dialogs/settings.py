@@ -3,14 +3,22 @@ from typing import cast
 
 from aiogram import F
 from aiogram.types import CallbackQuery
-from aiogram_dialog import Dialog, DialogManager, Window, ShowMode
-from aiogram_dialog.widgets.kbd import Cancel, Radio, Button, Checkbox, ManagedCheckbox, ManagedRadio
+from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
+from aiogram_dialog.widgets.kbd import (
+    Button,
+    Cancel,
+    Checkbox,
+    ManagedCheckbox,
+    ManagedRadio,
+    Radio,
+)
 from fluentogram import TranslatorHub
 
-from app.middlewares.db_session import USER_REGISTRY_KEY, USER_ENTITY_KEY
-from app.middlewares.i18n import USED_LOCALE_KEY, TRANSLATOR_HUB_KEY, I18N_KEY
+from app.middlewares.db_session import USER_ENTITY_KEY, USER_REGISTRY_KEY
+from app.middlewares.i18n import I18N_KEY, TRANSLATOR_HUB_KEY, USED_LOCALE_KEY
 from bot_registry.users import UserRegistryAbstract
 from core.entities import PreferredLanguage, UserEntity
+
 from .custom_widgets import FluentFormat
 from .states import SettingsStates
 from .utils import current_user_id

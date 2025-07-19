@@ -1,17 +1,17 @@
 import logging
 from enum import StrEnum
-from typing import cast, Any
+from typing import Any, cast
 
 from aiogram import F
+from aiogram.enums import MessageOriginType
 from aiogram.types import Message, MessageOriginUser
 from aiogram.utils.magic_filter import MagicFilter
-from aiogram.enums import MessageOriginType
-from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram_dialog.widgets.kbd import Cancel
+
 from .custom_widgets import FluentFormat
 from .states import UserSelectionStates
-
 
 logger = logging.getLogger(__name__)
 

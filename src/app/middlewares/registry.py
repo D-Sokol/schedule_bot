@@ -1,13 +1,12 @@
-from typing import Callable, Awaitable, Dict, Any
+from typing import Any, Awaitable, Callable, Dict
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, Message, CallbackQuery, ErrorEvent
+from aiogram.types import CallbackQuery, ErrorEvent, Message, TelegramObject
 from nats.js import JetStreamContext
 
 from app.middlewares.db_session import SESSION_KEY
 from app.middlewares.i18n import I18N_KEY
-from bot_registry import DbElementRegistry, DbTemplateRegistry, DbScheduleRegistry
-
+from bot_registry import DbElementRegistry, DbScheduleRegistry, DbTemplateRegistry
 
 ELEMENT_REGISTRY_KEY = "element_registry"
 SCHEDULE_REGISTRY_KEY = "schedule_registry"

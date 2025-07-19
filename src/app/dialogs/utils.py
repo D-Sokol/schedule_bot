@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Any, Awaitable, Callable, Union, cast
 
 from aiogram import Bot, F
-from aiogram.types import BufferedInputFile, CallbackQuery, Chat, Message, InputFile
-from aiogram_dialog import DialogManager, Data
+from aiogram.types import BufferedInputFile, CallbackQuery, Chat, InputFile, Message
+from aiogram_dialog import Data, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, NewMessage
 from aiogram_dialog.manager.message_manager import MessageManager
 from aiogram_dialog.widgets.kbd import Button
@@ -12,11 +12,10 @@ from fluentogram import TranslatorRunner
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.middlewares.i18n import I18N_KEY
 from app.middlewares.db_session import USER_ENTITY_KEY
-from bot_registry.image_elements import ElementsRegistryAbstract, DbElementRegistry
+from app.middlewares.i18n import I18N_KEY
+from bot_registry.image_elements import DbElementRegistry, ElementsRegistryAbstract
 from core.entities import UserEntity
-
 
 logger = logging.getLogger(__name__)
 

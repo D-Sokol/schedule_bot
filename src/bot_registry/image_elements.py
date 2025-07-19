@@ -7,15 +7,25 @@ from typing import ClassVar, Literal, cast, final
 from uuid import UUID
 
 import sqlalchemy.exc
-from PIL import Image
 from nats.js.errors import ObjectNotFoundError
 from nats.js.object_store import ObjectStore
-from sqlalchemy import func, select, update, delete, text
+from PIL import Image
+from sqlalchemy import delete, func, select, text, update
 
-from services.converter import IMAGE_FORMAT, SAVE_NAME_HEADER, RESIZE_MODE_HEADER, TARGET_SIZE_HEADER
 from bot_registry.database_models import ImageElementModel
 from core.entities import ImageEntity
-from core.exceptions import ImageNotProcessedException, DuplicateNameException, ImageContentEmpty, ImageNotExist
+from core.exceptions import (
+    DuplicateNameException,
+    ImageContentEmpty,
+    ImageNotExist,
+    ImageNotProcessedException,
+)
+from services.converter import (
+    IMAGE_FORMAT,
+    RESIZE_MODE_HEADER,
+    SAVE_NAME_HEADER,
+    TARGET_SIZE_HEADER,
+)
 
 from .database_mixin import DatabaseRegistryMixin
 from .nats_mixin import NATSRegistryMixin

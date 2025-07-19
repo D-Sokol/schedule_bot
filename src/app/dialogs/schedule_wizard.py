@@ -3,17 +3,26 @@ import re
 from typing import Any, TypedDict
 
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import Dialog, Window, DialogManager, ShowMode, SubManager
+from aiogram_dialog import Dialog, DialogManager, ShowMode, SubManager, Window
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Cancel, ListGroup, Button, Row, ScrollingGroup, Select, SwitchTo
+from aiogram_dialog.widgets.kbd import (
+    Button,
+    Cancel,
+    ListGroup,
+    Row,
+    ScrollingGroup,
+    Select,
+    SwitchTo,
+)
 from aiogram_dialog.widgets.text import Format
 from fluentogram import TranslatorRunner
 from magic_filter import F
 
 from app.middlewares.i18n import I18N_KEY
-from services.renderer.weekdays import Schedule, Entry, Time, WeekDay
-from .states import ScheduleWizardStates
+from services.renderer.weekdays import Entry, Schedule, Time, WeekDay
+
 from .custom_widgets import FluentFormat
+from .states import ScheduleWizardStates
 
 ENTRY_INDEX_KEY = "item_id"
 START_DATA_ENTRIES_KEY = "entries"

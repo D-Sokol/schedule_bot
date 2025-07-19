@@ -4,8 +4,8 @@ from aiogram_dialog.widgets.text import Text
 from fluentogram import TranslatorRunner
 from magic_filter import MagicFilter
 
-from core.fluentogram_utils import clear_fluentogram_message
 from app.middlewares.i18n import I18N_KEY
+from core.fluentogram_utils import clear_fluentogram_message
 
 
 class FluentFormat(Text):

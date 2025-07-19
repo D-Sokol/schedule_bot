@@ -4,8 +4,8 @@ import logging
 from functools import partial
 
 from aiogram import Bot
-from aiogram.types import CallbackQuery, ContentType, Message, BufferedInputFile
-from aiogram_dialog import Dialog, DialogManager, Window, ShowMode
+from aiogram.types import BufferedInputFile, CallbackQuery, ContentType, Message
+from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Cancel
 from fluentogram import TranslatorRunner
@@ -16,6 +16,7 @@ from app.middlewares.i18n import I18N_KEY
 from app.middlewares.registry import TEMPLATE_REGISTRY_KEY
 from bot_registry.templates import TemplateRegistryAbstract
 from services.renderer.templates import Template
+
 from .custom_widgets import FluentFormat
 from .states import TemplatesStates
 from .utils import current_user_id

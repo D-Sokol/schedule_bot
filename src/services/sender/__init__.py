@@ -1,10 +1,10 @@
 import asyncio
 import logging
+import os
 from asyncio import Event
 from functools import partial
 
 import nats
-import os
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.exceptions import TelegramRetryAfter

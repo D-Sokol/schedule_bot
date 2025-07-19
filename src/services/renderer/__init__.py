@@ -6,6 +6,7 @@ import asyncio
 import io
 import locale
 import logging
+import os
 import uuid
 from asyncio import Event
 from contextlib import nullcontext
@@ -14,7 +15,6 @@ from functools import partial
 
 import msgpack
 import nats
-import os
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
 from nats.js.api import ObjectStoreConfig, StorageType

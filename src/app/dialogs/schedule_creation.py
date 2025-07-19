@@ -7,30 +7,40 @@ from functools import partial
 from typing import Any
 
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import Dialog, Window, Data, DialogManager, ShowMode
+from aiogram_dialog import Data, Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Cancel, Start, Button, SwitchTo, Calendar
+from aiogram_dialog.widgets.kbd import Button, Calendar, Cancel, Start, SwitchTo
 from fluentogram import TranslatorRunner
 from magic_filter import F
 
-from app.middlewares.registry import SCHEDULE_REGISTRY_KEY, TEMPLATE_REGISTRY_KEY
 from app.middlewares.i18n import I18N_KEY
+from app.middlewares.registry import SCHEDULE_REGISTRY_KEY, TEMPLATE_REGISTRY_KEY
 from bot_registry.templates import TemplateRegistryAbstract
 from bot_registry.texts import ScheduleRegistryAbstract
 from core.entities import ScheduleEntity
-from services.renderer.weekdays import WeekDay, Entry, Time
+from services.renderer.weekdays import Entry, Time, WeekDay
+
 from .backgrounds import (
-    has_backgrounds_condition,
-    can_upload_background_condition,
-    saved_backs_getter,
     START_DATA_GLOBAL_SCOPE_KEY,
     START_DATA_SELECT_ONLY_KEY,
+    can_upload_background_condition,
+    has_backgrounds_condition,
+    saved_backs_getter,
 )
 from .custom_widgets import FluentFormat
-from .schedule_wizard import START_DATA_ENTRIES_KEY, RESULT_ENTRIES_KEY, EntryRepresentation
-from .states import ScheduleStates, BackgroundsStates, UploadBackgroundStates, ScheduleWizardStates
+from .schedule_wizard import (
+    RESULT_ENTRIES_KEY,
+    START_DATA_ENTRIES_KEY,
+    EntryRepresentation,
+)
+from .states import (
+    BackgroundsStates,
+    ScheduleStates,
+    ScheduleWizardStates,
+    UploadBackgroundStates,
+)
 from .upload_background import RESULT_ELEMENT_ID_KEY
-from .utils import current_user_id, current_chat_id
+from .utils import current_chat_id, current_user_id
 
 logger = logging.getLogger(__name__)
 

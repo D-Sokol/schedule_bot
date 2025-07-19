@@ -2,8 +2,10 @@ from dataclasses import dataclass
 from enum import StrEnum
 from uuid import UUID
 
+from services.renderer import Schedule as ScheduleEntity
+
 # Should be exactly the same, also app uses a pydantic validation.
-from services.renderer import Template as TemplateEntity, Schedule as ScheduleEntity
+from services.renderer import Template as TemplateEntity
 
 
 class PreferredLanguage(StrEnum):

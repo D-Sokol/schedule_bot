@@ -3,12 +3,11 @@ import logging
 from pathlib import Path
 from typing import Any, cast
 
-from aiogram.types import BufferedInputFile, ContentType, CallbackQuery, Message
-
-from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram.types import BufferedInputFile, CallbackQuery, ContentType, Message
+from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.api.entities import MediaAttachment, MediaId, ShowMode
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Cancel, Select, SwitchTo, ScrollingGroup
+from aiogram_dialog.widgets.kbd import Button, Cancel, ScrollingGroup, Select, SwitchTo
 from aiogram_dialog.widgets.media import DynamicMedia
 from fluentogram import TranslatorRunner
 from magic_filter import F, MagicFilter
@@ -16,10 +15,10 @@ from magic_filter import F, MagicFilter
 from app.middlewares.i18n import I18N_KEY
 from app.middlewares.registry import ELEMENT_REGISTRY_KEY
 from bot_registry import ElementsRegistryAbstract
-from .custom_widgets import FluentFormat, StartWithData
-from .states import BackgroundsStates, UploadBackgroundStates, ScheduleStates
-from .utils import active_user_id, current_user_id, has_admin_privileges
 
+from .custom_widgets import FluentFormat, StartWithData
+from .states import BackgroundsStates, ScheduleStates, UploadBackgroundStates
+from .utils import active_user_id, current_user_id, has_admin_privileges
 
 logger = logging.getLogger(__name__)
 
