@@ -7,7 +7,7 @@ from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import Cancel, Radio, Button, Checkbox, ManagedCheckbox, ManagedRadio
 
 from bot_registry.users import UserRegistryAbstract
-from core.entities import PreferredLanguage
+from core.entities import PreferredLanguage, UserEntity
 from .custom_widgets import FluentFormat
 from .states import SettingsStates
 from .utils import current_user_id
@@ -41,12 +41,13 @@ start_window = Window(
         items=list(PreferredLanguage),
         item_id_getter=str,
         type_factory=PreferredLanguage,
-    ),  # TODO: update on start
+        # Default value is not supported, see `set_defaults`
+    ),
     Checkbox(
         FluentFormat("dialog-settings.accept_uncompressed_checked"),
         FluentFormat("dialog-settings.accept_uncompressed_unchecked"),
         id="accept_uncompressed",
-        default=False,  # TODO: update on start
+        # Dynamic default value is not supported, see `set_defaults`
     ),
     Button(
         FluentFormat("dialog-settings.apply"),
@@ -63,7 +64,17 @@ start_window = Window(
 )
 
 
+async def set_defaults(_, dialog_manager: DialogManager) -> None:
+    user = cast(UserEntity, dialog_manager.middleware_data["user"])
+    await cast(ManagedCheckbox, dialog_manager.find("accept_uncompressed")).set_checked(user.accept_compressed)
+    if user.preferred_language is not None:
+        await cast(ManagedRadio[PreferredLanguage], dialog_manager.find("language")).set_checked(
+            user.preferred_language
+        )
+
+
 dialog = Dialog(
     start_window,
+    on_start=set_defaults,
     name=__name__,
 )
