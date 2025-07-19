@@ -24,7 +24,7 @@ from app.dialogs import all_dialogs
 from app.dialogs.states import MainMenuStates
 from app.dialogs.utils import BotAwareMessageManager
 from app.i18n import create_translator_hub, all_translator_locales, root_locale
-from app.middlewares.registry import DbSessionMiddleware
+from app.middlewares.registry import DbSessionMiddleware, RegistryMiddleware
 from app.middlewares.i18n import TranslatorRunnerMiddleware
 from app.middlewares.blacklist import BlacklistMiddleware
 
@@ -71,21 +71,25 @@ async def setup_db(db_url: str, admin_id: int = -1, log_level: str = "WARNING") 
 async def setup_middlewares(
     dp: Dispatcher, session_pool: async_sessionmaker, js: JetStreamContext, hub: TranslatorHub
 ) -> None:
-    db_middleware = DbSessionMiddleware(session_pool, js)
+    db_middleware = DbSessionMiddleware(session_pool)
+    registry_middleware = RegistryMiddleware(js)
     message_manager = BotAwareMessageManager(session_pool, js)
 
     tr_middleware = TranslatorRunnerMiddleware(hub)
     bl_middleware = BlacklistMiddleware()
 
-    dp.message.middleware(tr_middleware)
     dp.message.middleware(db_middleware)
     dp.message.middleware(bl_middleware)
-    dp.callback_query.middleware(tr_middleware)
+    dp.message.middleware(tr_middleware)
+    dp.message.middleware(registry_middleware)
     dp.callback_query.middleware(db_middleware)
     dp.callback_query.middleware(bl_middleware)
-    dp.errors.middleware(tr_middleware)
+    dp.callback_query.middleware(tr_middleware)
+    dp.callback_query.middleware(registry_middleware)
     dp.errors.middleware(db_middleware)
     # blacklist middleware is probably useless in error handling?
+    dp.errors.middleware(tr_middleware)
+    dp.errors.middleware(registry_middleware)
 
     dp.include_router(commands_router)
     dp.include_routers(*all_dialogs)
