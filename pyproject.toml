@@ -45,3 +45,7 @@ service-sender = "services.sender:entry"
 [tool.setuptools]
 packages = {}
 package-dir = {"" = "src"}
+
+
+[tool.ruff.lint]
+extend-select = ["I"]

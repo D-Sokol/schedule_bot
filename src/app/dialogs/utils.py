@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Any, Awaitable, Callable, Union, cast
 
 from aiogram import Bot, F
-from aiogram.types import BufferedInputFile, CallbackQuery, Chat, Message, InputFile
-from aiogram_dialog import DialogManager, Data
+from aiogram.types import BufferedInputFile, CallbackQuery, Chat, InputFile, Message
+from aiogram_dialog import Data, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, NewMessage
 from aiogram_dialog.manager.message_manager import MessageManager
 from aiogram_dialog.widgets.kbd import Button
@@ -12,16 +12,17 @@ from fluentogram import TranslatorRunner
 from nats.js import JetStreamContext
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from bot_registry.image_assets import ElementsRegistryAbstract, DbElementRegistry
-from core.database_models import User
-
+from app.middlewares.db_session import USER_ENTITY_KEY
+from app.middlewares.i18n import I18N_KEY
+from bot_registry.image_elements import DbElementRegistry, ElementsRegistryAbstract
+from core.entities import UserEntity
 
 logger = logging.getLogger(__name__)
 
 
 def current_user_id(dialog_manager: DialogManager) -> int:
-    user = cast(User, dialog_manager.middleware_data["user"])
-    return user.tg_id
+    user = cast(UserEntity, dialog_manager.middleware_data[USER_ENTITY_KEY])
+    return user.telegram_id
 
 
 def active_user_id(dialog_manager: DialogManager) -> int | None:
@@ -31,11 +32,11 @@ def active_user_id(dialog_manager: DialogManager) -> int | None:
 
 
 def has_admin_privileges(dialog_manager: DialogManager) -> bool:
-    user = cast(User, dialog_manager.middleware_data["user"])
+    user = cast(UserEntity, dialog_manager.middleware_data[USER_ENTITY_KEY])
     return user.is_admin
 
 
-has_admin_privileges_filter = F["middleware_data"]["user"].is_admin
+has_admin_privileges_filter = F["middleware_data"][USER_ENTITY_KEY].is_admin
 
 
 def current_chat_id(dialog_manager: DialogManager) -> int:
@@ -52,7 +53,7 @@ def save_to_dialog_data(key: str, value: Data) -> Callable[[CallbackQuery | Mess
 
 
 async def handler_not_implemented_button(callback: CallbackQuery, button: Button, manager: DialogManager):
-    i18n: TranslatorRunner = manager.middleware_data["i18n"]
+    i18n: TranslatorRunner = manager.middleware_data[I18N_KEY]
     logging.warning("Called button [%s] which is not implemented!", button.widget_id)
     await callback.answer(i18n.get("notify-not_implemented"))
 

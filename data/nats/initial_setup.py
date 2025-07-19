@@ -2,7 +2,7 @@ import asyncio
 import os
 
 import nats
-from nats.js.api import ObjectStoreConfig, StorageType, StreamConfig, RetentionPolicy
+from nats.js.api import ObjectStoreConfig, RetentionPolicy, StorageType, StreamConfig
 
 
 async def upgrade(servers: str):

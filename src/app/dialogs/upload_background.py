@@ -1,36 +1,60 @@
 import html
 import logging
-from PIL import UnidentifiedImageError, Image
+from enum import StrEnum
 from typing import Any, cast
 
-from aiogram.types import ContentType, Message, CallbackQuery
-
-from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram.types import CallbackQuery, ContentType, Message
+from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram_dialog.widgets.kbd import Button, Cancel, SwitchTo
 from fluentogram import TranslatorRunner
 from magic_filter import F
+from PIL import Image, UnidentifiedImageError
 
+from app.middlewares.db_session import USER_ENTITY_KEY
+from app.middlewares.i18n import I18N_KEY
+from app.middlewares.registry import ELEMENT_REGISTRY_KEY, TEMPLATE_REGISTRY_KEY
 from bot_registry import ElementsRegistryAbstract, TemplateRegistryAbstract
+from core.entities import UserEntity
 from core.exceptions import DuplicateNameException
+
 from .custom_widgets import FluentFormat
 from .states import UploadBackgroundStates
-from .utils import save_to_dialog_data, active_user_id, has_admin_privileges
-
+from .utils import active_user_id, has_admin_privileges, save_to_dialog_data
 
 logger = logging.getLogger(__name__)
 
-
 FILE_SIZE_LIMIT = 10 * 1024 * 1024
 
-FILE_SIZE_ERROR_REASON = "file_size"
-UNREADABLE_ERROR_REASON = "unreadable"
+
+class _ErrorReason(StrEnum):
+    UNREADABLE = "unreadable"
+    FILE_SIZE = "file_size"
+
+
+class _FileType(StrEnum):
+    DOCUMENT = "document"
+    PHOTO = "photo"
+
+
+DIALOG_FILE_ID_KEY = "file_id"
+DIALOG_FILE_TYPE_KEY = "file_type"
+DIALOG_FILE_SIZE_KEY = "file_size"
+DIALOG_AUTOMATIC_NAME_KEY = "automatic_name"
+DIALOG_FAIL_REASON_KEY = "fail_reason"
+DIALOG_REAL_WIDTH_KEY = "real_width"
+DIALOG_REAL_HEIGHT_KEY = "real_height"
+DIALOG_RESIZE_MODE_KEY = "resize_mode"
+DIALOG_EXPECTED_WIDTH_KEY = "expected_width"
+DIALOG_EXPECTED_HEIGHT_KEY = "expected_height"
+START_DATA_GLOBAL_SCOPE_KEY = "global_scope"
+RESULT_ELEMENT_ID_KEY = "element_id"
 
 
 async def on_dialog_start(_: Any, manager: DialogManager):
-    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
-    template_registry: TemplateRegistryAbstract = manager.middleware_data["template_registry"]
+    registry: ElementsRegistryAbstract = manager.middleware_data[ELEMENT_REGISTRY_KEY]
+    template_registry: TemplateRegistryAbstract = manager.middleware_data[TEMPLATE_REGISTRY_KEY]
     user_id = active_user_id(manager)
     limit = await registry.get_elements_limit(user_id)
     current = await registry.get_elements_count(user_id)
@@ -47,8 +71,8 @@ async def on_dialog_start(_: Any, manager: DialogManager):
     else:
         logging.warning("No template for %d and global is missing, skip checking dimensions!", user_id)
         width = height = None
-    manager.dialog_data["expected_width"] = width
-    manager.dialog_data["expected_height"] = height
+    manager.dialog_data[DIALOG_EXPECTED_WIDTH_KEY] = width
+    manager.dialog_data[DIALOG_EXPECTED_HEIGHT_KEY] = height
     logger.debug("Ready to accept image. Expected shape is %d x %d", width, height)
 
 
@@ -73,15 +97,15 @@ async def handle_image_upload(
     else:
         assert False, "Filters is not properly configured"
 
-    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
-    manager.dialog_data["file_size"] = file_size
-    manager.dialog_data["file_id"] = file_id
-    manager.dialog_data["file_type"] = "document" if is_document else "photo"
-    manager.dialog_data["automatic_name"] = sent_name or registry.generate_trivial_name()
+    registry: ElementsRegistryAbstract = manager.middleware_data[ELEMENT_REGISTRY_KEY]
+    manager.dialog_data[DIALOG_FILE_SIZE_KEY] = file_size
+    manager.dialog_data[DIALOG_FILE_ID_KEY] = file_id
+    manager.dialog_data[DIALOG_FILE_TYPE_KEY] = _FileType.DOCUMENT if is_document else _FileType.PHOTO
+    manager.dialog_data[DIALOG_AUTOMATIC_NAME_KEY] = sent_name or registry.generate_trivial_name()
 
     if file_size > FILE_SIZE_LIMIT:
         logger.info("Image rejected: file size is %d", file_size)
-        manager.dialog_data["fail_reason"] = FILE_SIZE_ERROR_REASON
+        manager.dialog_data[DIALOG_FAIL_REASON_KEY] = _ErrorReason.FILE_SIZE
         await manager.switch_to(UploadBackgroundStates.UPLOAD_FAILED)
         return
 
@@ -94,30 +118,31 @@ async def handle_image_upload(
         image = Image.open(file)
     except UnidentifiedImageError:
         logger.info("Image rejected: cannot open as image (file_id %s)", file_id)
-        manager.dialog_data["fail_reason"] = UNREADABLE_ERROR_REASON
+        manager.dialog_data[DIALOG_FAIL_REASON_KEY] = _ErrorReason.UNREADABLE
         await manager.switch_to(UploadBackgroundStates.UPLOAD_FAILED)
         return
 
     width, height = image.size
-    manager.dialog_data["real_width"] = width
-    manager.dialog_data["real_height"] = height
-    manager.dialog_data["resize_mode"] = "ignore"
+    manager.dialog_data[DIALOG_REAL_WIDTH_KEY] = width
+    manager.dialog_data[DIALOG_REAL_HEIGHT_KEY] = height
+    manager.dialog_data[DIALOG_RESIZE_MODE_KEY] = "ignore"
 
-    if not is_document:
+    user = cast(UserEntity, manager.middleware_data[USER_ENTITY_KEY])
+    if not user.accept_compressed and not is_document:
         await manager.switch_to(UploadBackgroundStates.UPLOADED_NOT_DOCUMENT)
     else:
         await check_dimensions(message, _, manager)
 
 
 async def check_dimensions(_update: Any, _widget: Any, manager: DialogManager) -> None:
-    ignore_shape_mismatch: bool = manager.start_data["global_scope"]
+    ignore_shape_mismatch: bool = manager.start_data[START_DATA_GLOBAL_SCOPE_KEY]
     if ignore_shape_mismatch:
         logging.debug("Ignore checking dimensions")
         await manager.switch_to(UploadBackgroundStates.UPLOADED_EXPECT_NAME)
         return
 
-    real = (manager.dialog_data["real_width"], manager.dialog_data["real_height"])
-    expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
+    real = (manager.dialog_data[DIALOG_REAL_WIDTH_KEY], manager.dialog_data[DIALOG_REAL_HEIGHT_KEY])
+    expected = (manager.dialog_data[DIALOG_EXPECTED_WIDTH_KEY], manager.dialog_data[DIALOG_EXPECTED_HEIGHT_KEY])
 
     if expected == (None, None):
         logger.debug("Ignore checking dimensions because no template available")
@@ -136,12 +161,12 @@ async def save_image(
     manager: DialogManager,
     data: str,
 ):
-    i18n: TranslatorRunner = manager.middleware_data["i18n"]
-    registry: ElementsRegistryAbstract = manager.middleware_data["element_registry"]
-    expected = (manager.dialog_data["expected_width"], manager.dialog_data["expected_height"])
-    resize_mode = manager.dialog_data["resize_mode"]
-    file_id = manager.dialog_data["file_id"]
-    file_type = manager.dialog_data["file_type"]
+    i18n: TranslatorRunner = manager.middleware_data[I18N_KEY]
+    registry: ElementsRegistryAbstract = manager.middleware_data[ELEMENT_REGISTRY_KEY]
+    expected = (manager.dialog_data[DIALOG_EXPECTED_WIDTH_KEY], manager.dialog_data[DIALOG_EXPECTED_HEIGHT_KEY])
+    resize_mode = manager.dialog_data[DIALOG_RESIZE_MODE_KEY]
+    file_id = manager.dialog_data[DIALOG_FILE_ID_KEY]
+    file_type = manager.dialog_data[DIALOG_FILE_TYPE_KEY]
     user_id = active_user_id(manager)
     logger.info("Saving new image: %s", data)
 
@@ -163,8 +188,8 @@ async def save_image(
             None,
             user_id,
             element_name=data,
-            file_id_document=file_id if file_type == "document" else None,
-            file_id_photo=file_id if file_type == "photo" else None,
+            file_id_document=file_id if file_type == _FileType.DOCUMENT else None,
+            file_id_photo=file_id if file_type == _FileType.PHOTO else None,
             target_size=expected,
             resize_mode=resize_mode,
         )
@@ -177,7 +202,7 @@ async def save_image(
     if message_to_answer:
         await message_to_answer.answer(i18n.get("notify-saved_image", escaped_name=html.escape(data)))
     # Since we send a custom message, dialogs should send new one to use the latest message in the chat
-    await manager.done(result={"element_id": new_element.element_id}, show_mode=ShowMode.SEND)
+    await manager.done(result={RESULT_ELEMENT_ID_KEY: new_element.element_id}, show_mode=ShowMode.SEND)
 
 
 async def save_image_auto_name(
@@ -185,7 +210,7 @@ async def save_image_auto_name(
     _widget: Any,
     manager: DialogManager,
 ):
-    auto_name = manager.dialog_data["automatic_name"]
+    auto_name = manager.dialog_data[DIALOG_AUTOMATIC_NAME_KEY]
     logger.debug("Confirmed automatic name: %s", auto_name)
     return await save_image(update, _widget, manager, data=auto_name)
 

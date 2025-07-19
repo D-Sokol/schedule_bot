@@ -2,22 +2,22 @@ import asyncio
 import logging
 
 from aiogram import Bot, Router
-from aiogram.filters import CommandStart, Command, CommandObject
+from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import BotCommand, Message
 from aiogram_dialog import DialogManager, ShowMode
-from fluentogram import TranslatorRunner, TranslatorHub
+from fluentogram import TranslatorHub, TranslatorRunner
 
-from core.database_models import User
-from core.fluentogram_utils import clear_fluentogram_message
 from app.dialogs.states import (
-    MainMenuStates,
-    BackgroundsStates,
-    TemplatesStates,
-    ScheduleStates,
-    UploadBackgroundStates,
     AdministrationStates,
+    BackgroundsStates,
+    MainMenuStates,
+    ScheduleStates,
+    SettingsStates,
+    TemplatesStates,
+    UploadBackgroundStates,
 )
-
+from core.entities import UserEntity
+from core.fluentogram_utils import clear_fluentogram_message
 
 logger = logging.getLogger(__name__)
 
@@ -51,15 +51,15 @@ async def backgrounds_global_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: User,
+    user: UserEntity,
 ) -> None:
     logger.info("Starting backgrounds (global scope) dialog from command")
     if not user.is_admin:
-        logger.info("Editing global scope assets is blocked for user %d", user.tg_id)
+        logger.info("Editing global scope elements is blocked for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 
-    logger.debug("Editing global scope assets is allowed for user %d", user.tg_id)
+    logger.debug("Editing global scope elements is allowed for user %d", user.telegram_id)
     await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(
         BackgroundsStates.START, data={"global_scope": True, "select_only": False}, show_mode=ShowMode.SEND
@@ -78,6 +78,13 @@ async def schedule_creation_handler(_: Message, dialog_manager: DialogManager) -
     logger.info("Starting creating schedule dialog from command")
     await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
     await dialog_manager.start(ScheduleStates.START, show_mode=ShowMode.SEND)
+
+
+@commands_router.message(Command("settings"))
+async def settings_handler(_: Message, dialog_manager: DialogManager) -> None:
+    logger.info("Starting settings dialog from command")
+    await dialog_manager.start(MainMenuStates.START, show_mode=ShowMode.NO_UPDATE)
+    await dialog_manager.start(SettingsStates.START, show_mode=ShowMode.SEND)
 
 
 @commands_router.message(Command("help"))
@@ -100,11 +107,11 @@ async def grant_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: User,
+    user: UserEntity,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
-        logger.info("Refuse to grant someone for user %d", user.tg_id)
+        logger.info("Refuse to grant someone for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 
@@ -129,11 +136,11 @@ async def revoke_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: User,
+    user: UserEntity,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
-        logger.info("Refuse to revoke someone for user %d", user.tg_id)
+        logger.info("Refuse to revoke someone for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 
@@ -158,11 +165,11 @@ async def ban_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: User,
+    user: UserEntity,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
-        logger.info("Refuse to ban someone for user %d", user.tg_id)
+        logger.info("Refuse to ban someone for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 
@@ -187,11 +194,11 @@ async def unban_handler(
     message: Message,
     dialog_manager: DialogManager,
     i18n: TranslatorRunner,
-    user: User,
+    user: UserEntity,
     command: CommandObject,
 ) -> None:
     if not user.is_admin:
-        logger.info("Refuse to unban someone for user %d", user.tg_id)
+        logger.info("Refuse to unban someone for user %d", user.telegram_id)
         await message.answer(i18n.get("notify-forbidden"))
         return
 
@@ -218,6 +225,7 @@ _BOT_COMMANDS = [
     "elements",
     "upload",
     "create",
+    "settings",
     "help",
     "grant",
     "revoke",

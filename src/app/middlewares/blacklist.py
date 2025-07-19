@@ -2,9 +2,10 @@ import logging
 from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, CallbackQuery
+from aiogram.types import CallbackQuery, TelegramObject
 
-from core.database_models import User
+from app.middlewares.db_session import USER_ENTITY_KEY
+from core.entities import UserEntity
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +17,9 @@ class BlacklistMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        user: User = data.get("user")
+        user: UserEntity = data.get(USER_ENTITY_KEY)
         if user and user.is_banned:
-            logger.info("Update from user %d ignored due to blacklist", user.tg_id)
+            logger.info("Update from user %d ignored due to blacklist", user.telegram_id)
             if isinstance(event, CallbackQuery):
                 # CallbackQuery should be answered to avoid lagging animation on user side.
                 await event.answer()

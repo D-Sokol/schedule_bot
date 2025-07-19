@@ -1,22 +1,20 @@
 import io
-import locale
 from abc import ABC, abstractmethod
 from datetime import date, timedelta
-from functools import lru_cache, cached_property
-from typing import Annotated, Any, Literal, ClassVar
+from functools import cached_property, lru_cache
+from typing import Annotated, Any, ClassVar, Literal
+from uuid import UUID
 
-from PIL import Image, ImageColor, ImageDraw, ImageFont
 from nats.js.errors import ObjectNotFoundError
 from nats.js.object_store import ObjectStore
+from PIL import Image, ImageColor, ImageDraw, ImageFont
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import UUID
 
-from .weekdays import WeekDay, Entry, Schedule
+from .weekdays import Entry, Schedule, WeekDay
 
 WEEK_LENGTH = len(WeekDay)
-locale.setlocale(locale.LC_TIME, "")  # Use value given by environment variables.
 
 
 @lru_cache(maxsize=64)

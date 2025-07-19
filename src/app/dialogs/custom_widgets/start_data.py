@@ -4,12 +4,11 @@ from typing import Optional
 from aiogram.fsm.state import State
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
-from aiogram_dialog.api.entities import StartMode, ShowMode
+from aiogram_dialog.api.entities import ShowMode, StartMode
 from aiogram_dialog.widgets.common import WhenCondition
-from aiogram_dialog.widgets.text import Text
 from aiogram_dialog.widgets.kbd import Button, Start
 from aiogram_dialog.widgets.kbd.button import OnClick
-
+from aiogram_dialog.widgets.text import Text
 
 logger = logging.getLogger(__name__)
 

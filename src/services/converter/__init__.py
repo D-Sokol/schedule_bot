@@ -16,9 +16,8 @@ from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
-from PIL import Image
 from nats.js.object_store import ObjectStore
-
+from PIL import Image
 
 BUCKET_NAME = "assets"
 CONVERT_RAW_SUBJECT_NAME = "assets.convert.raw"

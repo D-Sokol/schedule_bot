@@ -1,6 +1,6 @@
 from enum import IntEnum
-from pydantic import BaseModel, ConfigDict, Field
 
+from pydantic import BaseModel, ConfigDict, Field
 
 _DEFAULT_NAMES = ["нл", "пн", "вт", "ср", "чт", "пт", "сб", "вс"]
 
