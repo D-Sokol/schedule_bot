@@ -9,7 +9,7 @@ RUN apt update && apt install -y fonts-freefont-ttf && apt clean
 
 COPY pyproject.toml .
 COPY uv.lock .
-RUN pip install --root-user-action=ignore --no-cache uv && uv sync --no-install-project --no-dev --no-cache --locked --active --no-managed-python
+RUN pip install --root-user-action=ignore --no-cache uv && uv sync --no-install-project --no-dev --group deploy --no-cache --locked --active --no-managed-python
 
 COPY src/ src/
 RUN uv sync --no-dev --frozen --active --no-managed-python
