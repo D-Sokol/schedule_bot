@@ -1,9 +1,10 @@
 NOTES
 .env
-
 .venv/
 .git/
 .mypy_cache/
+.idea/
+src/*.egg-info/
 
 data/nats/data/
 data/nui/

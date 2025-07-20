@@ -1,11 +1,15 @@
 NOTES
 .env
+.venv
 
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Distribution
+*.egg-info/
 
 
 # Develop SQLite files
