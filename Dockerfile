@@ -18,7 +18,7 @@ COPY README.md .
 RUN uv sync --no-dev --group deploy --frozen --active --no-managed-python
 
 # Required for correct entrypoint launch.
-COPY alembic .
+COPY alembic alembic
 COPY alembic.ini .
 COPY entrypoint.sh .
 COPY data/nats/initial_setup.py ./data/nats/
