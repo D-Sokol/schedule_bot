@@ -144,7 +144,7 @@ start_window = Window(
         Button(
             FluentFormat("dialog-admin-main.minus-admin"),
             id="minus_admin",
-            on_click=partial(user_action_handler, action=ActionWithUser.GRANT_ADMIN),
+            on_click=partial(user_action_handler, action=ActionWithUser.REVOKE_ADMIN),
         ),
     ),
     Row(
