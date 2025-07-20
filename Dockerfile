@@ -12,7 +12,7 @@ COPY uv.lock .
 RUN pip install --root-user-action=ignore --no-cache uv && uv sync --no-install-project --no-dev --group deploy --no-cache --locked --active --no-managed-python
 
 # Enables subcommands
-COPY src/ .
+COPY src .
 COPY LICENSE .
 COPY README.md .
 RUN uv sync --no-dev --frozen --active --no-managed-python
