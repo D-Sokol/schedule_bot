@@ -11,8 +11,9 @@ COPY pyproject.toml .
 COPY uv.lock .
 RUN pip install --root-user-action=ignore --no-cache uv && uv sync --no-install-project --no-dev --group deploy --no-cache --locked --active --no-managed-python
 
-# Enables subcommands
 COPY src src
+COPY locales locales
+# Enables subcommands
 COPY LICENSE .
 COPY README.md .
 RUN uv sync --no-dev --group deploy --frozen --active --no-managed-python
