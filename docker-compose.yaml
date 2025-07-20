@@ -22,7 +22,7 @@ services:
         max-file: "3"
     volumes:
       - ./data/fonts:/root/.local/share/fonts
-      - ./data/images:./data/images
+      - ./data/images:/opt/schedule/data/images
     depends_on:
       - db
       - nats
