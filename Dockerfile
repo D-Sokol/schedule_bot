@@ -15,7 +15,7 @@ RUN pip install --root-user-action=ignore --no-cache uv && uv sync --no-install-
 COPY src src
 COPY LICENSE .
 COPY README.md .
-RUN uv sync --no-dev --frozen --active --no-managed-python
+RUN uv sync --no-dev --group deploy --frozen --active --no-managed-python
 
 # Required for correct entrypoint launch.
 COPY alembic .
