@@ -10,7 +10,6 @@ from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram_dialog.widgets.kbd import Cancel
 from aiogram_dialog.widgets.markup.reply_keyboard import ReplyKeyboardFactory
-from aiogram_dialog.widgets.text import Const
 
 from .custom_widgets import FluentFormat, RequestUsers
 from .states import UserSelectionStates
@@ -84,7 +83,7 @@ start_window = Window(
         "dialog-users.unparseable_text",
         when=cast(MagicFilter, F["dialog_data"][DIALOG_HELP_TYPE_KEY] == _HelpType.UNPARSEABLE),
     ),
-    RequestUsers(Const("Share user"), max_quantity=1, request_photo=True, request_username=False),
+    RequestUsers(FluentFormat("dialog-users.share"), max_quantity=1, request_photo=True, request_username=False),
     Cancel(FluentFormat("dialog-cancel")),
     MessageInput(func=accept_forwarded, filter=cast(MagicFilter, F.forward_origin.type == MessageOriginType.USER)),
     MessageInput(func=accept_forwarded_unavailable, filter=cast(MagicFilter, F.forward_origin)),
