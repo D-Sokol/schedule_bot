@@ -1168,7 +1168,6 @@ source = { editable = "." }
 dependencies = [
     { name = "aiogram" },
     { name = "aiogram-dialog" },
-    { name = "alembic" },
     { name = "fluentogram" },
     { name = "magic-filter" },
     { name = "msgpack" },
@@ -1179,6 +1178,9 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+deploy = [
+    { name = "alembic" },
+]
 dev = [
     { name = "black" },
     { name = "ipdb" },
@@ -1191,7 +1193,6 @@ dev = [
 requires-dist = [
     { name = "aiogram", specifier = "==3.13.1" },
     { name = "aiogram-dialog", specifier = "==2.2.0" },
-    { name = "alembic", specifier = "==1.14.0" },
     { name = "fluentogram", specifier = "==1.1.9" },
     { name = "magic-filter", specifier = "==1.0.12" },
     { name = "msgpack", specifier = "==1.1.0" },
@@ -1202,6 +1203,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+deploy = [{ name = "alembic", specifier = ">=1.14.0" }]
 dev = [
     { name = "black", specifier = ">=25.1.0" },
     { name = "ipdb", specifier = ">=0.13.13" },
