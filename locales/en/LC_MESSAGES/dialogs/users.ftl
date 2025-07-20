@@ -1,4 +1,7 @@
-dialog-users = Specify user by forwarding any their message or entering account ID (as number)
+dialog-users =
+    Specify user by forwarding any their message, using button "{ dialog-users.share }", or entering account ID (as number)
+
+    .share = Select from list
     .hidden_user =
         Forwarded message must be from person, not chat or bot.
         Also account shouldn't be hidden by privacy settings when forwarding.
