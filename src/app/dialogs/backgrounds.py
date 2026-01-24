@@ -6,9 +6,24 @@ from typing import Any, cast
 from aiogram.types import BufferedInputFile, CallbackQuery, ContentType, Message
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.api.entities import MediaAttachment, MediaId, ShowMode
+from aiogram_dialog.widgets.common import ManagedScroll
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Cancel, ScrollingGroup, Select, SwitchTo
+from aiogram_dialog.widgets.kbd import (
+    Button,
+    Cancel,
+    Column,
+    CurrentPage,
+    FirstPage,
+    LastPage,
+    NextPage,
+    PrevPage,
+    Row,
+    Select,
+    StubScroll,
+    SwitchTo,
+)
 from aiogram_dialog.widgets.media import DynamicMedia
+from aiogram_dialog.widgets.text import Const, Format
 from fluentogram import TranslatorRunner
 from magic_filter import F, MagicFilter
 
@@ -22,9 +37,13 @@ from .utils import active_user_id, current_user_id, has_admin_privileges
 
 logger = logging.getLogger(__name__)
 
+BACKGROUNDS_PAGE_SIZE = 5
+
+ID_BACKGROUND_PAGER = "background_pager"
 DIALOG_ELEMENT_ID_KEY = "element_id"
-DIALOG_ITEMS_KEY = "items"
+DIALOG_BACKGROUND_ITEMS_KEY = "items"
 DIALOG_N_BACKGROUNDS_KEY = "n_backgrounds"
+DIALOG_N_PAGES_KEY = "n_pages"
 DIALOG_LIMIT_KEY = "limit"
 DIALOG_BACKGROUND_KEY = "background"
 DIALOG_ESCAPED_NAME_KEY = "escaped_name"
@@ -34,25 +53,78 @@ START_DATA_SELECT_ONLY_KEY = "select_only"
 START_DATA_GLOBAL_SCOPE_KEY = "global_scope"
 
 
-async def saved_backs_getter(
+def _count_n_pages(n_items: int, page_size: int) -> int:
+    if n_items < 0 or page_size < 1:
+        raise ValueError(f"Cannot compute page size for {n_items=} and {page_size=}")
+    full_pages, rest = divmod(n_items, page_size)
+    return full_pages + (1 if rest else 0)
+
+
+async def backgrounds_limit_getter(
     dialog_manager: DialogManager,
     element_registry: ElementsRegistryAbstract,
-    _only_count: bool = False,
     **_,
-) -> dict[str, Any]:
+):
     user_id = active_user_id(dialog_manager)
-    if _only_count:
-        elements = []
-        n_elements = await element_registry.get_elements_count(user_id)
-    else:
-        elements = await element_registry.get_elements(user_id)
-        n_elements = len(elements)
     backgrounds_limit = await element_registry.get_elements_limit(user_id)
-    logger.debug("Getter: %d images found with limit %d", len(elements), backgrounds_limit)
+    logger.debug("Limit for user %d is %d backgrounds", user_id, backgrounds_limit)
     return {
-        DIALOG_ITEMS_KEY: elements,
-        DIALOG_N_BACKGROUNDS_KEY: n_elements,
         DIALOG_LIMIT_KEY: backgrounds_limit,
+    }
+
+
+async def backgrounds_pageinfo_getter(
+    dialog_manager: DialogManager,
+    element_registry: ElementsRegistryAbstract,
+    **_,
+):
+    user_id = active_user_id(dialog_manager)
+    n_elements = await element_registry.get_elements_count(user_id)
+    logger.debug("User %d has %d backgrounds loaded", user_id, n_elements)
+    return {
+        DIALOG_N_BACKGROUNDS_KEY: n_elements,
+        DIALOG_N_PAGES_KEY: _count_n_pages(n_elements, page_size=BACKGROUNDS_PAGE_SIZE),
+    }
+
+
+async def backgrounds_page_getter(
+    dialog_manager: DialogManager,
+    element_registry: ElementsRegistryAbstract,
+    **_,
+):
+    pageinfo_data = await backgrounds_pageinfo_getter(dialog_manager, element_registry)
+    n_pages = pageinfo_data[DIALOG_N_PAGES_KEY]
+    if n_pages == 0:
+        logger.debug("Early return for page getter, since there are no backgrounds")
+        return {
+            DIALOG_BACKGROUND_ITEMS_KEY: [],
+            **pageinfo_data,
+        }
+
+    user_id = active_user_id(dialog_manager)
+    scroll = cast(ManagedScroll, dialog_manager.find(ID_BACKGROUND_PAGER))
+    current_page = await scroll.get_page()
+    if current_page >= n_pages:
+        # Requested page without a data, which possible after background deletion
+        logger.debug(
+            "Update current page from %d to %d for user %d, no data on requested one",
+            current_page,
+            n_pages - 1,
+            user_id,
+        )
+        current_page = n_pages - 1
+        assert current_page >= 0, "Incorrect page management"
+        await scroll.set_page(current_page)
+
+    logger.debug("Loading backgrounds for user %d, page %d/%d", user_id, current_page + 1, n_pages)
+    elements = await element_registry.get_elements(
+        user_id,
+        limit=BACKGROUNDS_PAGE_SIZE,
+        offset=BACKGROUNDS_PAGE_SIZE * current_page,
+    )
+    return {
+        DIALOG_BACKGROUND_ITEMS_KEY: elements,
+        **pageinfo_data,
     }
 
 
@@ -207,19 +279,42 @@ start_window = Window(
         when=cast(MagicFilter, ~can_upload_background_condition),
         limit=F[DIALOG_LIMIT_KEY],
     ),
-    ScrollingGroup(
+    Column(
         Select(
             FluentFormat("dialog-backgrounds-main.item", item_name=F["item"].name),
             id="select_background",
             item_id_getter=F.element_id.cast(str).resolve,
-            items=DIALOG_ITEMS_KEY,
+            items=DIALOG_BACKGROUND_ITEMS_KEY,
             when=has_backgrounds_condition,
             on_click=select_image_handler,
         ),
-        id="select_background_wrap",
-        width=1,
-        height=5,
-        hide_on_single_page=True,
+    ),
+    StubScroll(
+        id=ID_BACKGROUND_PAGER,
+        pages=DIALOG_N_PAGES_KEY,
+    ),
+    Row(
+        FirstPage(
+            scroll=ID_BACKGROUND_PAGER,
+            text=Format("⏮️ {target_page1}"),
+        ),
+        PrevPage(
+            scroll=ID_BACKGROUND_PAGER,
+            text=Const("◀️"),
+        ),
+        CurrentPage(
+            scroll=ID_BACKGROUND_PAGER,
+            text=Format("{current_page1}"),
+        ),
+        NextPage(
+            scroll=ID_BACKGROUND_PAGER,
+            text=Const("▶️"),
+        ),
+        LastPage(
+            scroll=ID_BACKGROUND_PAGER,
+            text=Format("{target_page1} ⏭️"),
+        ),
+        when=F[DIALOG_N_PAGES_KEY] > 1,
     ),
     StartWithData(
         FluentFormat("dialog-backgrounds-main.upload"),
@@ -230,7 +325,7 @@ start_window = Window(
     ),
     Cancel(FluentFormat("dialog-cancel")),
     state=BackgroundsStates.START,
-    getter=saved_backs_getter,
+    getter=[backgrounds_limit_getter, backgrounds_page_getter],
 )
 
 
