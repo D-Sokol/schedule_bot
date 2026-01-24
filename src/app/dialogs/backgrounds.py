@@ -117,8 +117,11 @@ async def backgrounds_page_getter(
         await scroll.set_page(current_page)
 
     logger.debug("Loading backgrounds for user %d, page %d/%d", user_id, current_page + 1, n_pages)
-    elements = await element_registry.get_elements(user_id)
-    elements = elements[BACKGROUNDS_PAGE_SIZE * current_page :][:BACKGROUNDS_PAGE_SIZE]  # TODO: nest into the query
+    elements = await element_registry.get_elements(
+        user_id,
+        limit=BACKGROUNDS_PAGE_SIZE,
+        offset=BACKGROUNDS_PAGE_SIZE * current_page,
+    )
     return {
         DIALOG_BACKGROUND_ITEMS_KEY: elements,
         **pageinfo_data,

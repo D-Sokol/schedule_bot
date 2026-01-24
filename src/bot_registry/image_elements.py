@@ -39,7 +39,7 @@ GLOBAL_SCOPE_ELEMENTS_LIMIT = 1_000
 
 class ElementsRegistryAbstract(ABC):
     @abstractmethod
-    async def get_elements(self, user_id: int | None) -> list[ImageEntity]:
+    async def get_elements(self, user_id: int | None, limit: int = 10, offset: int = 0) -> list[ImageEntity]:
         raise NotImplementedError
 
     async def get_elements_count(self, user_id: int | None) -> int:
@@ -149,11 +149,13 @@ class DbElementRegistry(ElementsRegistryAbstract, DatabaseRegistryMixin, NATSReg
     CONVERT_RAW_SUBJECT_NAME: ClassVar[str] = "assets.convert.raw"
     CONVERT_FILE_ID_SUBJECT_NAME: ClassVar[str] = "assets.convert.file_id"
 
-    async def get_elements(self, user_id: int | None) -> list[ImageEntity]:
+    async def get_elements(self, user_id: int | None, limit: int = 10, offset: int = 0) -> list[ImageEntity]:
         result = await self.session.execute(
             select(ImageElementModel)
             .where(ImageElementModel.user_id == user_id)
             .order_by(ImageElementModel.display_order.asc())
+            .offset(offset)
+            .limit(limit)
         )
         elements = result.fetchall()
         return [self._convert_to_entity(e) for (e,) in elements]
