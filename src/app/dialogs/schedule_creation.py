@@ -3,7 +3,6 @@ import html
 import logging
 from collections import defaultdict
 from datetime import date, timedelta
-from functools import partial
 from typing import Any
 
 from aiogram.types import CallbackQuery, Message
@@ -23,9 +22,10 @@ from services.renderer.weekdays import Entry, Time, WeekDay
 from .backgrounds import (
     START_DATA_GLOBAL_SCOPE_KEY,
     START_DATA_SELECT_ONLY_KEY,
+    backgrounds_limit_getter,
+    backgrounds_pageinfo_getter,
     can_upload_background_condition,
     has_backgrounds_condition,
-    saved_backs_getter,
 )
 from .custom_widgets import FluentFormat
 from .schedule_wizard import (
@@ -163,7 +163,7 @@ start_window = Window(
     Cancel(FluentFormat("dialog-cancel")),
     state=ScheduleStates.START,
     on_process_result=process_upload_new_background,
-    getter=partial(saved_backs_getter, _only_count=True),
+    getter=[backgrounds_limit_getter, backgrounds_pageinfo_getter],
 )
 
 
